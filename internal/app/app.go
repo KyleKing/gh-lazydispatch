@@ -1,11 +1,16 @@
 package app
 
 import (
+	"os/exec"
+	"sort"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/kyleking/gh-workflow-runner/internal/frecency"
+	"github.com/kyleking/gh-workflow-runner/internal/runner"
 	"github.com/kyleking/gh-workflow-runner/internal/ui"
+	"github.com/kyleking/gh-workflow-runner/internal/ui/modal"
 	"github.com/kyleking/gh-workflow-runner/internal/workflow"
 )
 
@@ -29,7 +34,12 @@ type Model struct {
 	selectedHistory  int
 	branch           string
 	inputs           map[string]string
+	inputOrder       []string
 	watchRun         bool
+
+	modalStack *modal.Stack
+
+	pendingInputName string
 
 	width  int
 	height int
@@ -39,12 +49,13 @@ type Model struct {
 // New creates a new application model.
 func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string) Model {
 	m := Model{
-		focused:   PaneWorkflows,
-		workflows: workflows,
-		history:   history,
-		repo:      repo,
-		inputs:    make(map[string]string),
-		keys:      DefaultKeyMap(),
+		focused:    PaneWorkflows,
+		workflows:  workflows,
+		history:    history,
+		repo:       repo,
+		inputs:     make(map[string]string),
+		modalStack: modal.NewStack(),
+		keys:       DefaultKeyMap(),
 	}
 
 	if len(workflows) > 0 {
@@ -61,40 +72,91 @@ func (m Model) Init() tea.Cmd {
 
 // Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.modalStack.HasActive() {
+		return m.updateModal(msg)
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.modalStack.SetSize(msg.Width, msg.Height)
 		return m, nil
 
+	case modal.SelectResultMsg:
+		return m.handleSelectResult(msg)
+
+	case modal.InputResultMsg:
+		return m.handleInputResult(msg)
+
+	case modal.ConfirmResultMsg:
+		return m.handleConfirmResult(msg)
+
 	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keys.Quit):
-			return m, tea.Quit
+		return m.handleKeyMsg(msg)
+	}
 
-		case key.Matches(msg, m.keys.Tab):
-			m.focused = (m.focused + 1) % 3
-			return m, nil
+	return m, nil
+}
 
-		case key.Matches(msg, m.keys.ShiftTab):
-			m.focused = (m.focused + 2) % 3
-			return m, nil
+func (m Model) updateModal(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmd := m.modalStack.Update(msg)
+	return m, cmd
+}
 
-		case key.Matches(msg, m.keys.Up):
-			m.handleUp()
-			return m, nil
+func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Quit):
+		return m, tea.Quit
 
-		case key.Matches(msg, m.keys.Down):
-			m.handleDown()
-			return m, nil
+	case key.Matches(msg, m.keys.Help):
+		m.modalStack.Push(modal.NewHelpModal())
+		return m, nil
 
-		case key.Matches(msg, m.keys.Enter):
-			return m.handleEnter()
+	case key.Matches(msg, m.keys.Tab):
+		m.focused = (m.focused + 1) % 3
+		return m, nil
 
-		case key.Matches(msg, m.keys.Watch):
-			m.watchRun = !m.watchRun
-			return m, nil
-		}
+	case key.Matches(msg, m.keys.ShiftTab):
+		m.focused = (m.focused + 2) % 3
+		return m, nil
+
+	case key.Matches(msg, m.keys.Up):
+		m.handleUp()
+		return m, nil
+
+	case key.Matches(msg, m.keys.Down):
+		m.handleDown()
+		return m, nil
+
+	case key.Matches(msg, m.keys.Enter):
+		return m.handleEnter()
+
+	case key.Matches(msg, m.keys.Watch):
+		m.watchRun = !m.watchRun
+		return m, nil
+
+	case key.Matches(msg, m.keys.Branch):
+		return m.openBranchModal()
+
+	case key.Matches(msg, m.keys.Input1):
+		return m.openInputModal(0)
+	case key.Matches(msg, m.keys.Input2):
+		return m.openInputModal(1)
+	case key.Matches(msg, m.keys.Input3):
+		return m.openInputModal(2)
+	case key.Matches(msg, m.keys.Input4):
+		return m.openInputModal(3)
+	case key.Matches(msg, m.keys.Input5):
+		return m.openInputModal(4)
+	case key.Matches(msg, m.keys.Input6):
+		return m.openInputModal(5)
+	case key.Matches(msg, m.keys.Input7):
+		return m.openInputModal(6)
+	case key.Matches(msg, m.keys.Input8):
+		return m.openInputModal(7)
+	case key.Matches(msg, m.keys.Input9):
+		return m.openInputModal(8)
 	}
 
 	return m, nil
@@ -136,22 +198,119 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		if m.selectedHistory < len(entries) {
 			entry := entries[m.selectedHistory]
 			m.branch = entry.Branch
-			m.inputs = entry.Inputs
-			if m.inputs == nil {
-				m.inputs = make(map[string]string)
+			m.inputs = make(map[string]string)
+			for k, v := range entry.Inputs {
+				m.inputs[k] = v
 			}
 		}
 	case PaneConfig:
-		return m, tea.Quit
+		return m.executeWorkflow()
+	}
+	return m, nil
+}
+
+func (m Model) executeWorkflow() (tea.Model, tea.Cmd) {
+	if m.selectedWorkflow >= len(m.workflows) {
+		return m, nil
+	}
+
+	wf := m.workflows[m.selectedWorkflow]
+	cfg := runner.RunConfig{
+		Workflow: wf.Filename,
+		Branch:   m.branch,
+		Inputs:   m.inputs,
+		Watch:    m.watchRun,
+	}
+
+	m.history.Record(m.repo, wf.Filename, m.branch, m.inputs)
+	m.history.Save()
+
+	return m, tea.ExecProcess(exec.Command("gh", runner.BuildArgs(cfg)...), func(err error) tea.Msg {
+		return executionDoneMsg{err: err}
+	})
+}
+
+type executionDoneMsg struct {
+	err error
+}
+
+func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
+	branches := []string{"main", "master", "develop"}
+	if m.branch != "" && m.branch != "main" && m.branch != "master" && m.branch != "develop" {
+		branches = append([]string{m.branch}, branches...)
+	}
+
+	m.modalStack.Push(modal.NewSelectModal("Select Branch", branches, m.branch))
+	return m, nil
+}
+
+func (m Model) openInputModal(index int) (tea.Model, tea.Cmd) {
+	if index >= len(m.inputOrder) {
+		return m, nil
+	}
+
+	name := m.inputOrder[index]
+	wf := m.workflows[m.selectedWorkflow]
+	inputs := wf.GetInputs()
+	input, ok := inputs[name]
+	if !ok {
+		return m, nil
+	}
+
+	m.pendingInputName = name
+	currentVal := m.inputs[name]
+
+	switch input.InputType() {
+	case "boolean":
+		current := currentVal == "true"
+		m.modalStack.Push(modal.NewConfirmModal(name, input.Description, current))
+	case "choice":
+		m.modalStack.Push(modal.NewSelectModal(name, input.Options, currentVal))
+	default:
+		m.modalStack.Push(modal.NewInputModal(name, input.Description, currentVal))
+	}
+
+	return m, nil
+}
+
+func (m Model) handleSelectResult(msg modal.SelectResultMsg) (tea.Model, tea.Cmd) {
+	if m.pendingInputName != "" {
+		m.inputs[m.pendingInputName] = msg.Value
+		m.pendingInputName = ""
+	} else {
+		m.branch = msg.Value
+	}
+	return m, nil
+}
+
+func (m Model) handleInputResult(msg modal.InputResultMsg) (tea.Model, tea.Cmd) {
+	if m.pendingInputName != "" {
+		m.inputs[m.pendingInputName] = msg.Value
+		m.pendingInputName = ""
+	}
+	return m, nil
+}
+
+func (m Model) handleConfirmResult(msg modal.ConfirmResultMsg) (tea.Model, tea.Cmd) {
+	if m.pendingInputName != "" {
+		if msg.Value {
+			m.inputs[m.pendingInputName] = "true"
+		} else {
+			m.inputs[m.pendingInputName] = "false"
+		}
+		m.pendingInputName = ""
 	}
 	return m, nil
 }
 
 func (m *Model) initializeInputs(wf workflow.WorkflowFile) {
 	m.inputs = make(map[string]string)
+	m.inputOrder = nil
 	for name, input := range wf.GetInputs() {
 		m.inputs[name] = input.Default
+		m.inputOrder = append(m.inputOrder, name)
 	}
+	sort.Strings(m.inputOrder)
 	m.selectedHistory = 0
 }
 
@@ -191,7 +350,13 @@ func (m Model) View() string {
 	configPane := m.viewConfigPane(m.width, bottomHeight)
 
 	top := lipgloss.JoinHorizontal(lipgloss.Top, workflowPane, historyPane)
-	return lipgloss.JoinVertical(lipgloss.Left, top, configPane)
+	main := lipgloss.JoinVertical(lipgloss.Left, top, configPane)
+
+	if m.modalStack.HasActive() {
+		return m.modalStack.Render(main)
+	}
+
+	return main
 }
 
 func (m Model) viewWorkflowPane(width, height int) string {
@@ -268,11 +433,14 @@ func (m Model) viewConfigPane(width, height int) string {
 		}
 		branchLine = "Branch: [b] " + branch
 
-		inputs := wf.GetInputs()
-		if len(inputs) > 0 {
+		if len(m.inputOrder) > 0 {
+			inputs := wf.GetInputs()
 			inputsLine = "\nInputs:"
-			i := 1
-			for name, input := range inputs {
+			for i, name := range m.inputOrder {
+				if i >= 9 {
+					break
+				}
+				input := inputs[name]
 				val := m.inputs[name]
 				if val == "" {
 					val = input.Default
@@ -280,11 +448,7 @@ func (m Model) viewConfigPane(width, height int) string {
 				if val == "" {
 					val = "(empty)"
 				}
-				inputsLine += "\n  [" + string(rune('0'+i)) + "] " + name + ": " + val
-				i++
-				if i > 9 {
-					break
-				}
+				inputsLine += "\n  [" + string(rune('1'+i)) + "] " + name + ": " + val
 			}
 		}
 	}
@@ -298,7 +462,7 @@ func (m Model) viewConfigPane(width, height int) string {
 
 	content := workflowLine + "\n" + branchLine + watchStatus + inputsLine
 
-	helpLine := "\n\n" + ui.HelpStyle.Render("[Tab] switch pane  [Enter] run  [b] branch  [1-9] edit input  [q] quit")
+	helpLine := "\n\n" + ui.HelpStyle.Render("[Tab] pane  [Enter] run  [b] branch  [1-9] input  [?] help  [q] quit")
 
 	return style.Render(title + "\n" + content + helpLine)
 }
