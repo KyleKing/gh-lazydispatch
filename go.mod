@@ -1,4 +1,4 @@
-module github.com/kyleking/gh-wfr
+module github.com/kyleking/gh-wfd
 
 go 1.25.5
 

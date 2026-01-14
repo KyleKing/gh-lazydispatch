@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfr/internal/ui"
+	"github.com/kyleking/gh-wfd/internal/ui"
 )
 
 // SelectModal presents a list of options to choose from.

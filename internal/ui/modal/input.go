@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfr/internal/ui"
+	"github.com/kyleking/gh-wfd/internal/ui"
 )
 
 // InputModal presents a text input field.

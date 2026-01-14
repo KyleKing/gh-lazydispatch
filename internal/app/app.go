@@ -7,11 +7,11 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kyleking/gh-wfr/internal/frecency"
-	"github.com/kyleking/gh-wfr/internal/runner"
-	"github.com/kyleking/gh-wfr/internal/ui"
-	"github.com/kyleking/gh-wfr/internal/ui/modal"
-	"github.com/kyleking/gh-wfr/internal/workflow"
+	"github.com/kyleking/gh-wfd/internal/frecency"
+	"github.com/kyleking/gh-wfd/internal/runner"
+	"github.com/kyleking/gh-wfd/internal/ui"
+	"github.com/kyleking/gh-wfd/internal/ui/modal"
+	"github.com/kyleking/gh-wfd/internal/workflow"
 )
 
 // FocusedPane represents which pane currently has focus.

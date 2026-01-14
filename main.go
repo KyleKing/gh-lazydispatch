@@ -6,12 +6,12 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfr/internal/app"
-	"github.com/kyleking/gh-wfr/internal/frecency"
-	"github.com/kyleking/gh-wfr/internal/runner"
-	"github.com/kyleking/gh-wfr/internal/ui"
-	"github.com/kyleking/gh-wfr/internal/ui/theme"
-	"github.com/kyleking/gh-wfr/internal/workflow"
+	"github.com/kyleking/gh-wfd/internal/app"
+	"github.com/kyleking/gh-wfd/internal/frecency"
+	"github.com/kyleking/gh-wfd/internal/runner"
+	"github.com/kyleking/gh-wfd/internal/ui"
+	"github.com/kyleking/gh-wfd/internal/ui/theme"
+	"github.com/kyleking/gh-wfd/internal/workflow"
 )
 
 var (
@@ -31,7 +31,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("gh-wfr %s\n", version)
+		fmt.Printf("gh-wfd %s\n", version)
 		os.Exit(0)
 	}
 
@@ -83,10 +83,10 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Println(`gh-wfr - Interactive GitHub Workflow Runner
+	fmt.Println(`gh-wfd - Interactive GitHub Workflow Dispatcher
 
 Usage:
-  gh wfr [flags]
+  gh wfd [flags]
 
 Description:
   A TUI for triggering GitHub Actions workflow_dispatch workflows with
@@ -110,5 +110,5 @@ Keyboard Shortcuts:
   ?                  Show help
   q, Ctrl+C          Quit
 
-For more information: https://github.com/kyleking/gh-wfr`)
+For more information: https://github.com/kyleking/gh-wfd`)
 }

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfr/internal/ui"
-	"github.com/kyleking/gh-wfr/internal/workflow"
+	"github.com/kyleking/gh-wfd/internal/ui"
+	"github.com/kyleking/gh-wfd/internal/workflow"
 )
 
 // ConfigModel manages the configuration pane.

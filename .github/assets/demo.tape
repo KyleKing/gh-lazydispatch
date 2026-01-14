@@ -56,12 +56,12 @@ Set Width 1400
 Set Height 900
 
 Hide
-Type `cd ~/Developer/kyleking/gh-workflow-runner/testdata`  Enter  Sleep 500ms
+Type `cd ~/Developer/kyleking/gh-wfd/testdata`  Enter  Sleep 500ms
 Type `clear`  Enter
 Show
 
 # Start the TUI
-Type `../gh-workflow-runner`  Sleep 500ms  Enter
+Type `../gh-wfd`  Sleep 500ms  Enter
 Sleep 2s
 
 # Navigate workflows

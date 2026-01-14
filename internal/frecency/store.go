@@ -10,10 +10,10 @@ import (
 // CachePath returns the path to the frecency cache file.
 func CachePath() string {
 	if xdg := os.Getenv("XDG_CACHE_HOME"); xdg != "" {
-		return filepath.Join(xdg, "gh-workflow-runner", "history.json")
+		return filepath.Join(xdg, "gh-wfd", "history.json")
 	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".cache", "gh-workflow-runner", "history.json")
+	return filepath.Join(home, ".cache", "gh-wfd", "history.json")
 }
 
 // Load reads the store from disk, returning empty store if not found.

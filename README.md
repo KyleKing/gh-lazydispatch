@@ -1,6 +1,6 @@
-# gh-wfr
+# gh-wfd
 
-![.github/assets/demo.gif](https://raw.githubusercontent.com/kyleking/gh-wfr/main/.github/assets/demo.gif)
+![.github/assets/demo.gif](https://raw.githubusercontent.com/kyleking/gh-wfd/main/.github/assets/demo.gif)
 
 Interactive GitHub Actions workflow dispatcher TUI with fuzzy selection, input configuration, and frecency-based history.
 
@@ -19,26 +19,26 @@ Interactive GitHub Actions workflow dispatcher TUI with fuzzy selection, input c
 ### As a GitHub CLI Extension (Recommended)
 
 ```bash
-gh extension install KyleKing/gh-wfr
+gh extension install KyleKing/gh-wfd
 ```
 
 Then run with:
 
 ```bash
-gh wfr
+gh wfd
 ```
 
 ### Standalone Binary
 
 ```bash
-go install github.com/kyleking/gh-wfr@latest
+go install github.com/kyleking/gh-wfd@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/kyleking/gh-wfr
-cd gh-wfr
+git clone https://github.com/kyleking/gh-wfd
+cd gh-wfd
 go build
 ```
 
@@ -50,10 +50,10 @@ Navigate to a directory with a Git repository containing GitHub Actions workflow
 cd your-project
 
 # If installed as gh extension:
-gh wfr
+gh wfd
 
 # If installed as standalone:
-gh-wfr
+gh-wfd
 ```
 
 The tool will discover all workflows with `workflow_dispatch` triggers and present them in an interactive TUI.

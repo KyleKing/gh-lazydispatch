@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfr/internal/frecency"
-	"github.com/kyleking/gh-wfr/internal/workflow"
+	"github.com/kyleking/gh-wfd/internal/frecency"
+	"github.com/kyleking/gh-wfd/internal/workflow"
 )
 
 func testWorkflows() []workflow.WorkflowFile {

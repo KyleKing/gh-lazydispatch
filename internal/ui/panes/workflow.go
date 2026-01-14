@@ -3,8 +3,8 @@ package panes
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfr/internal/ui"
-	"github.com/kyleking/gh-wfr/internal/workflow"
+	"github.com/kyleking/gh-wfd/internal/ui"
+	"github.com/kyleking/gh-wfd/internal/workflow"
 )
 
 // WorkflowItem represents a workflow in the list.

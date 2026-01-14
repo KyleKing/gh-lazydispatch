@@ -1,4 +1,4 @@
-# gh-workflow-runner Extension Plan
+# gh-wfd Extension Plan
 
 ## Research Summary
 
@@ -31,7 +31,7 @@
 ### Core Flow
 
 ```
-gh workflow-runner
+gh wfd
      │
      ▼
 ┌─────────────────────────────────────┐
@@ -92,7 +92,7 @@ gh workflow-runner
 ## Implementation Steps
 
 ### Phase 1: Project Setup
-1. Initialize Go extension: `gh extension create --precompiled=go gh-workflow-runner`
+1. Initialize Go extension: `gh extension create --precompiled=go gh-wfd`
 2. Add dependencies: go-gh/v2, charmbracelet/huh, gopkg.in/yaml.v3
 3. Set up basic CLI structure with cobra or minimal main.go
 
@@ -143,7 +143,7 @@ gh workflow-runner
 ## File Structure
 
 ```
-gh-workflow-runner/
+gh-wfd/
 ├── main.go                 # Entry point, CLI setup
 ├── internal/
 │   ├── workflow/
@@ -184,7 +184,7 @@ If a faster MVP is preferred, a shell script approach:
 
 ```bash
 #!/bin/bash
-# gh-workflow-runner
+# gh-wfd
 
 WORKFLOW=$(find .github/workflows -name "*.y*ml" | fzf --preview 'cat {}')
 # Parse inputs with yq
@@ -319,7 +319,7 @@ l.Title = "Select Workflow"
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│  gh workflow-runner                                    │
+│  gh wfd                                    │
 │                                                        │
 │  Recent:                                               │
 │  > [1] deploy.yml → production (main) ← Enter to run  │
@@ -355,7 +355,7 @@ l.Title = "Select Workflow"
 Follow XDG Base Directory spec via [go-xdg](https://pkg.go.dev/launchpad.net/go-xdg):
 
 ```
-~/.local/share/gh-workflow-runner/
+~/.local/share/gh-wfd/
 ├── history.json       # Recent runs with inputs
 └── frecency.db        # SQLite for scoring (optional)
 ```
@@ -409,7 +409,7 @@ If history grows large, [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) 
 ### Sequential Prompts (Simpler, Recommended for v1)
 
 ```
-$ gh workflow-runner
+$ gh wfd
 
 ? Select workflow: (type to filter)
   > deploy.yml (Deploy to Environment)

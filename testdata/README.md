@@ -1,6 +1,6 @@
 # Test Workflows
 
-Sample workflows for manual testing of gh-workflow-runner features.
+Sample workflows for manual testing of gh-wfd features.
 
 ## Workflow Coverage
 
