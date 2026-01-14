@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"os/exec"
 	"sort"
 
@@ -8,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/kyleking/gh-wfd/internal/frecency"
+	"github.com/kyleking/gh-wfd/internal/git"
 	"github.com/kyleking/gh-wfd/internal/runner"
 	"github.com/kyleking/gh-wfd/internal/ui"
 	"github.com/kyleking/gh-wfd/internal/ui/modal"
@@ -85,6 +87,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case modal.SelectResultMsg:
 		return m.handleSelectResult(msg)
+
+	case modal.BranchResultMsg:
+		return m.handleBranchResult(msg)
 
 	case modal.InputResultMsg:
 		return m.handleInputResult(msg)
@@ -235,12 +240,22 @@ type executionDoneMsg struct {
 }
 
 func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
-	branches := []string{"main", "master", "develop"}
-	if m.branch != "" && m.branch != "main" && m.branch != "master" && m.branch != "develop" {
-		branches = append([]string{m.branch}, branches...)
+	ctx := context.Background()
+
+	branches, err := git.FetchBranches(ctx)
+	if err != nil {
+		branches = []string{"main", "master", "develop"}
 	}
 
-	m.modalStack.Push(modal.NewSelectModal("Select Branch", branches, m.branch))
+	if m.branch != "" && !_contains(branches, m.branch) {
+		branches = append(branches, m.branch)
+	}
+
+	defaultBranch := git.GetDefaultBranch(ctx)
+
+	branchModal := modal.NewSimpleBranchModal("Select Branch", branches, m.branch, defaultBranch)
+	branchModal.SetSize(m.width, m.height)
+	m.modalStack.Push(branchModal)
 	return m, nil
 }
 
@@ -277,9 +292,12 @@ func (m Model) handleSelectResult(msg modal.SelectResultMsg) (tea.Model, tea.Cmd
 	if m.pendingInputName != "" {
 		m.inputs[m.pendingInputName] = msg.Value
 		m.pendingInputName = ""
-	} else {
-		m.branch = msg.Value
 	}
+	return m, nil
+}
+
+func (m Model) handleBranchResult(msg modal.BranchResultMsg) (tea.Model, tea.Cmd) {
+	m.branch = msg.Value
 	return m, nil
 }
 
@@ -466,4 +484,13 @@ func (m Model) viewConfigPane(width, height int) string {
 	helpLine := "\n\n" + ui.HelpStyle.Render("[Tab] pane  [Enter] run  [b] branch  [1-9] input  [?] help  [q] quit")
 
 	return style.Render(title + "\n" + content + helpLine)
+}
+
+func _contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
