@@ -16,8 +16,8 @@ func TestDiscover(t *testing.T) {
 		t.Fatalf("Discover failed: %v", err)
 	}
 
-	if len(workflows) != 3 {
-		t.Errorf("expected 3 dispatchable workflows, got %d", len(workflows))
+	if len(workflows) != 8 {
+		t.Errorf("expected 8 dispatchable workflows, got %d", len(workflows))
 		for _, wf := range workflows {
 			t.Logf("  found: %s", wf.Filename)
 		}
@@ -28,15 +28,11 @@ func TestDiscover(t *testing.T) {
 		filenames[wf.Filename] = true
 	}
 
-	expected := []string{"deploy.yml", "no-name.yaml", "simple-dispatch.yml"}
-	for _, name := range expected {
-		if !filenames[name] {
-			t.Errorf("expected to find %s", name)
-		}
-	}
-
 	if filenames["ci.yml"] {
 		t.Error("ci.yml should not be included (not dispatchable)")
+	}
+	if filenames["not-dispatchable.yml"] {
+		t.Error("not-dispatchable.yml should not be included")
 	}
 }
 

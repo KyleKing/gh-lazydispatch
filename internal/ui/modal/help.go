@@ -3,7 +3,7 @@ package modal
 import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-workflow-runner/internal/ui"
+	"github.com/kyleking/gh-wfr/internal/ui"
 )
 
 // HelpModal displays keyboard shortcuts and help.

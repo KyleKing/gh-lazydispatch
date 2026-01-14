@@ -112,7 +112,7 @@ func TestSelectModal_Escape(t *testing.T) {
 }
 
 func TestInputModal_Enter(t *testing.T) {
-	modal := NewInputModal("Title", "Description", "initial")
+	modal := NewInputModal("Title", "Description", "default", "string", "initial")
 
 	if modal.input.Value() != "initial" {
 		t.Errorf("expected initial value 'initial', got %q", modal.input.Value())
@@ -131,7 +131,7 @@ func TestInputModal_Enter(t *testing.T) {
 }
 
 func TestInputModal_Escape(t *testing.T) {
-	modal := NewInputModal("Title", "", "value")
+	modal := NewInputModal("Title", "", "", "", "value")
 
 	esc := tea.KeyMsg{Type: tea.KeyEscape}
 	modal.Update(esc)

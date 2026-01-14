@@ -7,8 +7,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-workflow-runner/internal/frecency"
-	"github.com/kyleking/gh-workflow-runner/internal/ui"
+	"github.com/kyleking/gh-wfr/internal/frecency"
+	"github.com/kyleking/gh-wfr/internal/ui"
 )
 
 // HistoryItem represents a history entry in the list.

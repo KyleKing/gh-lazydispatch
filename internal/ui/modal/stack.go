@@ -3,7 +3,7 @@ package modal
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kyleking/gh-workflow-runner/internal/ui"
+	"github.com/kyleking/gh-wfr/internal/ui"
 )
 
 // Context represents a modal that can be pushed onto the stack.
@@ -98,7 +98,7 @@ func placeCenter(background, modal string, width, height int) string {
 	modalStyle := lipgloss.NewStyle().
 		BorderStyle(lipgloss.DoubleBorder()).
 		BorderForeground(ui.PrimaryColor).
-		Padding(1, 2).
+		Padding(2, 3).
 		Background(ui.ModalBgColor)
 
 	styledModal := modalStyle.Render(modal)

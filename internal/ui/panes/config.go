@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-workflow-runner/internal/ui"
-	"github.com/kyleking/gh-workflow-runner/internal/workflow"
+	"github.com/kyleking/gh-wfr/internal/ui"
+	"github.com/kyleking/gh-wfr/internal/workflow"
 )
 
 // ConfigModel manages the configuration pane.
@@ -109,6 +109,7 @@ func (m ConfigModel) View() string {
 		wfName = m.workflow.Filename
 	}
 	content.WriteString(fmt.Sprintf("Workflow: %s\n", wfName))
+	content.WriteString(fmt.Sprintf("File: %s\n", m.workflow.Filename))
 
 	branch := m.branch
 	if branch == "" {
@@ -133,8 +134,15 @@ func (m ConfigModel) View() string {
 			}
 			input := wfInputs[name]
 			val := m.inputs[name]
-			if val == "" {
-				val = "(empty)"
+
+			modified := ""
+			if val != input.Default {
+				modified = "*"
+			}
+
+			displayVal := val
+			if displayVal == "" {
+				displayVal = "(empty)"
 			}
 
 			typeHint := input.InputType()
@@ -144,11 +152,15 @@ func (m ConfigModel) View() string {
 
 			required := ""
 			if input.Required {
-				required = "*"
+				required = "!"
 			}
 
-			content.WriteString(fmt.Sprintf("  [%d] %s%s: %s (%s)\n",
-				i+1, name, required, val, typeHint))
+			content.WriteString(fmt.Sprintf("  [%d] %s%s%s: %s (%s)\n",
+				i+1, name, required, modified, displayVal, typeHint))
+
+			if input.Description != "" {
+				content.WriteString(fmt.Sprintf("      %s\n", ui.SubtitleStyle.Render(input.Description)))
+			}
 		}
 	}
 

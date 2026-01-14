@@ -7,11 +7,11 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kyleking/gh-workflow-runner/internal/frecency"
-	"github.com/kyleking/gh-workflow-runner/internal/runner"
-	"github.com/kyleking/gh-workflow-runner/internal/ui"
-	"github.com/kyleking/gh-workflow-runner/internal/ui/modal"
-	"github.com/kyleking/gh-workflow-runner/internal/workflow"
+	"github.com/kyleking/gh-wfr/internal/frecency"
+	"github.com/kyleking/gh-wfr/internal/runner"
+	"github.com/kyleking/gh-wfr/internal/ui"
+	"github.com/kyleking/gh-wfr/internal/ui/modal"
+	"github.com/kyleking/gh-wfr/internal/workflow"
 )
 
 // FocusedPane represents which pane currently has focus.
@@ -267,7 +267,7 @@ func (m Model) openInputModal(index int) (tea.Model, tea.Cmd) {
 	case "choice":
 		m.modalStack.Push(modal.NewSelectModal(name, input.Options, currentVal))
 	default:
-		m.modalStack.Push(modal.NewInputModal(name, input.Description, currentVal))
+		m.modalStack.Push(modal.NewInputModal(name, input.Description, input.Default, input.InputType(), currentVal))
 	}
 
 	return m, nil
@@ -342,7 +342,7 @@ func (m Model) View() string {
 	topHeight := m.height / 2
 	bottomHeight := m.height - topHeight
 
-	leftWidth := m.width / 3
+	leftWidth := (m.width * 11) / 30
 	rightWidth := m.width - leftWidth
 
 	workflowPane := m.viewWorkflowPane(leftWidth, topHeight)
@@ -363,15 +363,16 @@ func (m Model) viewWorkflowPane(width, height int) string {
 	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
 
 	title := ui.TitleStyle.Render("Workflows")
+	maxLineWidth := width - 8
 	var content string
 	for i, wf := range m.workflows {
 		name := wf.Name
 		if name == "" {
 			name = wf.Filename
 		}
-		line := wf.Filename
-		if name != wf.Filename {
-			line = name + " (" + wf.Filename + ")"
+		line := name
+		if len(line) > maxLineWidth {
+			line = line[:maxLineWidth-3] + "..."
 		}
 		if i == m.selectedWorkflow {
 			content += ui.SelectedStyle.Render("> " + line)

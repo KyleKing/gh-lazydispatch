@@ -3,8 +3,8 @@ package panes
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-workflow-runner/internal/ui"
-	"github.com/kyleking/gh-workflow-runner/internal/workflow"
+	"github.com/kyleking/gh-wfr/internal/ui"
+	"github.com/kyleking/gh-wfr/internal/workflow"
 )
 
 // WorkflowItem represents a workflow in the list.
@@ -68,7 +68,7 @@ func NewWorkflowModel(workflows []workflow.WorkflowFile) WorkflowModel {
 func (m *WorkflowModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.list.SetSize(width-4, height-4)
+	m.list.SetSize(width-6, height-6)
 }
 
 // SetFocused updates the focus state.

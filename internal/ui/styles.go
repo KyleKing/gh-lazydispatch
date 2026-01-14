@@ -2,7 +2,7 @@ package ui
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kyleking/gh-workflow-runner/internal/ui/theme"
+	"github.com/kyleking/gh-wfr/internal/ui/theme"
 )
 
 var currentTheme theme.Theme
