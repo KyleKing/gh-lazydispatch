@@ -29,6 +29,17 @@ type KeyMap struct {
 	Input7 key.Binding
 	Input8 key.Binding
 	Input9 key.Binding
+
+	Workflow0 key.Binding
+	Workflow1 key.Binding
+	Workflow2 key.Binding
+	Workflow3 key.Binding
+	Workflow4 key.Binding
+	Workflow5 key.Binding
+	Workflow6 key.Binding
+	Workflow7 key.Binding
+	Workflow8 key.Binding
+	Workflow9 key.Binding
 }
 
 // DefaultKeyMap returns the default keyboard shortcuts.
@@ -49,7 +60,7 @@ func DefaultKeyMap() KeyMap {
 		Up:       key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
 		Watch:    key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "watch")),
 
-		Input0: key.NewBinding(key.WithKeys("0"), key.WithHelp("0", "input 10")),
+		Input0: key.NewBinding(key.WithKeys("0"), key.WithHelp("0", "input 0")),
 		Input1: key.NewBinding(key.WithKeys("1"), key.WithHelp("1", "input 1")),
 		Input2: key.NewBinding(key.WithKeys("2"), key.WithHelp("2", "input 2")),
 		Input3: key.NewBinding(key.WithKeys("3"), key.WithHelp("3", "input 3")),
@@ -59,6 +70,17 @@ func DefaultKeyMap() KeyMap {
 		Input7: key.NewBinding(key.WithKeys("7"), key.WithHelp("7", "input 7")),
 		Input8: key.NewBinding(key.WithKeys("8"), key.WithHelp("8", "input 8")),
 		Input9: key.NewBinding(key.WithKeys("9"), key.WithHelp("9", "input 9")),
+
+		Workflow0: key.NewBinding(key.WithKeys("0"), key.WithHelp("0", "workflow all")),
+		Workflow1: key.NewBinding(key.WithKeys("1"), key.WithHelp("1", "workflow 1")),
+		Workflow2: key.NewBinding(key.WithKeys("2"), key.WithHelp("2", "workflow 2")),
+		Workflow3: key.NewBinding(key.WithKeys("3"), key.WithHelp("3", "workflow 3")),
+		Workflow4: key.NewBinding(key.WithKeys("4"), key.WithHelp("4", "workflow 4")),
+		Workflow5: key.NewBinding(key.WithKeys("5"), key.WithHelp("5", "workflow 5")),
+		Workflow6: key.NewBinding(key.WithKeys("6"), key.WithHelp("6", "workflow 6")),
+		Workflow7: key.NewBinding(key.WithKeys("7"), key.WithHelp("7", "workflow 7")),
+		Workflow8: key.NewBinding(key.WithKeys("8"), key.WithHelp("8", "workflow 8")),
+		Workflow9: key.NewBinding(key.WithKeys("9"), key.WithHelp("9", "workflow 9")),
 	}
 }
 

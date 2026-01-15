@@ -13,6 +13,7 @@ var (
 	SecondaryColor lipgloss.Color
 	AccentColor    lipgloss.Color
 	MutedColor     lipgloss.Color
+	SoftMutedColor lipgloss.Color
 	TextColor      lipgloss.Color
 	ModalBgColor   lipgloss.Color
 )
@@ -26,6 +27,7 @@ var (
 	NormalStyle        lipgloss.Style
 	SelectedStyle      lipgloss.Style
 	SubtitleStyle      lipgloss.Style
+	TableDefaultStyle  lipgloss.Style
 	TableDimmedStyle   lipgloss.Style
 	TableHeaderStyle   lipgloss.Style
 	TableItalicStyle   lipgloss.Style
@@ -46,6 +48,7 @@ func ApplyTheme() {
 	SecondaryColor = currentTheme.Secondary
 	AccentColor = currentTheme.Accent
 	MutedColor = currentTheme.Muted
+	SoftMutedColor = currentTheme.SoftMuted
 	TextColor = currentTheme.Text
 	ModalBgColor = currentTheme.ModalBg
 
@@ -62,7 +65,7 @@ func ApplyTheme() {
 		BorderForeground(PrimaryColor)
 
 	HelpStyle = lipgloss.NewStyle().
-		Foreground(MutedColor)
+		Foreground(SoftMutedColor)
 
 	NormalStyle = lipgloss.NewStyle().
 		Foreground(TextColor)
@@ -72,7 +75,10 @@ func ApplyTheme() {
 		Foreground(AccentColor)
 
 	SubtitleStyle = lipgloss.NewStyle().
-		Foreground(MutedColor)
+		Foreground(SoftMutedColor)
+
+	TableDefaultStyle = lipgloss.NewStyle().
+		Foreground(SoftMutedColor)
 
 	TableDimmedStyle = lipgloss.NewStyle().
 		Foreground(MutedColor)

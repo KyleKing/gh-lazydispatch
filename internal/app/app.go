@@ -28,6 +28,15 @@ const (
 	PaneConfig
 )
 
+// ViewMode represents the current view mode.
+type ViewMode int
+
+const (
+	WorkflowListMode ViewMode = iota
+	HistoryPreviewMode
+	InputDetailMode
+)
+
 // Model is the root bubbletea model for the application.
 type Model struct {
 	focused   FocusedPane
@@ -47,10 +56,11 @@ type Model struct {
 	pendingInputName string
 
 	// Config panel state
-	selectedInput   int      // Currently selected input row (-1 = none)
-	inputDetailMode bool     // When true, workflow pane shows input details
-	filterText      string   // Current filter string
-	filteredInputs  []string // Input names after filtering
+	selectedInput        int                   // Currently selected input row (-1 = none)
+	viewMode             ViewMode              // Current view mode
+	filterText           string                // Current filter string
+	filteredInputs       []string              // Input names after filtering
+	previewingHistoryEntry *frecency.HistoryEntry // History entry being previewed
 
 	width  int
 	height int
@@ -63,19 +73,16 @@ func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string
 	currentBranch := git.GetCurrentBranch(ctx)
 
 	m := Model{
-		focused:       PaneWorkflows,
-		workflows:     workflows,
-		history:       history,
-		repo:          repo,
-		branch:        currentBranch,
-		inputs:        make(map[string]string),
-		modalStack:    modal.NewStack(),
-		keys:          DefaultKeyMap(),
-		selectedInput: -1,
-	}
-
-	if len(workflows) > 0 {
-		m.initializeInputs(workflows[0])
+		focused:          PaneWorkflows,
+		workflows:        workflows,
+		history:          history,
+		repo:             repo,
+		branch:           currentBranch,
+		inputs:           make(map[string]string),
+		modalStack:       modal.NewStack(),
+		keys:             DefaultKeyMap(),
+		selectedInput:    -1,
+		selectedWorkflow: -1,
 	}
 
 	return m
@@ -142,9 +149,10 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case key.Matches(msg, m.keys.Escape):
-		if m.inputDetailMode {
-			m.inputDetailMode = false
+		if m.viewMode != WorkflowListMode {
+			m.viewMode = WorkflowListMode
 			m.selectedInput = -1
+			m.previewingHistoryEntry = nil
 			return m, nil
 		}
 		return m, nil
@@ -169,7 +177,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleEnter()
 
 	case key.Matches(msg, m.keys.Edit):
-		if m.inputDetailMode && m.selectedInput >= 0 {
+		if m.viewMode == InputDetailMode && m.selectedInput >= 0 {
 			return m.openInputModalFiltered(m.selectedInput)
 		}
 		return m, nil
@@ -199,26 +207,126 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case key.Matches(msg, m.keys.Input1):
-		return m.openInputModalFiltered(0)
-	case key.Matches(msg, m.keys.Input2):
-		return m.openInputModalFiltered(1)
-	case key.Matches(msg, m.keys.Input3):
-		return m.openInputModalFiltered(2)
-	case key.Matches(msg, m.keys.Input4):
-		return m.openInputModalFiltered(3)
-	case key.Matches(msg, m.keys.Input5):
-		return m.openInputModalFiltered(4)
-	case key.Matches(msg, m.keys.Input6):
-		return m.openInputModalFiltered(5)
-	case key.Matches(msg, m.keys.Input7):
-		return m.openInputModalFiltered(6)
-	case key.Matches(msg, m.keys.Input8):
-		return m.openInputModalFiltered(7)
-	case key.Matches(msg, m.keys.Input9):
-		return m.openInputModalFiltered(8)
 	case key.Matches(msg, m.keys.Input0):
-		return m.openInputModalFiltered(9)
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(0)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input1):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(1)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input2):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(2)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input3):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(3)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input4):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(4)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input5):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(5)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input6):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(6)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input7):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(7)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input8):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(8)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Input9):
+		if m.focused == PaneConfig {
+			return m.openInputModalFiltered(9)
+		}
+		return m, nil
+
+	case key.Matches(msg, m.keys.Workflow0):
+		if m.focused == PaneWorkflows {
+			m.selectedWorkflow = -1
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow1):
+		if m.focused == PaneWorkflows && len(m.workflows) > 0 {
+			m.selectedWorkflow = 0
+			m.initializeInputs(m.workflows[0])
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow2):
+		if m.focused == PaneWorkflows && len(m.workflows) > 1 {
+			m.selectedWorkflow = 1
+			m.initializeInputs(m.workflows[1])
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow3):
+		if m.focused == PaneWorkflows && len(m.workflows) > 2 {
+			m.selectedWorkflow = 2
+			m.initializeInputs(m.workflows[2])
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow4):
+		if m.focused == PaneWorkflows && len(m.workflows) > 3 {
+			m.selectedWorkflow = 3
+			m.initializeInputs(m.workflows[3])
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow5):
+		if m.focused == PaneWorkflows && len(m.workflows) > 4 {
+			m.selectedWorkflow = 4
+			m.initializeInputs(m.workflows[4])
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow6):
+		if m.focused == PaneWorkflows && len(m.workflows) > 5 {
+			m.selectedWorkflow = 5
+			m.initializeInputs(m.workflows[5])
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow7):
+		if m.focused == PaneWorkflows && len(m.workflows) > 6 {
+			m.selectedWorkflow = 6
+			m.initializeInputs(m.workflows[6])
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow8):
+		if m.focused == PaneWorkflows && len(m.workflows) > 7 {
+			m.selectedWorkflow = 7
+			m.initializeInputs(m.workflows[7])
+			return m, nil
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.Workflow9):
+		if m.focused == PaneWorkflows && len(m.workflows) > 8 {
+			m.selectedWorkflow = 8
+			m.initializeInputs(m.workflows[8])
+			return m, nil
+		}
+		return m, nil
 	}
 
 	return m, nil
@@ -227,9 +335,11 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) handleUp() {
 	switch m.focused {
 	case PaneWorkflows:
-		if m.selectedWorkflow > 0 {
+		if m.selectedWorkflow > -1 {
 			m.selectedWorkflow--
-			m.initializeInputs(m.workflows[m.selectedWorkflow])
+			if m.selectedWorkflow >= 0 {
+				m.initializeInputs(m.workflows[m.selectedWorkflow])
+			}
 		}
 	case PaneHistory:
 		if m.selectedHistory > 0 {
@@ -241,7 +351,10 @@ func (m *Model) handleUp() {
 		} else if m.selectedInput > 0 {
 			m.selectedInput--
 		}
-		m.inputDetailMode = m.selectedInput >= 0
+		m.viewMode = InputDetailMode
+		if m.selectedInput < 0 {
+			m.viewMode = WorkflowListMode
+		}
 		m.syncFilteredInputs()
 	}
 }
@@ -251,7 +364,9 @@ func (m *Model) handleDown() {
 	case PaneWorkflows:
 		if m.selectedWorkflow < len(m.workflows)-1 {
 			m.selectedWorkflow++
-			m.initializeInputs(m.workflows[m.selectedWorkflow])
+			if m.selectedWorkflow >= 0 {
+				m.initializeInputs(m.workflows[m.selectedWorkflow])
+			}
 		}
 	case PaneHistory:
 		entries := m.currentHistoryEntries()
@@ -264,7 +379,10 @@ func (m *Model) handleDown() {
 		} else if m.selectedInput < len(m.filteredInputs)-1 {
 			m.selectedInput++
 		}
-		m.inputDetailMode = m.selectedInput >= 0
+		m.viewMode = InputDetailMode
+		if m.selectedInput < 0 {
+			m.viewMode = WorkflowListMode
+		}
 		m.syncFilteredInputs()
 	}
 }
@@ -275,10 +393,20 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		entries := m.currentHistoryEntries()
 		if m.selectedHistory < len(entries) {
 			entry := entries[m.selectedHistory]
-			m.branch = entry.Branch
-			m.inputs = make(map[string]string)
-			for k, v := range entry.Inputs {
-				m.inputs[k] = v
+			if m.viewMode == HistoryPreviewMode {
+				// Apply previewed config and run
+				m.branch = entry.Branch
+				m.inputs = make(map[string]string)
+				for k, v := range entry.Inputs {
+					m.inputs[k] = v
+				}
+				m.viewMode = WorkflowListMode
+				m.previewingHistoryEntry = nil
+				return m.executeWorkflow()
+			} else {
+				// Enter preview mode
+				m.viewMode = HistoryPreviewMode
+				m.previewingHistoryEntry = &entry
 			}
 		}
 	case PaneConfig:
@@ -288,7 +416,7 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) executeWorkflow() (tea.Model, tea.Cmd) {
-	if m.selectedWorkflow >= len(m.workflows) {
+	if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
 		return m, nil
 	}
 
@@ -433,7 +561,7 @@ func (m *Model) applyFilter() {
 		}
 	}
 	m.selectedInput = -1
-	m.inputDetailMode = false
+	m.viewMode = WorkflowListMode
 }
 
 func (m *Model) resetAllInputs() {
@@ -555,7 +683,7 @@ func (m *Model) initializeInputs(wf workflow.WorkflowFile) {
 	m.filteredInputs = m.inputOrder
 	m.filterText = ""
 	m.selectedInput = -1
-	m.inputDetailMode = false
+	m.viewMode = WorkflowListMode
 	m.selectedHistory = 0
 }
 
@@ -564,7 +692,7 @@ func (m Model) currentHistoryEntries() []frecency.HistoryEntry {
 		return nil
 	}
 	var workflowFilter string
-	if m.selectedWorkflow < len(m.workflows) {
+	if m.selectedWorkflow >= 0 && m.selectedWorkflow < len(m.workflows) {
 		workflowFilter = m.workflows[m.selectedWorkflow].Filename
 	}
 	return m.history.TopForRepo(m.repo, workflowFilter, 10)
@@ -591,9 +719,16 @@ func (m Model) View() string {
 	rightWidth := m.width - leftWidth
 
 	var leftPane string
-	if m.inputDetailMode && m.getSelectedInputName() != "" {
-		leftPane = m.viewInputDetailsPane(leftWidth, topHeight)
-	} else {
+	switch m.viewMode {
+	case InputDetailMode:
+		if m.getSelectedInputName() != "" {
+			leftPane = m.viewInputDetailsPane(leftWidth, topHeight)
+		} else {
+			leftPane = m.viewWorkflowPane(leftWidth, topHeight)
+		}
+	case HistoryPreviewMode:
+		leftPane = m.viewHistoryConfigPane(leftWidth, topHeight)
+	default:
 		leftPane = m.viewWorkflowPane(leftWidth, topHeight)
 	}
 	historyPane := m.viewHistoryPane(rightWidth, topHeight)
@@ -720,6 +855,18 @@ func (m Model) viewWorkflowPane(width, height int) string {
 	title := ui.TitleStyle.Render("Workflows")
 	maxLineWidth := width - 8
 	var content string
+
+	// Add "all" option
+	allLine := "all"
+	if m.selectedWorkflow == -1 {
+		content += ui.SelectedStyle.Render("> " + allLine)
+	} else {
+		content += ui.TableDefaultStyle.Render("  " + allLine)
+	}
+	if len(m.workflows) > 0 {
+		content += "\n"
+	}
+
 	for i, wf := range m.workflows {
 		name := wf.Name
 		if name == "" {
@@ -746,8 +893,10 @@ func (m Model) viewHistoryPane(width, height int) string {
 	style := ui.PaneStyle(width, height, m.focused == PaneHistory)
 
 	var workflowName string
-	if m.selectedWorkflow < len(m.workflows) {
+	if m.selectedWorkflow >= 0 && m.selectedWorkflow < len(m.workflows) {
 		workflowName = m.workflows[m.selectedWorkflow].Filename
+	} else {
+		workflowName = "all"
 	}
 	title := ui.TitleStyle.Render("Recent Runs (" + workflowName + ")")
 
@@ -772,6 +921,48 @@ func (m Model) viewHistoryPane(width, height int) string {
 	return style.Render(title + "\n" + content)
 }
 
+func (m Model) viewHistoryConfigPane(width, height int) string {
+	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
+
+	var content strings.Builder
+	content.WriteString(ui.TitleStyle.Render("Run Configuration Preview"))
+	content.WriteString("\n\n")
+
+	if m.previewingHistoryEntry == nil {
+		content.WriteString(ui.SubtitleStyle.Render("No history entry selected"))
+		return style.Render(content.String())
+	}
+
+	entry := m.previewingHistoryEntry
+
+	content.WriteString(ui.SubtitleStyle.Render("Branch: "))
+	content.WriteString(ui.NormalStyle.Render(entry.Branch))
+	content.WriteString("\n\n")
+
+	if len(entry.Inputs) == 0 {
+		content.WriteString(ui.SubtitleStyle.Render("No inputs"))
+	} else {
+		content.WriteString(ui.SubtitleStyle.Render("Inputs:"))
+		content.WriteString("\n")
+		for k, v := range entry.Inputs {
+			content.WriteString("  ")
+			content.WriteString(ui.NormalStyle.Render(k))
+			content.WriteString(": ")
+			if v == "" {
+				content.WriteString(ui.TableItalicStyle.Render(`("")`))
+			} else {
+				content.WriteString(ui.NormalStyle.Render(v))
+			}
+			content.WriteString("\n")
+		}
+	}
+
+	content.WriteString("\n")
+	content.WriteString(ui.HelpStyle.Render("[Enter] apply & run  [Esc] back"))
+
+	return style.Render(content.String())
+}
+
 func (m Model) viewConfigPane(width, height int) string {
 	style := ui.PaneStyle(width, height, m.focused == PaneConfig)
 
@@ -779,10 +970,10 @@ func (m Model) viewConfigPane(width, height int) string {
 	content.WriteString(ui.TitleStyle.Render("Configuration"))
 	content.WriteString("\n\n")
 
-	if m.selectedWorkflow >= len(m.workflows) {
-		content.WriteString(ui.SubtitleStyle.Render("No workflow selected"))
+	if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
+		content.WriteString(ui.SubtitleStyle.Render("Select a workflow"))
 		content.WriteString("\n\n")
-		content.WriteString(ui.HelpStyle.Render("[Tab] pane  [q] quit"))
+		content.WriteString(ui.HelpStyle.Render("[Tab] pane  [1-9] select workflow  [q] quit"))
 		return style.Render(content.String())
 	}
 

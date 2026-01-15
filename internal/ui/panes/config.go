@@ -209,16 +209,22 @@ func (m ConfigModel) View() string {
 		branch = "(not set)"
 	}
 	content.WriteString(ui.TitleStyle.Render("Branch"))
-	content.WriteString(": [b] ")
+	content.WriteString(": ")
+	content.WriteString(ui.HelpStyle.Render("[b]"))
+	content.WriteString(" ")
 	content.WriteString(branch)
 
-	content.WriteString("    Watch: [w] ")
+	content.WriteString("    Watch: ")
+	content.WriteString(ui.HelpStyle.Render("[w]"))
+	content.WriteString(" ")
 	if m.watchRun {
 		content.WriteString("on")
 	} else {
 		content.WriteString("off")
 	}
-	content.WriteString("    [r] reset all")
+	content.WriteString("    ")
+	content.WriteString(ui.HelpStyle.Render("[r]"))
+	content.WriteString(" reset all")
 	content.WriteString("\n")
 
 	if m.filterText != "" {
@@ -240,9 +246,10 @@ func (m ConfigModel) View() string {
 		cliCmd = "..." + cliCmd[len(cliCmd)-maxCmdWidth+3:]
 	}
 	content.WriteString(ui.CLIPreviewStyle.Render(cliCmd))
-	content.WriteString(" [c]")
+	content.WriteString(" ")
+	content.WriteString(ui.HelpStyle.Render("[c]"))
 
-	helpLine := "\n\n" + ui.HelpStyle.Render("[Tab] pane  [Enter] run  [j/k] select  [1-0] edit  [/] filter  [?] help  [q] quit")
+	helpLine := "\n\n" + ui.HelpStyle.Render("[Tab] pane  [Enter] run  [j/k] select  [0-9] edit  [/] filter  [?] help  [q] quit")
 	content.WriteString(helpLine)
 
 	return style.Render(content.String())
@@ -279,11 +286,9 @@ func (m ConfigModel) renderTableRows() string {
 		val := m.inputs[name]
 
 		numStr := " "
-		displayIdx := i + 1
+		displayIdx := i
 		if displayIdx <= 9 {
 			numStr = fmt.Sprintf("%d", displayIdx)
-		} else if displayIdx == 10 {
-			numStr = "0"
 		}
 
 		reqStr := " "
@@ -329,7 +334,7 @@ func (m ConfigModel) renderTableRows() string {
 		if isSelected {
 			rowStyle = ui.TableSelectedStyle
 		} else if isDimmed {
-			rowStyle = ui.TableDimmedStyle
+			rowStyle = ui.TableDefaultStyle
 		} else if isSpecialValue {
 			rowStyle = ui.TableItalicStyle
 		}
