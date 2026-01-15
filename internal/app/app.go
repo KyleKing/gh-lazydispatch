@@ -15,6 +15,7 @@ import (
 	"github.com/kyleking/gh-wfd/internal/runner"
 	"github.com/kyleking/gh-wfd/internal/ui"
 	"github.com/kyleking/gh-wfd/internal/ui/modal"
+	"github.com/kyleking/gh-wfd/internal/validation"
 	"github.com/kyleking/gh-wfd/internal/workflow"
 )
 
@@ -126,6 +127,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case modal.RunConfirmResultMsg:
 		return m.handleRunConfirmResult(msg)
 
+	case modal.RemapResultMsg:
+		return m.handleRemapResult(msg)
+
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
 	}
@@ -203,6 +207,12 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Reset):
 		if m.focused == PaneConfig {
 			return m.openResetModal()
+		}
+		return m, nil
+
+	case msg.String() == "a":
+		if m.viewMode == HistoryPreviewMode && m.previewingHistoryEntry != nil {
+			return m.openRemapModal()
 		}
 		return m, nil
 
@@ -456,6 +466,65 @@ func (m Model) handleRunConfirmResult(msg modal.RunConfirmResultMsg) (tea.Model,
 	if msg.Confirmed {
 		return m.doExecuteWorkflow(msg.Config)
 	}
+	return m, nil
+}
+
+func (m Model) openRemapModal() (tea.Model, tea.Cmd) {
+	if m.previewingHistoryEntry == nil {
+		return m, nil
+	}
+
+	// Get current workflow for validation
+	if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
+		return m, nil
+	}
+
+	currentWorkflow := &m.workflows[m.selectedWorkflow]
+	validationErrors := validation.ValidateHistoryConfig(m.previewingHistoryEntry, currentWorkflow)
+
+	if len(validationErrors) == 0 {
+		return m, nil
+	}
+
+	currentInputs := currentWorkflow.GetInputs()
+	remapModal := modal.NewRemapModal(validationErrors, currentInputs)
+	m.modalStack.Push(remapModal)
+	return m, nil
+}
+
+func (m Model) handleRemapResult(msg modal.RemapResultMsg) (tea.Model, tea.Cmd) {
+	if m.previewingHistoryEntry == nil || len(msg.Decisions) == 0 {
+		return m, nil
+	}
+
+	// Apply remapping decisions to the previewing entry
+	remappedInputs := make(map[string]string)
+
+	// Start with the historical inputs
+	for k, v := range m.previewingHistoryEntry.Inputs {
+		remappedInputs[k] = v
+	}
+
+	// Apply decisions
+	for _, decision := range msg.Decisions {
+		switch decision.Action {
+		case modal.RemapActionDrop:
+			// Remove the input
+			delete(remappedInputs, decision.OriginalName)
+		case modal.RemapActionKeep:
+			// Keep as-is (already in remappedInputs)
+		case modal.RemapActionMap:
+			// Rename/remap the input
+			if val, exists := remappedInputs[decision.OriginalName]; exists {
+				delete(remappedInputs, decision.OriginalName)
+				remappedInputs[decision.NewName] = val
+			}
+		}
+	}
+
+	// Update the previewing entry with remapped inputs
+	m.previewingHistoryEntry.Inputs = remappedInputs
+
 	return m, nil
 }
 
@@ -831,6 +900,24 @@ func (m Model) viewHistoryConfigPane(width, height int) string {
 	content.WriteString(ui.NormalStyle.Render(entry.Branch))
 	content.WriteString("\n\n")
 
+	// Get current workflow for validation
+	var currentWorkflow *workflow.WorkflowFile
+	if m.selectedWorkflow >= 0 && m.selectedWorkflow < len(m.workflows) {
+		currentWorkflow = &m.workflows[m.selectedWorkflow]
+	}
+
+	// Validate configuration
+	var validationErrors []validation.ConfigValidationError
+	if currentWorkflow != nil {
+		validationErrors = validation.ValidateHistoryConfig(entry, currentWorkflow)
+	}
+
+	// Build error map for quick lookup
+	errorMap := make(map[string]validation.ConfigValidationError)
+	for _, err := range validationErrors {
+		errorMap[err.HistoricalName] = err
+	}
+
 	if len(entry.Inputs) == 0 {
 		content.WriteString(ui.SubtitleStyle.Render("No inputs"))
 	} else {
@@ -838,15 +925,39 @@ func (m Model) viewHistoryConfigPane(width, height int) string {
 		content.WriteString("\n")
 		for k, v := range entry.Inputs {
 			content.WriteString("  ")
-			content.WriteString(ui.NormalStyle.Render(k))
-			content.WriteString(": ")
-			content.WriteString(ui.RenderEmptyValue(v))
+
+			// Check if this input has a validation error
+			if err, hasError := errorMap[k]; hasError {
+				content.WriteString(ui.TableItalicStyle.Render("⚠ "))
+				content.WriteString(ui.TableDefaultStyle.Render(k))
+				content.WriteString(": ")
+				content.WriteString(ui.TableDefaultStyle.Render(ui.FormatEmptyValue(v)))
+				content.WriteString(" ")
+				content.WriteString(ui.SubtitleStyle.Render("("))
+				switch err.Status {
+				case validation.StatusMissing:
+					content.WriteString(ui.SubtitleStyle.Render("missing"))
+				case validation.StatusTypeChanged:
+					content.WriteString(ui.SubtitleStyle.Render("type changed"))
+				case validation.StatusOptionsChanged:
+					content.WriteString(ui.SubtitleStyle.Render("invalid option"))
+				}
+				content.WriteString(ui.SubtitleStyle.Render(")"))
+			} else {
+				content.WriteString(ui.NormalStyle.Render(k))
+				content.WriteString(": ")
+				content.WriteString(ui.RenderEmptyValue(v))
+			}
 			content.WriteString("\n")
 		}
 	}
 
 	content.WriteString("\n")
-	content.WriteString(ui.HelpStyle.Render("[Enter] apply & run  [Esc] back"))
+	if len(validationErrors) > 0 {
+		content.WriteString(ui.HelpStyle.Render("[Enter] apply & run  [a] remap  [Esc] back"))
+	} else {
+		content.WriteString(ui.HelpStyle.Render("[Enter] apply & run  [Esc] back"))
+	}
 
 	return style.Render(content.String())
 }
