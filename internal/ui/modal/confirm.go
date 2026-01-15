@@ -11,37 +11,41 @@ type ConfirmModal struct {
 	title       string
 	description string
 	selected    bool
+	defaultVal  bool
 	done        bool
 	result      bool
 	keys        confirmKeyMap
 }
 
 type confirmKeyMap struct {
-	Left   key.Binding
-	Right  key.Binding
-	Yes    key.Binding
-	No     key.Binding
-	Enter  key.Binding
-	Escape key.Binding
+	Enter          key.Binding
+	Escape         key.Binding
+	Left           key.Binding
+	No             key.Binding
+	RestoreDefault key.Binding
+	Right          key.Binding
+	Yes            key.Binding
 }
 
 func defaultConfirmKeyMap() confirmKeyMap {
 	return confirmKeyMap{
-		Left:   key.NewBinding(key.WithKeys("left", "h")),
-		Right:  key.NewBinding(key.WithKeys("right", "l")),
-		Yes:    key.NewBinding(key.WithKeys("y")),
-		No:     key.NewBinding(key.WithKeys("n")),
-		Enter:  key.NewBinding(key.WithKeys("enter")),
-		Escape: key.NewBinding(key.WithKeys("esc")),
+		Enter:          key.NewBinding(key.WithKeys("enter")),
+		Escape:         key.NewBinding(key.WithKeys("esc")),
+		Left:           key.NewBinding(key.WithKeys("left", "h")),
+		No:             key.NewBinding(key.WithKeys("n")),
+		RestoreDefault: key.NewBinding(key.WithKeys("alt+d")),
+		Right:          key.NewBinding(key.WithKeys("right", "l")),
+		Yes:            key.NewBinding(key.WithKeys("y")),
 	}
 }
 
 // NewConfirmModal creates a new confirmation modal.
-func NewConfirmModal(title, description string, current bool) *ConfirmModal {
+func NewConfirmModal(title, description string, current bool, defaultVal bool) *ConfirmModal {
 	return &ConfirmModal{
 		title:       title,
 		description: description,
 		selected:    current,
+		defaultVal:  defaultVal,
 		keys:        defaultConfirmKeyMap(),
 	}
 }
@@ -51,6 +55,9 @@ func (m *ConfirmModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, m.keys.RestoreDefault):
+			m.selected = m.defaultVal
+			return m, nil
 		case key.Matches(msg, m.keys.Left):
 			m.selected = true
 		case key.Matches(msg, m.keys.Right):
@@ -98,7 +105,7 @@ func (m *ConfirmModal) View() string {
 	}
 
 	s += "  " + yesStyle.Render("[ Yes ]") + "  " + noStyle.Render("[ No ]")
-	s += "\n\n" + ui.HelpStyle.Render("[←→] select  [y/n] quick  [enter] confirm  [esc] cancel")
+	s += "\n\n" + ui.HelpStyle.Render("[←→] select  [y/n] quick  [alt+d] default  [enter] confirm  [esc] cancel")
 	return s
 }
 

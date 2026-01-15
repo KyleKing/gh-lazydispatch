@@ -13,7 +13,7 @@ func TestStack_PushPop(t *testing.T) {
 		t.Error("expected empty stack")
 	}
 
-	modal := NewSelectModal("Test", []string{"a", "b"}, "a")
+	modal := NewSelectModal("Test", []string{"a", "b"}, "a", "a")
 	stack.Push(modal)
 
 	if !stack.HasActive() {
@@ -37,8 +37,8 @@ func TestStack_Current(t *testing.T) {
 		t.Error("expected nil current on empty stack")
 	}
 
-	modal1 := NewSelectModal("First", []string{"a"}, "a")
-	modal2 := NewSelectModal("Second", []string{"b"}, "b")
+	modal1 := NewSelectModal("First", []string{"a"}, "a", "a")
+	modal2 := NewSelectModal("Second", []string{"b"}, "b", "b")
 
 	stack.Push(modal1)
 	stack.Push(modal2)
@@ -56,7 +56,7 @@ func TestStack_Current(t *testing.T) {
 }
 
 func TestSelectModal_Navigation(t *testing.T) {
-	modal := NewSelectModal("Test", []string{"a", "b", "c"}, "a")
+	modal := NewSelectModal("Test", []string{"a", "b", "c"}, "a", "a")
 
 	if modal.selected != 0 {
 		t.Errorf("expected selected 0, got %d", modal.selected)
@@ -78,7 +78,7 @@ func TestSelectModal_Navigation(t *testing.T) {
 }
 
 func TestSelectModal_Select(t *testing.T) {
-	modal := NewSelectModal("Test", []string{"a", "b", "c"}, "b")
+	modal := NewSelectModal("Test", []string{"a", "b", "c"}, "b", "a")
 
 	if modal.selected != 1 {
 		t.Errorf("expected initial selection 1 (current='b'), got %d", modal.selected)
@@ -97,7 +97,7 @@ func TestSelectModal_Select(t *testing.T) {
 }
 
 func TestSelectModal_Escape(t *testing.T) {
-	modal := NewSelectModal("Test", []string{"a", "b"}, "a")
+	modal := NewSelectModal("Test", []string{"a", "b"}, "a", "a")
 
 	esc := tea.KeyMsg{Type: tea.KeyEscape}
 	modal.Update(esc)
@@ -112,7 +112,7 @@ func TestSelectModal_Escape(t *testing.T) {
 }
 
 func TestInputModal_Enter(t *testing.T) {
-	modal := NewInputModal("Title", "Description", "default", "string", "initial")
+	modal := NewInputModal("Title", "Description", "default", "string", "initial", nil)
 
 	if modal.input.Value() != "initial" {
 		t.Errorf("expected initial value 'initial', got %q", modal.input.Value())
@@ -131,7 +131,7 @@ func TestInputModal_Enter(t *testing.T) {
 }
 
 func TestInputModal_Escape(t *testing.T) {
-	modal := NewInputModal("Title", "", "", "", "value")
+	modal := NewInputModal("Title", "", "", "", "value", nil)
 
 	esc := tea.KeyMsg{Type: tea.KeyEscape}
 	modal.Update(esc)
@@ -142,7 +142,7 @@ func TestInputModal_Escape(t *testing.T) {
 }
 
 func TestConfirmModal_Navigation(t *testing.T) {
-	modal := NewConfirmModal("Confirm?", "", true)
+	modal := NewConfirmModal("Confirm?", "", true, true)
 
 	if !modal.selected {
 		t.Error("expected selected to be true initially")
@@ -164,7 +164,7 @@ func TestConfirmModal_Navigation(t *testing.T) {
 }
 
 func TestConfirmModal_QuickKeys(t *testing.T) {
-	modal := NewConfirmModal("Confirm?", "", false)
+	modal := NewConfirmModal("Confirm?", "", false, false)
 
 	y := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}}
 	modal.Update(y)
@@ -179,7 +179,7 @@ func TestConfirmModal_QuickKeys(t *testing.T) {
 }
 
 func TestConfirmModal_QuickNo(t *testing.T) {
-	modal := NewConfirmModal("Confirm?", "", true)
+	modal := NewConfirmModal("Confirm?", "", true, true)
 
 	n := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
 	modal.Update(n)
@@ -194,7 +194,7 @@ func TestConfirmModal_QuickNo(t *testing.T) {
 }
 
 func TestConfirmModal_View(t *testing.T) {
-	modal := NewConfirmModal("Delete file?", "This cannot be undone", true)
+	modal := NewConfirmModal("Delete file?", "This cannot be undone", true, true)
 
 	view := modal.View()
 	if view == "" {

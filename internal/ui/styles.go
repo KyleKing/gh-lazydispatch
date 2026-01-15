@@ -19,13 +19,19 @@ var (
 
 // Styles for the application (initialized in ApplyTheme).
 var (
-	TitleStyle         lipgloss.Style
-	SubtitleStyle      lipgloss.Style
-	SelectedStyle      lipgloss.Style
-	NormalStyle        lipgloss.Style
-	HelpStyle          lipgloss.Style
 	BorderStyle        lipgloss.Style
+	CLIPreviewStyle    lipgloss.Style
 	FocusedBorderStyle lipgloss.Style
+	HelpStyle          lipgloss.Style
+	NormalStyle        lipgloss.Style
+	SelectedStyle      lipgloss.Style
+	SubtitleStyle      lipgloss.Style
+	TableDimmedStyle   lipgloss.Style
+	TableHeaderStyle   lipgloss.Style
+	TableItalicStyle   lipgloss.Style
+	TableRowStyle      lipgloss.Style
+	TableSelectedStyle lipgloss.Style
+	TitleStyle         lipgloss.Style
 )
 
 // InitTheme sets the theme and applies colors.
@@ -43,30 +49,52 @@ func ApplyTheme() {
 	TextColor = currentTheme.Text
 	ModalBgColor = currentTheme.ModalBg
 
-	TitleStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(PrimaryColor)
+	BorderStyle = lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(SecondaryColor)
 
-	SubtitleStyle = lipgloss.NewStyle().
+	CLIPreviewStyle = lipgloss.NewStyle().
+		Foreground(MutedColor).
+		Italic(true)
+
+	FocusedBorderStyle = lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(PrimaryColor)
+
+	HelpStyle = lipgloss.NewStyle().
 		Foreground(MutedColor)
+
+	NormalStyle = lipgloss.NewStyle().
+		Foreground(TextColor)
 
 	SelectedStyle = lipgloss.NewStyle().
 		Bold(true).
 		Foreground(AccentColor)
 
-	NormalStyle = lipgloss.NewStyle().
-		Foreground(TextColor)
-
-	HelpStyle = lipgloss.NewStyle().
+	SubtitleStyle = lipgloss.NewStyle().
 		Foreground(MutedColor)
 
-	BorderStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(SecondaryColor)
+	TableDimmedStyle = lipgloss.NewStyle().
+		Foreground(MutedColor)
 
-	FocusedBorderStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(PrimaryColor)
+	TableHeaderStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(SecondaryColor)
+
+	TableItalicStyle = lipgloss.NewStyle().
+		Italic(true).
+		Foreground(MutedColor)
+
+	TableRowStyle = lipgloss.NewStyle().
+		Foreground(TextColor)
+
+	TableSelectedStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(AccentColor)
+
+	TitleStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(PrimaryColor)
 }
 
 // PaneStyle returns a style for a pane with optional focus.

@@ -10,45 +10,52 @@ import (
 
 // SelectModal presents a list of options to choose from.
 type SelectModal struct {
-	title    string
-	options  []string
-	selected int
-	done     bool
-	result   string
-	keys     selectKeyMap
+	title      string
+	options    []string
+	selected   int
+	defaultIdx int
+	done       bool
+	result     string
+	keys       selectKeyMap
 }
 
 type selectKeyMap struct {
-	Up     key.Binding
-	Down   key.Binding
-	Enter  key.Binding
-	Escape key.Binding
+	Down           key.Binding
+	Enter          key.Binding
+	Escape         key.Binding
+	RestoreDefault key.Binding
+	Up             key.Binding
 }
 
 func defaultSelectKeyMap() selectKeyMap {
 	return selectKeyMap{
-		Up:     key.NewBinding(key.WithKeys("up", "k")),
-		Down:   key.NewBinding(key.WithKeys("down", "j")),
-		Enter:  key.NewBinding(key.WithKeys("enter")),
-		Escape: key.NewBinding(key.WithKeys("esc")),
+		Down:           key.NewBinding(key.WithKeys("down", "j")),
+		Enter:          key.NewBinding(key.WithKeys("enter")),
+		Escape:         key.NewBinding(key.WithKeys("esc")),
+		RestoreDefault: key.NewBinding(key.WithKeys("alt+d")),
+		Up:             key.NewBinding(key.WithKeys("up", "k")),
 	}
 }
 
 // NewSelectModal creates a new selection modal.
-func NewSelectModal(title string, options []string, current string) *SelectModal {
+func NewSelectModal(title string, options []string, current string, defaultVal string) *SelectModal {
 	selected := 0
+	defaultIdx := 0
 	for i, opt := range options {
 		if opt == current {
 			selected = i
-			break
+		}
+		if opt == defaultVal {
+			defaultIdx = i
 		}
 	}
 
 	return &SelectModal{
-		title:    title,
-		options:  options,
-		selected: selected,
-		keys:     defaultSelectKeyMap(),
+		title:      title,
+		options:    options,
+		selected:   selected,
+		defaultIdx: defaultIdx,
+		keys:       defaultSelectKeyMap(),
 	}
 }
 
@@ -57,6 +64,9 @@ func (m *SelectModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, m.keys.RestoreDefault):
+			m.selected = m.defaultIdx
+			return m, nil
 		case key.Matches(msg, m.keys.Up):
 			if m.selected > 0 {
 				m.selected--
@@ -98,7 +108,7 @@ func (m *SelectModal) View() string {
 		}
 	}
 
-	s += "\n\n" + ui.HelpStyle.Render("[↑↓] navigate  [enter] select  [esc] cancel")
+	s += "\n\n" + ui.HelpStyle.Render("[↑↓] navigate  [enter] select  [alt+d] default  [esc] cancel")
 	return s
 }
 

@@ -46,19 +46,25 @@ func (m *HelpModal) View() string {
 
 ` + ui.SubtitleStyle.Render("Navigation") + `
   Tab / Shift+Tab    Switch between panes
-  ↑/k, ↓/j           Navigate within pane
-  Enter              Select / Execute
+  ↑/k, ↓/j           Navigate / Select input
+  Enter              Select / Execute / Edit selected
+  Esc                Deselect / Close modal
 
-` + ui.SubtitleStyle.Render("Actions") + `
+` + ui.SubtitleStyle.Render("Config Panel") + `
+  1-9, 0             Edit input by number (1-10)
   b                  Select branch
   w                  Toggle watch mode
-  1-9                Edit input by number
+  /                  Filter inputs
+  c                  Copy command to clipboard
+  r                  Reset all inputs to defaults
 
-` + ui.SubtitleStyle.Render("Modals") + `
-  ?                  Show this help
-  Esc                Close modal / Cancel
+` + ui.SubtitleStyle.Render("Input Editing") + `
+  Alt+D              Restore default value
+  Enter              Confirm (or apply anyway)
+  Esc                Cancel / Keep editing
 
 ` + ui.SubtitleStyle.Render("Application") + `
+  ?                  Show this help
   q, Ctrl+C          Quit
 
 ` + ui.HelpStyle.Render("Press ? or Esc to close")
