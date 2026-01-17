@@ -85,6 +85,11 @@ func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string
 		selectedWorkflow: -1,
 	}
 
+	if len(workflows) > 0 {
+		m.selectedWorkflow = 0
+		m.initializeInputs(workflows[0])
+	}
+
 	return m
 }
 
@@ -653,7 +658,7 @@ func (m Model) currentHistoryEntries() []frecency.HistoryEntry {
 
 // SelectedWorkflow returns the currently selected workflow.
 func (m Model) SelectedWorkflow() *workflow.WorkflowFile {
-	if m.selectedWorkflow >= len(m.workflows) {
+	if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
 		return nil
 	}
 	return &m.workflows[m.selectedWorkflow]

@@ -80,3 +80,22 @@ Generate the demo GIF using VHS:
 ```bash
 vhs < .github/assets/demo.tape
 ```
+
+## Maintenance
+
+### Updating Dependencies
+
+Update Go version, dependencies, and GitHub Actions:
+
+```bash
+# Update Go version in go.mod (check https://go.dev/dl/ for latest)
+# Then update dependencies
+go get -u ./... && go mod tidy && go test ./...
+
+# Update GitHub Actions in .github/workflows/*.yml
+# Check for latest versions at:
+# - https://github.com/actions/checkout/releases
+# - https://github.com/actions/setup-go/releases
+# - https://github.com/golangci/golangci-lint/releases
+# - https://github.com/goreleaser/goreleaser-action/releases
+```
