@@ -6,9 +6,9 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfd/internal/ui"
-	"github.com/kyleking/gh-wfd/internal/validation"
-	"github.com/kyleking/gh-wfd/internal/workflow"
+	"github.com/kyleking/lazydispatch/internal/ui"
+	"github.com/kyleking/lazydispatch/internal/validation"
+	"github.com/kyleking/lazydispatch/internal/workflow"
 )
 
 // RemapAction represents the action to take for a validation error.

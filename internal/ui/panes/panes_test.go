@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/gh-wfd/internal/frecency"
-	"github.com/kyleking/gh-wfd/internal/workflow"
+	"github.com/kyleking/lazydispatch/internal/frecency"
+	"github.com/kyleking/lazydispatch/internal/workflow"
 )
 
 func testWorkflows() []workflow.WorkflowFile {

@@ -3,7 +3,7 @@ package modal
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kyleking/gh-wfd/internal/ui"
+	"github.com/kyleking/lazydispatch/internal/ui"
 )
 
 // Context represents a modal that can be pushed onto the stack.

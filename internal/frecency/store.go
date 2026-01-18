@@ -8,12 +8,33 @@ import (
 )
 
 // CachePath returns the path to the frecency cache file.
+// Migrates from old gh-wfd directory to lazydispatch if needed.
 func CachePath() string {
+	var newPath, oldPath string
+
 	if xdg := os.Getenv("XDG_CACHE_HOME"); xdg != "" {
-		return filepath.Join(xdg, "gh-wfd", "history.json")
+		newPath = filepath.Join(xdg, "lazydispatch", "history.json")
+		oldPath = filepath.Join(xdg, "gh-wfd", "history.json")
+	} else {
+		home, _ := os.UserHomeDir()
+		newPath = filepath.Join(home, ".cache", "lazydispatch", "history.json")
+		oldPath = filepath.Join(home, ".cache", "gh-wfd", "history.json")
 	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".cache", "gh-wfd", "history.json")
+
+	// Migrate from old path if it exists and new path doesn't
+	if _, err := os.Stat(oldPath); err == nil {
+		if _, err := os.Stat(newPath); os.IsNotExist(err) {
+			// Create new directory
+			if err := os.MkdirAll(filepath.Dir(newPath), 0755); err == nil {
+				// Copy old history to new location
+				if data, err := os.ReadFile(oldPath); err == nil {
+					_ = os.WriteFile(newPath, data, 0644)
+				}
+			}
+		}
+	}
+
+	return newPath
 }
 
 // Load reads the store from disk, returning empty store if not found.

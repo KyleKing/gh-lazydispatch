@@ -1,10 +1,10 @@
-# AI Agent Guidelines for gh-wfd
+# AI Agent Guidelines for lazydispatch
 
 This document provides guidelines for AI coding assistants working on this Go project.
 
 ## Project Context
 
-- **Module**: `github.com/kyleking/gh-wfd`
+- **Module**: `github.com/kyleking/lazydispatch`
 - **Type**: CLI application
 - **Description**: Interactive GitHub Actions workflow dispatcher TUI with fuzzy selection, input configuration, and frecency-based history
 
@@ -13,7 +13,7 @@ This document provides guidelines for AI coding assistants working on this Go pr
 ### Package Structure
 
 ```
-gh-wfd/
+lazydispatch/
 ├── main.go           # Entry point (minimal, delegates to internal/)
 ├── internal/         # Private packages
 │   ├── app/          # Main Bubbletea application

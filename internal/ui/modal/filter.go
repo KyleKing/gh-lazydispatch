@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfd/internal/ui"
+	"github.com/kyleking/lazydispatch/internal/ui"
 )
 
 // FilterResultMsg is sent when filter is applied or cancelled.

@@ -1,4 +1,4 @@
-# Contributing to gh-wfd
+# Contributing to lazydispatch
 
 ## Architecture
 
@@ -6,7 +6,7 @@
 
 ```mermaid
 flowchart TD
-    A[gh wfd] --> B[Scan .github/workflows/*.y*ml]
+    A[lazydispatch] --> B[Scan .github/workflows/*.y*ml]
     B --> C[Fuzzy-select workflow]
     C --> D[Parse workflow_dispatch inputs]
     D --> E[Interactive input configuration]
@@ -83,7 +83,7 @@ recency_weight =
 
 This prioritizes workflows that are both frequently used AND recently used, matching user mental models better than pure frequency or recency alone.
 
-**Storage:** JSON file at `~/.local/share/gh-wfd/history.json` following XDG Base Directory spec. Each entry includes:
+**Storage:** JSON file at `~/.local/share/lazydispatch/history.json` following XDG Base Directory spec. Each entry includes:
 - Repository path
 - Workflow filename
 - Branch used
@@ -96,7 +96,7 @@ This prioritizes workflows that are both frequently used AND recently used, matc
 ## File Structure
 
 ```
-gh-wfd/
+lazydispatch/
 ├── main.go                    # Entry point, CLI setup
 ├── internal/
 │   ├── app/                   # Main TUI application
@@ -136,7 +136,7 @@ gh-wfd/
 ### Building
 
 ```bash
-go build -o gh-wfd
+go build -o lazydispatch
 ```
 
 ### Testing
@@ -148,7 +148,7 @@ go test ./...
 Test against sample workflows in `testdata/`:
 ```bash
 cd testdata
-../gh-wfd
+../lazydispatch
 ```
 
 ### Recording Demo

@@ -3,8 +3,8 @@ package validation
 import (
 	"testing"
 
-	"github.com/kyleking/gh-wfd/internal/frecency"
-	"github.com/kyleking/gh-wfd/internal/workflow"
+	"github.com/kyleking/lazydispatch/internal/frecency"
+	"github.com/kyleking/lazydispatch/internal/workflow"
 )
 
 func TestValidateHistoryConfig(t *testing.T) {

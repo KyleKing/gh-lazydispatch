@@ -7,8 +7,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfd/internal/frecency"
-	"github.com/kyleking/gh-wfd/internal/ui"
+	"github.com/kyleking/lazydispatch/internal/frecency"
+	"github.com/kyleking/lazydispatch/internal/ui"
 )
 
 // HistoryItem represents a history entry in the list.

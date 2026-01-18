@@ -6,12 +6,12 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfd/internal/app"
-	"github.com/kyleking/gh-wfd/internal/frecency"
-	"github.com/kyleking/gh-wfd/internal/runner"
-	"github.com/kyleking/gh-wfd/internal/ui"
-	"github.com/kyleking/gh-wfd/internal/ui/theme"
-	"github.com/kyleking/gh-wfd/internal/workflow"
+	"github.com/kyleking/lazydispatch/internal/app"
+	"github.com/kyleking/lazydispatch/internal/frecency"
+	"github.com/kyleking/lazydispatch/internal/runner"
+	"github.com/kyleking/lazydispatch/internal/ui"
+	"github.com/kyleking/lazydispatch/internal/ui/theme"
+	"github.com/kyleking/lazydispatch/internal/workflow"
 )
 
 var (
@@ -31,7 +31,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("gh-wfd %s\n", version)
+		fmt.Printf("lazydispatch %s\n", version)
 		os.Exit(0)
 	}
 
@@ -83,10 +83,10 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Println(`gh-wfd - Interactive GitHub Workflow Dispatcher
+	fmt.Println(`lazydispatch - Interactive GitHub Workflow Dispatcher
 
 Usage:
-  gh wfd [flags]
+  lazydispatch [flags]
 
 Description:
   A TUI for triggering GitHub Actions workflow_dispatch workflows with
@@ -110,5 +110,5 @@ Keyboard Shortcuts:
   ?                  Show help
   q, Ctrl+C          Quit
 
-For more information: https://github.com/kyleking/gh-wfd`)
+For more information: https://github.com/kyleking/lazydispatch`)
 }

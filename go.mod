@@ -1,4 +1,4 @@
-module github.com/kyleking/gh-wfd
+module github.com/kyleking/lazydispatch
 
 go 1.25.6
 

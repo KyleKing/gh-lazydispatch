@@ -6,8 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/gh-wfd/internal/runner"
-	"github.com/kyleking/gh-wfd/internal/ui"
+	"github.com/kyleking/lazydispatch/internal/runner"
+	"github.com/kyleking/lazydispatch/internal/ui"
 )
 
 // RunConfirmResultMsg is sent when workflow execution is confirmed or cancelled.

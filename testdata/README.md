@@ -1,6 +1,6 @@
 # Test Workflows
 
-Sample workflows for manual testing of gh-wfd features.
+Sample workflows for manual testing of lazydispatch features.
 
 ## Workflow Coverage
 
