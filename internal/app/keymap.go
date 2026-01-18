@@ -5,6 +5,7 @@ import "github.com/charmbracelet/bubbles/key"
 // KeyMap defines all keyboard shortcuts for the application.
 type KeyMap struct {
 	Branch   key.Binding
+	Chain    key.Binding
 	Copy     key.Binding
 	Down     key.Binding
 	Edit     key.Binding
@@ -12,6 +13,7 @@ type KeyMap struct {
 	Escape   key.Binding
 	Filter   key.Binding
 	Help     key.Binding
+	LiveView key.Binding
 	Quit     key.Binding
 	Reset    key.Binding
 	ShiftTab key.Binding
@@ -56,6 +58,7 @@ func makeNumberedBinding(num int, prefix string) key.Binding {
 func DefaultKeyMap() KeyMap {
 	return KeyMap{
 		Branch:   key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "branch")),
+		Chain:    key.NewBinding(key.WithKeys("C"), key.WithHelp("C", "run chain")),
 		Copy:     key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "copy to clipboard")),
 		Down:     key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
 		Edit:     key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
@@ -63,6 +66,7 @@ func DefaultKeyMap() KeyMap {
 		Escape:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 		Filter:   key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
 		Help:     key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+		LiveView: key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "live view")),
 		Quit:     key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 		Reset:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reset inputs")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev pane")),

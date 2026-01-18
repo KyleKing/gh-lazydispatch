@@ -6,22 +6,24 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/kyleking/lazydispatch/internal/rule"
 	"github.com/kyleking/lazydispatch/internal/ui"
 )
 
 // InputModal presents a text input field.
 type InputModal struct {
-	title         string
-	description   string
-	defaultVal    string
-	inputType     string
-	options       []string
-	input         textinput.Model
-	done          bool
-	result        string
-	keys          inputKeyMap
-	validationErr string
-	hasError      bool
+	title           string
+	description     string
+	defaultVal      string
+	inputType       string
+	options         []string
+	validationRules []rule.ValidationRule
+	input           textinput.Model
+	done            bool
+	result          string
+	keys            inputKeyMap
+	validationErr   string
+	hasError        bool
 }
 
 type inputKeyMap struct {
@@ -39,7 +41,7 @@ func defaultInputKeyMap() inputKeyMap {
 }
 
 // NewInputModal creates a new text input modal.
-func NewInputModal(title, description, defaultVal, inputType, current string, options []string) *InputModal {
+func NewInputModal(title, description, defaultVal, inputType, current string, options []string, rules []rule.ValidationRule) *InputModal {
 	ti := textinput.New()
 	ti.SetValue(current)
 	ti.Focus()
@@ -47,13 +49,14 @@ func NewInputModal(title, description, defaultVal, inputType, current string, op
 	ti.Width = 40
 
 	return &InputModal{
-		title:       title,
-		description: description,
-		defaultVal:  defaultVal,
-		inputType:   inputType,
-		options:     options,
-		input:       ti,
-		keys:        defaultInputKeyMap(),
+		title:           title,
+		description:     description,
+		defaultVal:      defaultVal,
+		inputType:       inputType,
+		options:         options,
+		validationRules: rules,
+		input:           ti,
+		keys:            defaultInputKeyMap(),
 	}
 }
 
@@ -61,12 +64,23 @@ func (m *InputModal) validate() string {
 	value := m.input.Value()
 
 	if m.inputType == "choice" && len(m.options) > 0 && value != "" {
+		validOption := false
 		for _, opt := range m.options {
 			if opt == value {
-				return ""
+				validOption = true
+				break
 			}
 		}
-		return "\"" + value + "\" is not a valid option"
+		if !validOption {
+			return "\"" + value + "\" is not a valid option"
+		}
+	}
+
+	if len(m.validationRules) > 0 {
+		errors := rule.ValidateValue(value, m.validationRules)
+		if len(errors) > 0 {
+			return strings.Join(errors, "; ")
+		}
 	}
 
 	return ""

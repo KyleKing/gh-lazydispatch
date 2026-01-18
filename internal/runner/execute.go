@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/kyleking/lazydispatch/internal/github"
 )
 
 // RunConfig holds the configuration for running a workflow.
@@ -88,4 +90,35 @@ func watchLatestRun(workflow string) error {
 func DryRun(cfg RunConfig) string {
 	args := BuildArgs(cfg)
 	return FormatCommand(args)
+}
+
+// ExecuteAndGetRunID runs the workflow and returns the run ID for watching.
+// This polls the API shortly after dispatch to find the triggered run.
+func ExecuteAndGetRunID(cfg RunConfig, client *github.Client) (int64, error) {
+	args := BuildArgs(cfg)
+
+	fmt.Println()
+	fmt.Println("Running command:")
+	fmt.Println("  " + FormatCommand(args))
+	fmt.Println()
+
+	cmd := exec.Command("gh", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		return 0, fmt.Errorf("gh workflow run failed: %w", err)
+	}
+
+	run, err := client.GetLatestRun(cfg.Workflow)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get run ID: %w", err)
+	}
+
+	if run == nil {
+		return 0, fmt.Errorf("no run found for workflow: %s", cfg.Workflow)
+	}
+
+	return run.ID, nil
 }

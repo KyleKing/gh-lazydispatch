@@ -10,12 +10,16 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/kyleking/lazydispatch/internal/chain"
+	"github.com/kyleking/lazydispatch/internal/config"
 	"github.com/kyleking/lazydispatch/internal/frecency"
 	"github.com/kyleking/lazydispatch/internal/git"
+	"github.com/kyleking/lazydispatch/internal/github"
 	"github.com/kyleking/lazydispatch/internal/runner"
 	"github.com/kyleking/lazydispatch/internal/ui"
 	"github.com/kyleking/lazydispatch/internal/ui/modal"
 	"github.com/kyleking/lazydispatch/internal/validation"
+	"github.com/kyleking/lazydispatch/internal/watcher"
 	"github.com/kyleking/lazydispatch/internal/workflow"
 )
 
@@ -56,15 +60,33 @@ type Model struct {
 	pendingInputName string
 
 	// Config panel state
-	selectedInput        int                   // Currently selected input row (-1 = none)
-	viewMode             ViewMode              // Current view mode
-	filterText           string                // Current filter string
-	filteredInputs       []string              // Input names after filtering
-	previewingHistoryEntry *frecency.HistoryEntry // History entry being previewed
+	selectedInput          int                      // Currently selected input row (-1 = none)
+	viewMode               ViewMode                 // Current view mode
+	filterText             string                   // Current filter string
+	filteredInputs         []string                 // Input names after filtering
+	previewingHistoryEntry *frecency.HistoryEntry   // History entry being previewed
+
+	// Live view state
+	ghClient *github.Client
+	watcher  *watcher.RunWatcher
+
+	// Chain state
+	wfdConfig     *config.WfdConfig
+	chainExecutor *chain.ChainExecutor
 
 	width  int
 	height int
 	keys   KeyMap
+}
+
+// RunUpdateMsg is sent when a watched run is updated.
+type RunUpdateMsg struct {
+	Update watcher.RunUpdate
+}
+
+// ChainUpdateMsg is sent when a chain execution state changes.
+type ChainUpdateMsg struct {
+	Update chain.ChainUpdate
 }
 
 // New creates a new application model.
@@ -83,6 +105,15 @@ func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string
 		keys:             DefaultKeyMap(),
 		selectedInput:    -1,
 		selectedWorkflow: -1,
+	}
+
+	if ghClient, err := github.NewClient(repo); err == nil {
+		m.ghClient = ghClient
+		m.watcher = watcher.NewWatcher(ghClient)
+	}
+
+	if cfg, err := config.Load("."); err == nil && cfg != nil {
+		m.wfdConfig = cfg
 	}
 
 	if len(workflows) > 0 {
@@ -134,6 +165,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case modal.RemapResultMsg:
 		return m.handleRemapResult(msg)
+
+	case modal.LiveViewClearMsg:
+		if m.watcher != nil {
+			m.watcher.Unwatch(msg.RunID)
+		}
+		return m, nil
+
+	case modal.LiveViewClearAllMsg:
+		if m.watcher != nil {
+			m.watcher.ClearCompleted()
+		}
+		return m, nil
+
+	case RunUpdateMsg:
+		return m, m.watcherSubscription()
+
+	case ChainUpdateMsg:
+		return m.handleChainUpdate(msg)
+
+	case modal.ChainSelectResultMsg:
+		return m.handleChainSelectResult(msg)
 
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
@@ -214,6 +266,12 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.openResetModal()
 		}
 		return m, nil
+
+	case key.Matches(msg, m.keys.LiveView):
+		return m.openLiveViewModal()
+
+	case key.Matches(msg, m.keys.Chain):
+		return m.openChainSelectModal()
 
 	case msg.String() == "a":
 		if m.viewMode == HistoryPreviewMode && m.previewingHistoryEntry != nil {
@@ -384,6 +442,75 @@ func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) openLiveViewModal() (tea.Model, tea.Cmd) {
+	if m.watcher == nil {
+		return m, nil
+	}
+	runs := m.watcher.GetRuns()
+	m.modalStack.Push(modal.NewLiveViewModal(runs))
+	return m, nil
+}
+
+func (m Model) watcherSubscription() tea.Cmd {
+	if m.watcher == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		update := <-m.watcher.Updates()
+		return RunUpdateMsg{Update: update}
+	}
+}
+
+func (m Model) openChainSelectModal() (tea.Model, tea.Cmd) {
+	if m.wfdConfig == nil || !m.wfdConfig.HasChains() {
+		return m, nil
+	}
+	m.modalStack.Push(modal.NewChainSelectModal(m.wfdConfig))
+	return m, nil
+}
+
+func (m Model) handleChainSelectResult(msg modal.ChainSelectResultMsg) (tea.Model, tea.Cmd) {
+	if m.ghClient == nil || m.watcher == nil {
+		return m, nil
+	}
+
+	chainDef := msg.Chain
+	executor := chain.NewExecutor(m.ghClient, m.watcher, msg.ChainName, &chainDef)
+	m.chainExecutor = executor
+
+	if err := executor.Start(m.inputs, m.branch); err != nil {
+		return m, nil
+	}
+
+	m.modalStack.Push(modal.NewChainStatusModal(executor.State()))
+
+	return m, m.chainSubscription()
+}
+
+func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {
+	if m.chainExecutor == nil {
+		return m, nil
+	}
+
+	state := msg.Update.State
+	if state.Status == chain.ChainCompleted || state.Status == chain.ChainFailed {
+		m.chainExecutor = nil
+		return m, nil
+	}
+
+	return m, m.chainSubscription()
+}
+
+func (m Model) chainSubscription() tea.Cmd {
+	if m.chainExecutor == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		update := <-m.chainExecutor.Updates()
+		return ChainUpdateMsg{Update: update}
+	}
+}
+
 func (m Model) openInputModal(index int) (tea.Model, tea.Cmd) {
 	if index >= len(m.inputOrder) {
 		return m, nil
@@ -413,7 +540,7 @@ func (m Model) openInputModalForName(name string) (tea.Model, tea.Cmd) {
 	case "choice":
 		m.modalStack.Push(modal.NewSelectModal(name, input.Options, currentVal, input.Default))
 	default:
-		m.modalStack.Push(modal.NewInputModal(name, input.Description, input.Default, input.InputType(), currentVal, input.Options))
+		m.modalStack.Push(modal.NewInputModal(name, input.Description, input.Default, input.InputType(), currentVal, input.Options, input.ValidationRules))
 	}
 
 	return m, nil
@@ -670,8 +797,14 @@ func (m Model) View() string {
 		return "Loading..."
 	}
 
-	topHeight := m.height / 2
-	bottomHeight := m.height - topHeight
+	statusBar := m.viewStatusBar()
+	statusHeight := 0
+	if statusBar != "" {
+		statusHeight = 1
+	}
+
+	topHeight := (m.height - statusHeight) / 2
+	bottomHeight := m.height - statusHeight - topHeight
 
 	leftWidth := (m.width * 11) / 30
 	rightWidth := m.width - leftWidth
@@ -693,13 +826,29 @@ func (m Model) View() string {
 	configPane := m.viewConfigPane(m.width, bottomHeight)
 
 	top := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, historyPane)
-	main := lipgloss.JoinVertical(lipgloss.Left, top, configPane)
+	var main string
+	if statusBar != "" {
+		main = lipgloss.JoinVertical(lipgloss.Left, top, configPane, statusBar)
+	} else {
+		main = lipgloss.JoinVertical(lipgloss.Left, top, configPane)
+	}
 
 	if m.modalStack.HasActive() {
 		return m.modalStack.Render(main)
 	}
 
 	return main
+}
+
+func (m Model) viewStatusBar() string {
+	if m.watcher == nil {
+		return ""
+	}
+	runs := m.watcher.GetRuns()
+	if len(runs) == 0 {
+		return ""
+	}
+	return ui.HelpStyle.Render(modal.FormatStatusBar(runs) + " [l] view")
 }
 
 func (m Model) getSelectedInputName() string {

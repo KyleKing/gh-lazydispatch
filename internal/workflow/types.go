@@ -1,5 +1,7 @@
 package workflow
 
+import "github.com/kyleking/lazydispatch/internal/rule"
+
 // WorkflowFile represents a parsed GitHub Actions workflow file.
 type WorkflowFile struct {
 	Name     string    `yaml:"name"`
@@ -19,11 +21,12 @@ type WorkflowDispatch struct {
 
 // WorkflowInput represents a single input definition for workflow_dispatch.
 type WorkflowInput struct {
-	Description string   `yaml:"description"`
-	Required    bool     `yaml:"required"`
-	Default     string   `yaml:"default"`
-	Type        string   `yaml:"type"`
-	Options     []string `yaml:"options"`
+	Description     string                `yaml:"description"`
+	Required        bool                  `yaml:"required"`
+	Default         string                `yaml:"default"`
+	Type            string                `yaml:"type"`
+	Options         []string              `yaml:"options"`
+	ValidationRules []rule.ValidationRule `yaml:"-"`
 }
 
 // InputType returns the normalized input type, defaulting to "string".
