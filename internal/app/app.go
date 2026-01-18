@@ -104,11 +104,6 @@ func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string
 		m.wfdConfig = cfg
 	}
 
-	if len(workflows) > 0 {
-		m.selectedWorkflow = 0
-		m.initializeInputs(workflows[0])
-	}
-
 	return m
 }
 

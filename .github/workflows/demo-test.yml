@@ -1,0 +1,33 @@
+name: Demo Test Suite
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of tests to run'
+        required: true
+        type: choice
+        options:
+          - unit
+          - integration
+          - e2e
+          - all
+        default: unit
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo inputs
+        run: |
+          echo "Test type: ${{ inputs.test_type }}"
+          echo "Verbose: ${{ inputs.verbose }}"
+      - name: Run tests
+        run: |
+          echo "Running ${{ inputs.test_type }} tests..."
+          sleep 1
+          echo "Tests passed!"

@@ -17,6 +17,7 @@ type KeyMap struct {
 	Quit     key.Binding
 	Reset    key.Binding
 	ShiftTab key.Binding
+	Space    key.Binding
 	Tab      key.Binding
 	Up       key.Binding
 	Watch    key.Binding
@@ -70,6 +71,7 @@ func DefaultKeyMap() KeyMap {
 		Quit:     key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 		Reset:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reset inputs")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev pane")),
+		Space:    key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "select")),
 		Tab:      key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next pane")),
 		Up:       key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
 		Watch:    key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "watch")),

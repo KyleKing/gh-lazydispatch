@@ -56,60 +56,67 @@ Set Width 1400
 Set Height 900
 
 Hide
-Type `cd ~/Developer/kyleking/gh-lazydispatch/`  Enter  Sleep 500ms
-Type 'go build'  Enter  Sleep 1s
-Type `cd ./testdata`  Enter  Sleep 500ms
+Type `cd ~/Developer/kyleking/gh-lazydispatch/`  Enter  Sleep 250ms
+Type 'go build'  Enter  Sleep 500ms
 Type `clear`  Enter
 Show
 
-# Start the TUI
-Type `../gh-lazydispatch`  Sleep 500ms  Enter
-Sleep 2s
-
-# Navigate workflows
-Down 2
+# Start the TUI (shows 'all' by default)
+Type `./gh-lazydispatch`  Sleep 250ms  Enter
 Sleep 1s
+
+# Show default 'all' selection
+Sleep 500ms
+
+# Navigate down to first workflow
 Down 1
-Sleep 1s
+Sleep 500ms
 
-# Select deploy workflow
-Enter
-Sleep 2s
+# Use Space to select workflow and jump to config
+Space
+Sleep 750ms
 
-# Navigate through inputs and show interaction
-Tab
-Sleep 1s
-Down 1
-Sleep 1s
-
-# Select an input to edit
+# Edit version input using number shortcut
 Type `1`
-Sleep 1s
+Sleep 500ms
 Ctrl+u
 Type `v1.2.3`
-Sleep 500ms
+Sleep 250ms
 Enter
-Sleep 1.5s
+Sleep 750ms
 
-# Select environment choice
+# Edit environment choice using number shortcut
 Type `2`
+Sleep 500ms
+Down 1
+Sleep 250ms
+Enter
+Sleep 750ms
+
+# Toggle dry-run boolean using number shortcut
+Type `3`
+Sleep 500ms
+Type `y`
+Sleep 250ms
+Enter
+Sleep 750ms
+
+# Show the command preview
 Sleep 1s
+
+# Navigate back to workflow pane to show navigation
+Escape
+Sleep 500ms
 Down 1
 Sleep 500ms
-Enter
-Sleep 1.5s
 
-# Toggle dry-run boolean
-Type `3`
-Sleep 1s
-Type `y`
+# Use Space again to select second workflow
+Space
 Sleep 500ms
-Enter
-Sleep 1.5s
 
-# Show the command preview at bottom
-Sleep 2s
+# Show test workflow inputs briefly
+Sleep 750ms
 
 # Quit without executing
 Type `q`
-Sleep 500ms
+Sleep 250ms

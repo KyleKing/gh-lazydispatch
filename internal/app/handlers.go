@@ -55,6 +55,13 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Enter):
 		return m.handleEnter()
 
+	case key.Matches(msg, m.keys.Space):
+		if m.focused == PaneWorkflows {
+			m.focused = PaneConfig
+			return m, nil
+		}
+		return m, nil
+
 	case key.Matches(msg, m.keys.Edit):
 		if m.viewMode == InputDetailMode && m.selectedInput >= 0 {
 			return m.openInputModalFiltered(m.selectedInput)

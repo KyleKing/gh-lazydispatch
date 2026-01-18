@@ -1,0 +1,38 @@
+name: Demo Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy'
+        required: true
+        type: string
+        default: 'v1.0.0'
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        default: staging
+      dry_run:
+        description: 'Run in dry-run mode'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo inputs
+        run: |
+          echo "Version: ${{ inputs.version }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Dry run: ${{ inputs.dry_run }}"
+      - name: Simulate deployment
+        run: |
+          echo "Deploying version ${{ inputs.version }} to ${{ inputs.environment }}..."
+          sleep 2
+          echo "Deployment complete!"
