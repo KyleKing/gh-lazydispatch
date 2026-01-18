@@ -1,0 +1,63 @@
+# Configuration file for golangci-lint
+# For more options, see https://golangci-lint.run/usage/configuration/
+
+[linters]
+default = "standard"
+disabled = [
+  "forbidigo", # forbids identifiers matched by reg exps
+]
+enable = [
+  "asciicheck",
+  "bodyclose",
+  "copyloopvar",
+  "cyclop",
+  "durationcheck",
+  "errcheck",
+  "errorlint",
+  "fatcontext",
+  "gocritic",
+  "goimports",
+  "gomoddirectives",
+  "gomodguard",
+  "gosec",
+  "gosimple",
+  "govet",
+  "iface",
+  "ineffassign",
+  "intrange",
+  "misspell",
+  "nakedret",
+  "nilerr",
+  "noctx",
+  "nolintlint",
+  "perfsprint",
+  "prealloc",
+  "predeclared",
+  "revive",
+  "sqlclosecheck",
+  "staticcheck",
+  "stylecheck",
+  "testifylint",
+  "testpackage",
+  "typecheck",
+  "unconvert",
+  "unused",
+  "wastedassign",
+  "wrapcheck",
+  "wsl",
+]
+relative-path-mode = "gomod"
+
+[linters.settings]
+
+[linters.settings.revive]
+enable-all-rules = true
+
+[linters.settings.staticcheck]
+checks = ["all"]
+
+[linters.settings.testifylint]
+enable-all = true
+
+[run]
+timeout = "1m"

@@ -1,0 +1,25 @@
+[env]
+MISE_ENV = "hk"
+
+[settings]
+experimental = true
+
+[tasks.ci]
+description = "Run all checks (used in GitHub Actions)"
+run = ["go test -v ./...", "go build -v ./..."]
+
+[tasks.format]
+description = "Format code with golangci-lint and golines"
+run = ["golangci-lint run --fix ./...", "golines -w ."]
+
+[tasks.hooks]
+description = "Run git hooks"
+run = ["hk fix --quiet"]
+
+[tasks.test]
+description = "Run tests with coverage"
+run = "go test -coverprofile=coverage.out ./..."
+
+[tasks."test:view-coverage"]
+description = "View coverage report in browser"
+run = ["go tool cover -html=coverage.out"]
