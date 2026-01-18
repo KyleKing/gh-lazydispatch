@@ -3,7 +3,7 @@ package modal
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
 // BranchItem represents a branch in the list.

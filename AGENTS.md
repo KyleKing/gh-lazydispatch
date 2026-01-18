@@ -4,7 +4,7 @@ This document provides guidelines for AI coding assistants working on this Go pr
 
 ## Project Context
 
-- **Module**: `github.com/kyleking/lazydispatch`
+- **Module**: `github.com/kyleking/gh-lazydispatch`
 - **Type**: CLI application
 - **Description**: Interactive GitHub Actions workflow dispatcher TUI with fuzzy selection, input configuration, and frecency-based history
 

@@ -3,7 +3,7 @@ package workflow
 import (
 	"strings"
 
-	"github.com/kyleking/lazydispatch/internal/rule"
+	"github.com/kyleking/gh-lazydispatch/internal/rule"
 	"gopkg.in/yaml.v3"
 )
 

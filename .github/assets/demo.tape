@@ -56,14 +56,14 @@ Set Width 1400
 Set Height 900
 
 Hide
-Type `cd ~/Developer/kyleking/lazydispatch/`  Enter  Sleep 500ms
+Type `cd ~/Developer/kyleking/gh-lazydispatch/`  Enter  Sleep 500ms
 Type 'go build'  Enter  Sleep 1s
 Type `cd ./testdata`  Enter  Sleep 500ms
 Type `clear`  Enter
 Show
 
 # Start the TUI
-Type `../lazydispatch`  Sleep 500ms  Enter
+Type `../gh-lazydispatch`  Sleep 500ms  Enter
 Sleep 2s
 
 # Navigate workflows

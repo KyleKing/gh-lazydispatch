@@ -6,8 +6,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/git"
-	"github.com/kyleking/lazydispatch/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/internal/git"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 )
 
 type model struct {

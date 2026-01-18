@@ -4,14 +4,14 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/chain"
-	"github.com/kyleking/lazydispatch/internal/config"
-	"github.com/kyleking/lazydispatch/internal/frecency"
-	"github.com/kyleking/lazydispatch/internal/git"
-	"github.com/kyleking/lazydispatch/internal/github"
-	"github.com/kyleking/lazydispatch/internal/ui/modal"
-	"github.com/kyleking/lazydispatch/internal/watcher"
-	"github.com/kyleking/lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/internal/git"
+	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 // FocusedPane represents which pane currently has focus.

@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
 // SelectModal presents a list of options to choose from.

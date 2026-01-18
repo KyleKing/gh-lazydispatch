@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
 // SimpleBranchModal is a branch selector without bubbles/list complexity.

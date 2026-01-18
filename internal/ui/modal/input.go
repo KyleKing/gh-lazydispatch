@@ -6,8 +6,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/rule"
-	"github.com/kyleking/lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/rule"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
 // InputModal presents a text input field.

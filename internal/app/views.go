@@ -4,10 +4,10 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kyleking/lazydispatch/internal/ui"
-	"github.com/kyleking/lazydispatch/internal/ui/modal"
-	"github.com/kyleking/lazydispatch/internal/validation"
-	"github.com/kyleking/lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/internal/validation"
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 // View implements tea.Model.

@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyleking/lazydispatch/internal/config"
-	"github.com/kyleking/lazydispatch/internal/github"
-	"github.com/kyleking/lazydispatch/internal/runner"
-	"github.com/kyleking/lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
 // ChainStatus represents the overall status of a chain execution.

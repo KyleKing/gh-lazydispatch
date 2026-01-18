@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/lazydispatch/internal/chain"
-	"github.com/kyleking/lazydispatch/internal/config"
-	"github.com/kyleking/lazydispatch/internal/github"
-	"github.com/kyleking/lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
 type mockGitHubClient struct {

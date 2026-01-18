@@ -3,8 +3,8 @@ package validation
 import (
 	"sort"
 
-	"github.com/kyleking/lazydispatch/internal/frecency"
-	"github.com/kyleking/lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 	"github.com/sahilm/fuzzy"
 )
 

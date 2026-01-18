@@ -1,6 +1,6 @@
 package workflow
 
-import "github.com/kyleking/lazydispatch/internal/rule"
+import "github.com/kyleking/gh-lazydispatch/internal/rule"
 
 // WorkflowFile represents a parsed GitHub Actions workflow file.
 type WorkflowFile struct {

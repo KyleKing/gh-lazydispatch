@@ -3,7 +3,7 @@ package ui
 import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/kyleking/lazydispatch/internal/ui/theme"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/theme"
 	"github.com/sahilm/fuzzy"
 )
 

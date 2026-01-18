@@ -8,14 +8,14 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/chain"
-	"github.com/kyleking/lazydispatch/internal/git"
-	"github.com/kyleking/lazydispatch/internal/rule"
-	"github.com/kyleking/lazydispatch/internal/runner"
-	"github.com/kyleking/lazydispatch/internal/ui"
-	"github.com/kyleking/lazydispatch/internal/ui/modal"
-	"github.com/kyleking/lazydispatch/internal/validation"
-	"github.com/kyleking/lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/internal/git"
+	"github.com/kyleking/gh-lazydispatch/internal/rule"
+	"github.com/kyleking/gh-lazydispatch/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/internal/validation"
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {

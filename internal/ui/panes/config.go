@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/ui"
-	"github.com/kyleking/lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 // ConfigModel manages the configuration pane.

@@ -41,13 +41,13 @@ gh lazydispatch
 ### Standalone Binary
 
 ```bash
-go install github.com/kyleking/lazydispatch@latest
+go install github.com/kyleking/gh-lazydispatch@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/kyleking/lazydispatch
+git clone https://github.com/kyleking/gh-lazydispatch
 cd lazydispatch
 go build
 ```

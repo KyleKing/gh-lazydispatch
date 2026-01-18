@@ -6,12 +6,12 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/kyleking/lazydispatch/internal/app"
-	"github.com/kyleking/lazydispatch/internal/frecency"
-	"github.com/kyleking/lazydispatch/internal/runner"
-	"github.com/kyleking/lazydispatch/internal/ui"
-	"github.com/kyleking/lazydispatch/internal/ui/theme"
-	"github.com/kyleking/lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/internal/app"
+	"github.com/kyleking/gh-lazydispatch/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/theme"
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 var (
@@ -110,5 +110,5 @@ Keyboard Shortcuts:
   ?                  Show help
   q, Ctrl+C          Quit
 
-For more information: https://github.com/kyleking/lazydispatch`)
+For more information: https://github.com/kyleking/gh-lazydispatch`)
 }
