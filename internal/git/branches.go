@@ -8,15 +8,32 @@ import (
 	"time"
 )
 
+// CommandRunner executes git commands and returns their output.
+type CommandRunner interface {
+	RunCommand(ctx context.Context, args ...string) ([]byte, error)
+}
+
+type defaultCommandRunner struct{}
+
+func (r *defaultCommandRunner) RunCommand(ctx context.Context, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, "git", args...)
+	return cmd.Output()
+}
+
+var runner CommandRunner = &defaultCommandRunner{}
+
 // FetchBranches retrieves all branches from the git repository.
 // Returns both local and remote-tracking branches, with "origin/" prefix stripped.
 // Falls back to default branches on error.
 func FetchBranches(ctx context.Context) ([]string, error) {
+	return fetchBranchesWithRunner(ctx, runner)
+}
+
+func fetchBranchesWithRunner(ctx context.Context, r CommandRunner) ([]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "branch", "-r", "--list")
-	output, err := cmd.Output()
+	output, err := r.RunCommand(ctx, "branch", "-r", "--list")
 	if err != nil {
 		return _defaultBranches(), err
 	}
@@ -35,11 +52,14 @@ func FetchBranches(ctx context.Context) ([]string, error) {
 // GetCurrentBranch returns the currently checked out branch.
 // Returns empty string if unable to determine (e.g., detached HEAD).
 func GetCurrentBranch(ctx context.Context) string {
+	return getCurrentBranchWithRunner(ctx, runner)
+}
+
+func getCurrentBranchWithRunner(ctx context.Context, r CommandRunner) string {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD")
-	output, err := cmd.Output()
+	output, err := r.RunCommand(ctx, "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		return ""
 	}
@@ -54,11 +74,14 @@ func GetCurrentBranch(ctx context.Context) string {
 // GetDefaultBranch attempts to determine the repository's default branch.
 // Returns empty string if unable to determine.
 func GetDefaultBranch(ctx context.Context) string {
+	return getDefaultBranchWithRunner(ctx, runner)
+}
+
+func getDefaultBranchWithRunner(ctx context.Context, r CommandRunner) string {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "symbolic-ref", "refs/remotes/origin/HEAD")
-	output, err := cmd.Output()
+	output, err := r.RunCommand(ctx, "symbolic-ref", "refs/remotes/origin/HEAD")
 	if err != nil {
 		return ""
 	}

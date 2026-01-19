@@ -15,6 +15,23 @@ type RunConfig struct {
 	Watch    bool
 }
 
+// CommandExecutor executes shell commands.
+type CommandExecutor interface {
+	Execute(name string, args ...string) error
+}
+
+type defaultCommandExecutor struct{}
+
+func (e defaultCommandExecutor) Execute(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
+}
+
+var executor CommandExecutor = defaultCommandExecutor{}
+
 // BuildArgs constructs the gh workflow run arguments.
 func BuildArgs(cfg RunConfig) []string {
 	args := []string{"workflow", "run", cfg.Workflow}
@@ -48,6 +65,10 @@ func FormatCommand(args []string) string {
 // Execute runs the workflow using gh CLI.
 // It prints the command being run (like lazygit) then executes it.
 func Execute(cfg RunConfig) error {
+	return ExecuteWithExecutor(cfg, executor)
+}
+
+func ExecuteWithExecutor(cfg RunConfig, exec CommandExecutor) error {
 	args := BuildArgs(cfg)
 
 	fmt.Println()
@@ -55,33 +76,27 @@ func Execute(cfg RunConfig) error {
 	fmt.Println("  " + FormatCommand(args))
 	fmt.Println()
 
-	cmd := exec.Command("gh", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
+	if err := exec.Execute("gh", args...); err != nil {
 		return fmt.Errorf("gh workflow run failed: %w", err)
 	}
 
 	if cfg.Watch {
-		return watchLatestRun(cfg.Workflow)
+		return watchLatestRunWithExecutor(cfg.Workflow, exec)
 	}
 
 	return nil
 }
 
 func watchLatestRun(workflow string) error {
+	return watchLatestRunWithExecutor(workflow, executor)
+}
+
+func watchLatestRunWithExecutor(_ string, exec CommandExecutor) error {
 	fmt.Println()
 	fmt.Println("Watching run...")
 	fmt.Println()
 
-	cmd := exec.Command("gh", "run", "watch")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	return cmd.Run()
+	return exec.Execute("gh", "run", "watch")
 }
 
 // DryRun prints the command that would be executed without running it.
@@ -93,6 +108,10 @@ func DryRun(cfg RunConfig) string {
 // ExecuteAndGetRunID runs the workflow and returns the run ID for watching.
 // This polls the API shortly after dispatch to find the triggered run.
 func ExecuteAndGetRunID(cfg RunConfig, client GitHubClient) (int64, error) {
+	return ExecuteAndGetRunIDWithExecutor(cfg, client, executor)
+}
+
+func ExecuteAndGetRunIDWithExecutor(cfg RunConfig, client GitHubClient, exec CommandExecutor) (int64, error) {
 	args := BuildArgs(cfg)
 
 	fmt.Println()
@@ -100,12 +119,7 @@ func ExecuteAndGetRunID(cfg RunConfig, client GitHubClient) (int64, error) {
 	fmt.Println("  " + FormatCommand(args))
 	fmt.Println()
 
-	cmd := exec.Command("gh", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
+	if err := exec.Execute("gh", args...); err != nil {
 		return 0, fmt.Errorf("gh workflow run failed: %w", err)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/kyleking/gh-lazydispatch/internal/runner"
 )
 
 func TestStack_PushPop(t *testing.T) {
@@ -199,5 +200,230 @@ func TestConfirmModal_View(t *testing.T) {
 	view := modal.View()
 	if view == "" {
 		t.Error("expected non-empty view")
+	}
+}
+
+func TestRunConfirmModal_Confirm(t *testing.T) {
+	cfg := runner.RunConfig{
+		Workflow: "test.yml",
+		Branch:   "main",
+		Inputs:   map[string]string{"env": "prod"},
+		Watch:    false,
+	}
+
+	modal := NewRunConfirmModal(cfg)
+
+	enter := tea.KeyMsg{Type: tea.KeyEnter}
+	modal.Update(enter)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after enter")
+	}
+
+	result, ok := modal.Result().(RunConfirmResultMsg)
+	if !ok {
+		t.Fatal("expected RunConfirmResultMsg")
+	}
+	if !result.Confirmed {
+		t.Error("expected confirmed=true")
+	}
+	if result.Config.Workflow != "test.yml" {
+		t.Errorf("expected workflow=test.yml, got %q", result.Config.Workflow)
+	}
+}
+
+func TestRunConfirmModal_Cancel(t *testing.T) {
+	cfg := runner.RunConfig{Workflow: "test.yml"}
+	modal := NewRunConfirmModal(cfg)
+
+	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	modal.Update(esc)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after escape")
+	}
+
+	result, ok := modal.Result().(RunConfirmResultMsg)
+	if !ok {
+		t.Fatal("expected RunConfirmResultMsg")
+	}
+	if result.Confirmed {
+		t.Error("expected confirmed=false after escape")
+	}
+}
+
+func TestFilterModal_ApplyFilter(t *testing.T) {
+	items := []string{"environment", "debug", "verbose"}
+	modal := NewFilterModal("Filter", items, "")
+
+	enterE := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}}
+	modal.Update(enterE)
+
+	enterN := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
+	modal.Update(enterN)
+
+	enter := tea.KeyMsg{Type: tea.KeyEnter}
+	_, cmd := modal.Update(enter)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after enter")
+	}
+
+	if cmd == nil {
+		t.Fatal("expected command")
+	}
+
+	msg := cmd()
+	result, ok := msg.(FilterResultMsg)
+	if !ok {
+		t.Fatalf("expected FilterResultMsg, got %T", msg)
+	}
+	if result.Cancelled {
+		t.Error("expected cancelled=false")
+	}
+	if result.Value != "en" {
+		t.Errorf("expected value='en', got %q", result.Value)
+	}
+}
+
+func TestFilterModal_Cancel(t *testing.T) {
+	items := []string{"a", "b"}
+	modal := NewFilterModal("Filter", items, "initial")
+
+	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	_, cmd := modal.Update(esc)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after escape")
+	}
+
+	if cmd == nil {
+		t.Fatal("expected command")
+	}
+
+	msg := cmd()
+	result, ok := msg.(FilterResultMsg)
+	if !ok {
+		t.Fatalf("expected FilterResultMsg, got %T", msg)
+	}
+	if !result.Cancelled {
+		t.Error("expected cancelled=true")
+	}
+}
+
+func TestResetModal_Confirm(t *testing.T) {
+	diffs := []ResetDiff{
+		{Name: "env", Current: "prod", Default: "staging"},
+		{Name: "debug", Current: "true", Default: "false"},
+	}
+	modal := NewResetModal(diffs)
+
+	enter := tea.KeyMsg{Type: tea.KeyEnter}
+	_, cmd := modal.Update(enter)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after enter")
+	}
+
+	if cmd == nil {
+		t.Fatal("expected command")
+	}
+
+	msg := cmd()
+	result, ok := msg.(ResetResultMsg)
+	if !ok {
+		t.Fatalf("expected ResetResultMsg, got %T", msg)
+	}
+	if !result.Confirmed {
+		t.Error("expected confirmed=true")
+	}
+}
+
+func TestResetModal_Cancel(t *testing.T) {
+	diffs := []ResetDiff{{Name: "a", Current: "b", Default: "c"}}
+	modal := NewResetModal(diffs)
+
+	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	_, cmd := modal.Update(esc)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after escape")
+	}
+
+	if cmd == nil {
+		t.Fatal("expected command")
+	}
+
+	msg := cmd()
+	result, ok := msg.(ResetResultMsg)
+	if !ok {
+		t.Fatalf("expected ResetResultMsg, got %T", msg)
+	}
+	if result.Confirmed {
+		t.Error("expected confirmed=false after escape")
+	}
+}
+
+func TestHelpModal(t *testing.T) {
+	modal := NewHelpModal()
+
+	if modal.IsDone() {
+		t.Error("expected modal not done initially")
+	}
+
+	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	modal.Update(esc)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after escape")
+	}
+}
+
+func TestValidationErrorModal_Override(t *testing.T) {
+	errors := map[string][]string{
+		"env": {"must not be empty"},
+	}
+	modal := NewValidationErrorModal(errors)
+
+	c := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}}
+	_, cmd := modal.Update(c)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after 'c'")
+	}
+
+	if cmd == nil {
+		t.Fatal("expected command")
+	}
+
+	msg := cmd()
+	result, ok := msg.(ValidationErrorResultMsg)
+	if !ok {
+		t.Fatalf("expected ValidationErrorResultMsg, got %T", msg)
+	}
+	if !result.Override {
+		t.Error("expected override=true")
+	}
+}
+
+func TestValidationErrorModal_Cancel(t *testing.T) {
+	errors := map[string][]string{"a": {"error"}}
+	modal := NewValidationErrorModal(errors)
+
+	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	_, cmd := modal.Update(esc)
+
+	if !modal.IsDone() {
+		t.Error("expected modal to be done after escape")
+	}
+
+	if cmd != nil {
+		t.Error("expected no command on escape")
+	}
+
+	result := modal.Result()
+	resultMsg, ok := result.(ValidationErrorResultMsg)
+	if ok && resultMsg.Override {
+		t.Error("expected override=false after escape")
 	}
 }
