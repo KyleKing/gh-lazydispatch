@@ -1,21 +1,56 @@
 package logs
 
 import (
+	"fmt"
+
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 )
 
-// Manager coordinates log fetching, caching, and access.
-type Manager struct {
-	fetcher *Fetcher
-	cache   *Cache
+// LogFetcher defines the interface for fetching logs.
+type LogFetcher interface {
+	FetchStepLogs(runID int64, workflow string) ([]*StepLogs, error)
 }
 
-// NewManager creates a new log manager.
+// Manager coordinates log fetching, caching, and access.
+type Manager struct {
+	fetcher    LogFetcher
+	cache      *Cache
+	useRealAPI bool
+}
+
+// NewManager creates a new log manager that uses gh CLI if available.
 func NewManager(client GitHubClient, cacheDir string) *Manager {
-	return &Manager{
-		fetcher: NewFetcher(client),
-		cache:   NewCache(cacheDir),
+	var fetcher LogFetcher
+	useRealAPI := false
+
+	// Try to use GHFetcher if gh CLI is available
+	if err := CheckGHCLIAvailable(); err == nil {
+		ghFetcher := NewGHFetcher(client)
+		fetcher = &ghFetcherAdapter{ghFetcher: ghFetcher}
+		useRealAPI = true
+	} else {
+		// Fall back to synthetic logs
+		fetcher = NewFetcher(client)
 	}
+
+	return &Manager{
+		fetcher:    fetcher,
+		cache:      NewCache(cacheDir),
+		useRealAPI: useRealAPI,
+	}
+}
+
+// ghFetcherAdapter adapts GHFetcher to LogFetcher interface.
+type ghFetcherAdapter struct {
+	ghFetcher *GHFetcher
+}
+
+func (a *ghFetcherAdapter) FetchStepLogs(runID int64, workflow string) ([]*StepLogs, error) {
+	logs, err := a.ghFetcher.FetchStepLogsReal(runID, workflow)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch real logs via gh CLI: %w", err)
+	}
+	return logs, nil
 }
 
 // GetLogsForChain fetches or retrieves cached logs for a chain execution.

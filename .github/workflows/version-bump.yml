@@ -1,0 +1,83 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type (leave empty for auto)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - 'patch'
+          - 'minor'
+          - 'major'
+        default: ''
+      prerelease:
+        description: 'Prerelease identifier (e.g., alpha, beta, rc)'
+        required: false
+        default: ''
+      push:
+        description: 'Push changes and tags to remote'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install commitizen
+        run: pip install commitizen
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump
+        run: |
+          ARGS=()
+          if [ -n "${{ inputs.bump_type }}" ]; then
+            ARGS+=(--increment "${{ inputs.bump_type }}")
+          fi
+          if [ -n "${{ inputs.prerelease }}" ]; then
+            ARGS+=(--prerelease "${{ inputs.prerelease }}")
+          fi
+
+          cz bump "${ARGS[@]}" --yes || {
+            echo "No version bump needed"
+            echo "bumped=false" >> $GITHUB_OUTPUT
+            exit 0
+          }
+
+          echo "bumped=true" >> $GITHUB_OUTPUT
+          echo "new_version=$(cz version --project)" >> $GITHUB_OUTPUT
+
+      - name: Push changes
+        if: steps.bump.outputs.bumped == 'true' && inputs.push
+        run: |
+          git push --follow-tags
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Version Bump Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.bump.outputs.bumped }}" == "true" ]; then
+            echo "**Status:** ✓ Version bumped" >> $GITHUB_STEP_SUMMARY
+            echo "**New Version:** ${{ steps.bump.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** No version bump needed" >> $GITHUB_STEP_SUMMARY
+          fi

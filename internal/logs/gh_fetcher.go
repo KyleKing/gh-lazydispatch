@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
 // GHFetcher fetches real logs using gh CLI.
@@ -84,7 +86,7 @@ func (f *GHFetcher) fetchJobLogs(runID, jobID int64) (string, error) {
 
 // parseJobLogsIntoSteps parses raw job logs into separate step logs.
 func (f *GHFetcher) parseJobLogsIntoSteps(
-	job interface{ Name string; Steps []interface{ Name, Status, Conclusion string } },
+	job github.Job,
 	rawLogs string,
 	workflow string,
 	runID int64,
@@ -99,12 +101,8 @@ func (f *GHFetcher) parseJobLogsIntoSteps(
 	// ... log lines ...
 	// ##[endgroup]
 
-	type jobStep interface {
-		Name, Status, Conclusion string
-	}
-
 	var stepLogs []*StepLogs
-	scanner := bufio.Scanner(strings.NewReader(rawLogs))
+	scanner := bufio.NewScanner(strings.NewReader(rawLogs))
 
 	currentStepIdx := -1
 	var currentLines []string

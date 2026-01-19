@@ -1,0 +1,123 @@
+name: CI Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to check (branch/tag/commit)'
+        required: true
+        default: 'main'
+      required_checks:
+        description: 'Comma-separated list of required check names (leave empty for all)'
+        required: false
+        default: ''
+
+jobs:
+  verify-ci-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CI Status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ref = '${{ inputs.ref }}';
+            const requiredChecks = '${{ inputs.required_checks }}'
+              .split(',')
+              .map(s => s.trim())
+              .filter(s => s.length > 0);
+
+            // Get the commit SHA for the ref
+            const { data: refData } = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${ref.replace('refs/heads/', '')}`
+            });
+            const sha = refData.object.sha;
+
+            console.log(`Checking CI status for commit: ${sha}`);
+
+            // Get all check runs for this commit
+            const { data: checkRuns } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha,
+              per_page: 100
+            });
+
+            // Get all status checks (for older CI systems)
+            const { data: statuses } = await github.rest.repos.getCombinedStatusForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha
+            });
+
+            // Combine all checks
+            const allChecks = [
+              ...checkRuns.check_runs.map(check => ({
+                name: check.name,
+                status: check.status,
+                conclusion: check.conclusion,
+                type: 'check_run',
+                html_url: check.html_url
+              })),
+              ...statuses.statuses.map(status => ({
+                name: status.context,
+                status: status.state === 'pending' ? 'in_progress' : 'completed',
+                conclusion: status.state,
+                type: 'status',
+                html_url: status.target_url
+              }))
+            ];
+
+            // Filter to required checks if specified
+            const checksToVerify = requiredChecks.length > 0
+              ? allChecks.filter(c => requiredChecks.includes(c.name))
+              : allChecks;
+
+            if (checksToVerify.length === 0) {
+              core.setFailed('No CI checks found for this commit');
+              return;
+            }
+
+            console.log(`Found ${checksToVerify.length} checks to verify:`);
+            checksToVerify.forEach(check => {
+              console.log(`  - ${check.name}: ${check.status} / ${check.conclusion}`);
+            });
+
+            // Check if all required checks have completed
+            const incompleteChecks = checksToVerify.filter(c =>
+              c.status !== 'completed' && c.conclusion !== 'success'
+            );
+
+            if (incompleteChecks.length > 0) {
+              const checkList = incompleteChecks.map(c => c.name).join(', ');
+              core.setFailed(`CI checks incomplete or pending: ${checkList}`);
+              core.setOutput('incomplete_checks', checkList);
+              return;
+            }
+
+            // Check if any checks failed
+            const failedChecks = checksToVerify.filter(c =>
+              c.conclusion !== 'success' && c.conclusion !== 'skipped'
+            );
+
+            if (failedChecks.length > 0) {
+              const checkList = failedChecks.map(c =>
+                `${c.name} (${c.conclusion})`
+              ).join(', ');
+              core.setFailed(`CI checks failed: ${checkList}`);
+              core.setOutput('failed_checks', checkList);
+              return;
+            }
+
+            console.log('✓ All CI checks passed');
+            core.setOutput('sha', sha);
+            core.setOutput('checks_verified', checksToVerify.length);
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### CI Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Ref:** ${{ inputs.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

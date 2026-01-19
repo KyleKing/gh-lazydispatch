@@ -26,7 +26,118 @@ This document proposes innovative features for the log viewer that leverage the 
 
 ## Innovative Features (Proposed)
 
-### 1. **Log Bookmarks & Annotations** 🆕
+### 1. **Log Diff Mode** 🆕
+
+**Concept:** Compare logs from two different chain executions side-by-side
+
+**Use Cases:**
+- "Why did this run fail when the previous one succeeded?"
+- "What changed between the staging and production deployment?"
+- "Compare output before and after code change"
+
+**UX Design:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Comparing: release-bump (Run #123 vs Run #145)             │
+├──────────────────────────┬──────────────────────────────────┤
+│  Step 1: ci-gate.yml     │  Step 1: ci-gate.yml            │
+│  ✓ All checks passed     │  ✗ tests failed                 │
+│                          │  Error: 3 tests failed          │
+│  ← SAME                  │                                  │
+│                          │  → DIFFERENT                     │
+├──────────────────────────┼──────────────────────────────────┤
+│  Step 2: version-bump    │  Step 2: version-bump           │
+│  ✓ Bumped to v1.2.3      │  - Skipped (previous failed)    │
+└──────────────────────────┴──────────────────────────────────┘
+[d] toggle diff  [=] align scrolling  [tab] next step
+```
+
+**Implementation:**
+```go
+type LogDiffMode struct {
+	leftRun  *logs.RunLogs
+	rightRun *logs.RunLogs
+	aligned  bool // sync scrolling
+}
+
+func (m *LogsViewerModal) EnableDiffMode(otherRun *logs.RunLogs) {
+	m.diffMode = &LogDiffMode{
+		leftRun:  m.runLogs,
+		rightRun: otherRun,
+		aligned:  true,
+	}
+	m.renderDiff()
+}
+```
+
+### 2. **Smart Log Summarization** 🆕
+
+**Concept:** AI/heuristic-based summary of key events in logs
+
+**Use Cases:**
+- "Give me the TL;DR of this 10,000 line log"
+- "What were the key milestones in this deployment?"
+- "Extract all error messages"
+
+**UX Design:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Summary: ci-gate.yml (12,453 lines)                         │
+├─────────────────────────────────────────────────────────────┤
+│  ⏱  Duration: 8m 23s                                        │
+│  ✓  23 tests passed                                          │
+│  ✗  3 tests failed:                                          │
+│     → test_user_authentication (auth.test.ts:45)            │
+│     → test_api_timeout (api.test.ts:120)                    │
+│     → test_database_migration (db.test.ts:89)               │
+│  ⚠  5 warnings:                                              │
+│     → Deprecated API usage (2 occurrences)                  │
+│     → Slow query detected (3 occurrences)                   │
+│  📊 Resource usage:                                          │
+│     → Peak memory: 2.3 GB                                   │
+│     → CPU time: 4m 12s                                      │
+└─────────────────────────────────────────────────────────────┘
+[enter] view full logs  [s] toggle summary
+```
+
+**Implementation:**
+```go
+type LogSummary struct {
+	Duration      time.Duration
+	TestsPassed   int
+	TestsFailed   int
+	Warnings      []string
+	Errors        []string
+	KeyMilestones []Milestone
+	ResourceUsage *ResourceStats
+}
+
+func GenerateSummary(stepLogs *logs.StepLogs) *LogSummary {
+	// Parse logs using regex patterns
+	summary := &LogSummary{}
+
+	for _, entry := range stepLogs.Entries {
+		// Detect test results
+		if testPattern.MatchString(entry.Content) {
+			// Extract test name and result
+		}
+
+		// Detect duration markers
+		if durationPattern.MatchString(entry.Content) {
+			// Extract timing information
+		}
+
+		// Collect errors and warnings
+		if entry.Level == logs.LogLevelError {
+			summary.Errors = append(summary.Errors, entry.Content)
+		}
+	}
+
+	return summary
+}
+```
+
+### 3. **Log Bookmarks & Annotations** 🆕
 
 **Concept:** Mark interesting log lines for later review
 
@@ -78,7 +189,7 @@ func (m *LogsViewerModal) AddBookmark() {
 }
 ```
 
-### 2. **Timeline View** 🆕
+### 4. **Timeline View** 🆕
 
 **Concept:** Visual timeline of events across all steps
 
@@ -155,7 +266,96 @@ func GenerateTimeline(runLogs *logs.RunLogs) []TimelineEvent {
 }
 ```
 
-### 3. **Log Streaming with Live Update** 🆕
+### 5. **Log Export with Context** 🆕
+
+**Concept:** Export filtered logs with rich context and formatting
+
+**Use Cases:**
+- "Share these specific error logs with the team"
+- "Create a bug report with relevant logs"
+- "Archive logs for compliance"
+
+**Formats:**
+- **Markdown:** With syntax highlighting and links
+- **HTML:** Styled, searchable, self-contained
+- **JSON:** Structured data with metadata
+- **Text:** Plain text with optional ANSI colors
+
+**UX Design:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Export Logs                                                 │
+├─────────────────────────────────────────────────────────────┤
+│  Format:                                                     │
+│    ◉ Markdown (GitHub-flavored)                             │
+│    ○ HTML (self-contained)                                  │
+│    ○ JSON (structured)                                      │
+│    ○ Plain text                                             │
+│                                                              │
+│  Include:                                                    │
+│    ☑ Current filter (errors only)                           │
+│    ☑ Timestamps                                             │
+│    ☑ Step names                                             │
+│    ☑ Search highlights                                      │
+│    ☑ Workflow URLs                                          │
+│    ☐ Full metadata                                          │
+│                                                              │
+│  Output: ~/Downloads/release-bump-errors-2026-01-19.md     │
+└─────────────────────────────────────────────────────────────┘
+[enter] export  [esc] cancel
+```
+
+**Implementation:**
+```go
+type ExportConfig struct {
+	Format           string // markdown, html, json, text
+	IncludeTimestamp bool
+	IncludeStepNames bool
+	IncludeHighlight bool
+	IncludeMetadata  bool
+	OutputPath       string
+}
+
+func ExportLogs(filtered *logs.FilteredResult, config ExportConfig) error {
+	switch config.Format {
+	case "markdown":
+		return exportMarkdown(filtered, config)
+	case "html":
+		return exportHTML(filtered, config)
+	case "json":
+		return exportJSON(filtered, config)
+	default:
+		return exportText(filtered, config)
+	}
+}
+
+func exportMarkdown(filtered *logs.FilteredResult, config ExportConfig) error {
+	var md strings.Builder
+
+	md.WriteString("# Logs Export\n\n")
+	md.WriteString(fmt.Sprintf("**Chain:** %s\n", filtered.ChainName))
+	md.WriteString(fmt.Sprintf("**Filter:** %s\n\n", filtered.Config.Level))
+
+	for _, step := range filtered.Steps {
+		md.WriteString(fmt.Sprintf("## Step %d: %s\n\n", step.StepIndex+1, step.StepName))
+		md.WriteString("```\n")
+
+		for _, entry := range step.Entries {
+			if config.IncludeTimestamp {
+				md.WriteString(entry.Original.Timestamp.Format("15:04:05") + " ")
+			}
+			md.WriteString(entry.Original.Content)
+			md.WriteString("\n")
+		}
+
+		md.WriteString("```\n\n")
+	}
+
+	return os.WriteFile(config.OutputPath, []byte(md.String()), 0644)
+}
+```
+
+### 6. **Log Streaming with Live Update** 🆕
 
 **Concept:** Watch logs update in real-time as chain executes
 
@@ -229,7 +429,7 @@ case LogStreamUpdateMsg:
 	return m, m.EnableStreaming(m.currentRunID)
 ```
 
-### 4. **Log Pattern Detection** 🆕
+### 7. **Log Pattern Detection** 🆕
 
 **Concept:** Automatically detect common patterns and anomalies
 
@@ -315,7 +515,7 @@ func DetectPatterns(stepLogs *logs.StepLogs) []LogPattern {
 }
 ```
 
-### 5. **Contextual Log Navigation** 🆕
+### 8. **Contextual Log Navigation** 🆕
 
 **Concept:** Smart navigation based on log structure
 
@@ -406,7 +606,68 @@ func (m *LogsViewerModal) ShowQuickNav() {
 }
 ```
 
-### 6. **Performance Profiling View** 🆕
+### 9. **Log Collaboration Features** 🆕
+
+**Concept:** Share and discuss logs with team members
+
+**Features:**
+- **Permalink generation:** Create shareable links to specific log lines
+- **Comment threads:** Discuss specific log entries
+- **Share filtered view:** Send link with filters pre-applied
+
+**UX Design:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Share Logs                                                  │
+├─────────────────────────────────────────────────────────────┤
+│  Shareable URL:                                             │
+│  lazydispatch://logs/release-bump/12345?                    │
+│    step=1&                                                  │
+│    filter=errors&                                           │
+│    highlight=timeout&                                       │
+│    line=145                                                 │
+│                                                              │
+│  📋 [Copy URL]  🌐 [Open in GitHub]                        │
+│                                                              │
+│  Or export and attach to:                                   │
+│  • GitHub issue                                             │
+│  • Slack thread                                             │
+│  • Email                                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+```go
+type ShareableLogLink struct {
+	ChainName  string
+	RunID      int64
+	StepIndex  int
+	FilterType logs.FilterLevel
+	SearchTerm string
+	Line       int
+}
+
+func GenerateShareableURL(link ShareableLogLink) string {
+	return fmt.Sprintf(
+		"lazydispatch://logs/%s/%d?step=%d&filter=%s&highlight=%s&line=%d",
+		link.ChainName,
+		link.RunID,
+		link.StepIndex,
+		link.FilterType,
+		url.QueryEscape(link.SearchTerm),
+		link.Line,
+	)
+}
+
+// Handle URL scheme
+func HandleShareableURL(url string) tea.Cmd {
+	// Parse URL parameters
+	// Fetch logs
+	// Open viewer with specified filters and position
+}
+```
+
+### 10. **Performance Profiling View** 🆕
 
 **Concept:** Extract and visualize performance metrics from logs
 
@@ -488,21 +749,27 @@ func ExtractPerformanceMetrics(stepLogs *logs.StepLogs) *PerformanceProfile {
 ## Implementation Priority
 
 ### Phase 1: Core Enhancements (Week 1-2)
-1. ✅ Unified log view with collapsible sections
+1. ✅ Multi-step tabs
 2. ✅ Smart filtering
 3. ✅ Error-first mode
-4. ✅ Log highlighting (timestamps, durations)
+4. 🔨 Log export (markdown)
 5. 🔨 Quick navigation
 
 ### Phase 2: Analysis Features (Week 3-4)
-1. 🔨 Bookmarks & annotations
-2. 🔨 Pattern detection
-3. 🔨 Performance profiling
-4. 🔨 Timeline view
+6. 🔨 Pattern detection
+7. 🔨 Log summarization
+8. 🔨 Performance profiling
+9. 🔨 Bookmarks
 
 ### Phase 3: Advanced Features (Week 5-6)
-5. 🔨 Contextual navigation
-6. 🔨 Log streaming (real-time)
+10. 🔨 Timeline view
+11. 🔨 Diff mode
+12. 🔨 Log streaming
+
+### Phase 4: Collaboration (Week 7+)
+13. 🔨 Shareable links
+14. 🔨 Comment threads
+15. 🔨 Team integrations
 
 ## Architectural Patterns
 
@@ -557,6 +824,38 @@ func (a *FilterAction) Execute(m *LogsViewerModal) error {
 func (a *FilterAction) Undo(m *LogsViewerModal) error {
 	m.filterCfg = &a.previousFilter
 	return m.applyFilter()
+}
+```
+
+### Strategy Pattern for Export Formats
+
+```go
+type ExportStrategy interface {
+	Export(filtered *logs.FilteredResult, writer io.Writer) error
+	FileExtension() string
+	MIMEType() string
+}
+
+type MarkdownExporter struct{}
+type HTMLExporter struct{}
+type JSONExporter struct{}
+
+func (e *MarkdownExporter) Export(filtered *logs.FilteredResult, w io.Writer) error {
+	// Generate markdown
+}
+
+type LogExporter struct {
+	strategy ExportStrategy
+}
+
+func (e *LogExporter) ExportToFile(filtered *logs.FilteredResult, path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return e.strategy.Export(filtered, file)
 }
 ```
 

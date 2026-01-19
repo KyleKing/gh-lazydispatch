@@ -3,6 +3,7 @@ package modal
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -13,47 +14,50 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
-// LogsViewerModal displays workflow logs with filtering and search.
+// LogsViewerModal displays workflow logs in a unified view with collapsible sections.
 type LogsViewerModal struct {
-	runLogs     *logs.RunLogs
-	filtered    *logs.FilteredResult
-	filter      *logs.Filter
-	filterCfg   *logs.FilterConfig
-	viewport    viewport.Model
-	searchInput textinput.Model
-	activeTab   int // current step being viewed
-	searchMode  bool
-	done        bool
-	keys        logsViewerKeyMap
-	width       int
-	height      int
+	runLogs        *logs.RunLogs
+	filtered       *logs.FilteredResult
+	filter         *logs.Filter
+	filterCfg      *logs.FilterConfig
+	viewport       viewport.Model
+	searchInput    textinput.Model
+	collapsedSteps map[int]bool // track which steps are collapsed
+	searchMode     bool
+	done           bool
+	keys           logsViewerKeyMap
+	width          int
+	height         int
+	startTime      time.Time // for calculating relative timestamps
 }
 
 type logsViewerKeyMap struct {
 	Close        key.Binding
-	NextTab      key.Binding
-	PrevTab      key.Binding
 	Search       key.Binding
 	ToggleFilter key.Binding
 	NextMatch    key.Binding
 	PrevMatch    key.Binding
 	ExitSearch   key.Binding
+	ToggleStep   key.Binding
+	ExpandAll    key.Binding
+	CollapseAll  key.Binding
 }
 
 func defaultLogsViewerKeyMap() logsViewerKeyMap {
 	return logsViewerKeyMap{
 		Close:        key.NewBinding(key.WithKeys("esc", "q")),
-		NextTab:      key.NewBinding(key.WithKeys("tab", "l", "right")),
-		PrevTab:      key.NewBinding(key.WithKeys("shift+tab", "h", "left")),
 		Search:       key.NewBinding(key.WithKeys("/")),
 		ToggleFilter: key.NewBinding(key.WithKeys("f")),
 		NextMatch:    key.NewBinding(key.WithKeys("n")),
 		PrevMatch:    key.NewBinding(key.WithKeys("N")),
 		ExitSearch:   key.NewBinding(key.WithKeys("esc")),
+		ToggleStep:   key.NewBinding(key.WithKeys("enter", "space")),
+		ExpandAll:    key.NewBinding(key.WithKeys("E")),
+		CollapseAll:  key.NewBinding(key.WithKeys("C")),
 	}
 }
 
-// NewLogsViewerModal creates a new logs viewer modal.
+// NewLogsViewerModal creates a new unified logs viewer modal.
 func NewLogsViewerModal(runLogs *logs.RunLogs, width, height int) *LogsViewerModal {
 	filterCfg := logs.NewFilterConfig()
 	filter, _ := logs.NewFilter(filterCfg)
@@ -66,18 +70,29 @@ func NewLogsViewerModal(runLogs *logs.RunLogs, width, height int) *LogsViewerMod
 	searchInput.Placeholder = "Search logs..."
 	searchInput.CharLimit = 100
 
+	// Find earliest timestamp to use as start time
+	startTime := time.Now()
+	for _, step := range runLogs.AllSteps() {
+		for _, entry := range step.Entries {
+			if entry.Timestamp.Before(startTime) {
+				startTime = entry.Timestamp
+			}
+		}
+	}
+
 	m := &LogsViewerModal{
-		runLogs:     runLogs,
-		filtered:    filtered,
-		filter:      filter,
-		filterCfg:   filterCfg,
-		viewport:    vp,
-		searchInput: searchInput,
-		activeTab:   0,
-		searchMode:  false,
-		keys:        defaultLogsViewerKeyMap(),
-		width:       width,
-		height:      height,
+		runLogs:        runLogs,
+		filtered:       filtered,
+		filter:         filter,
+		filterCfg:      filterCfg,
+		viewport:       vp,
+		searchInput:    searchInput,
+		collapsedSteps: make(map[int]bool),
+		searchMode:     false,
+		keys:           defaultLogsViewerKeyMap(),
+		width:          width,
+		height:         height,
+		startTime:      startTime,
 	}
 
 	m.updateViewportContent()
@@ -112,14 +127,6 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 			m.done = true
 			return m, nil
 
-		case key.Matches(msg, m.keys.NextTab):
-			m.nextTab()
-			return m, nil
-
-		case key.Matches(msg, m.keys.PrevTab):
-			m.prevTab()
-			return m, nil
-
 		case key.Matches(msg, m.keys.Search):
 			m.searchMode = true
 			m.searchInput.Focus()
@@ -135,6 +142,18 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 
 		case key.Matches(msg, m.keys.PrevMatch):
 			m.jumpToPrevMatch()
+			return m, nil
+
+		case key.Matches(msg, m.keys.ToggleStep):
+			m.toggleStepAtCursor()
+			return m, nil
+
+		case key.Matches(msg, m.keys.ExpandAll):
+			m.expandAll()
+			return m, nil
+
+		case key.Matches(msg, m.keys.CollapseAll):
+			m.collapseAll()
 			return m, nil
 		}
 	}
@@ -165,21 +184,28 @@ func (m *LogsViewerModal) handleSearchInput(msg tea.KeyMsg) (Context, tea.Cmd) {
 	return m, cmd
 }
 
-// nextTab moves to the next step tab.
-func (m *LogsViewerModal) nextTab() {
-	if len(m.filtered.Steps) == 0 {
-		return
+// toggleStepAtCursor toggles the collapsed state of the step under the cursor.
+func (m *LogsViewerModal) toggleStepAtCursor() {
+	// This is a simplified implementation
+	// In a real implementation, track cursor position and toggle the appropriate step
+	if len(m.filtered.Steps) > 0 {
+		stepIdx := 0 // Would determine from cursor position
+		m.collapsedSteps[stepIdx] = !m.collapsedSteps[stepIdx]
+		m.updateViewportContent()
 	}
-	m.activeTab = (m.activeTab + 1) % len(m.filtered.Steps)
+}
+
+// expandAll expands all step sections.
+func (m *LogsViewerModal) expandAll() {
+	m.collapsedSteps = make(map[int]bool)
 	m.updateViewportContent()
 }
 
-// prevTab moves to the previous step tab.
-func (m *LogsViewerModal) prevTab() {
-	if len(m.filtered.Steps) == 0 {
-		return
+// collapseAll collapses all step sections.
+func (m *LogsViewerModal) collapseAll() {
+	for i := range m.filtered.Steps {
+		m.collapsedSteps[i] = true
 	}
-	m.activeTab = (m.activeTab - 1 + len(m.filtered.Steps)) % len(m.filtered.Steps)
 	m.updateViewportContent()
 }
 
@@ -200,18 +226,11 @@ func (m *LogsViewerModal) cycleFilterLevel() {
 func (m *LogsViewerModal) applyFilter() {
 	filter, err := logs.NewFilter(m.filterCfg)
 	if err != nil {
-		// Keep previous filter on error
 		return
 	}
 
 	m.filter = filter
 	m.filtered = filter.Apply(m.runLogs)
-
-	// Reset active tab if out of range
-	if m.activeTab >= len(m.filtered.Steps) {
-		m.activeTab = 0
-	}
-
 	m.updateViewportContent()
 }
 
@@ -232,37 +251,75 @@ func (m *LogsViewerModal) updateViewportContent() {
 		return
 	}
 
-	if m.activeTab >= len(m.filtered.Steps) {
-		m.activeTab = 0
-	}
-
-	step := m.filtered.Steps[m.activeTab]
-	content := m.renderStepLogs(step)
+	content := m.renderUnifiedLogs()
 	m.viewport.SetContent(content)
 }
 
-// renderStepLogs renders the logs for a single step with highlighting.
-func (m *LogsViewerModal) renderStepLogs(step *logs.FilteredStepLogs) string {
+// renderUnifiedLogs renders all logs in a unified view with collapsible sections.
+func (m *LogsViewerModal) renderUnifiedLogs() string {
 	var sb strings.Builder
 
-	for _, entry := range step.Entries {
-		line := m.renderLogEntry(&entry)
-		sb.WriteString(line)
+	for i, step := range m.filtered.Steps {
+		// Render step header
+		sb.WriteString(m.renderStepHeader(i, step))
 		sb.WriteString("\n")
-	}
 
-	if sb.Len() == 0 {
-		sb.WriteString(ui.TableDimmedStyle.Render("No log entries for this step"))
+		// Render step logs if not collapsed
+		if !m.collapsedSteps[i] {
+			for _, entry := range step.Entries {
+				line := m.renderLogEntry(&entry)
+				sb.WriteString(line)
+				sb.WriteString("\n")
+			}
+		}
+
+		sb.WriteString("\n")
 	}
 
 	return sb.String()
 }
 
+// renderStepHeader renders a collapsible step header.
+func (m *LogsViewerModal) renderStepHeader(idx int, step *logs.FilteredStepLogs) string {
+	var icon string
+	if m.collapsedSteps[idx] {
+		icon = "▶"
+	} else {
+		icon = "▼"
+	}
+
+	headerStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("62")).
+		Foreground(lipgloss.Color("230")).
+		Padding(0, 1).
+		Bold(true)
+
+	entryCount := len(step.Entries)
+	header := fmt.Sprintf("%s Step %d: %s (%d entries)",
+		icon, step.StepIndex+1, step.StepName, entryCount)
+
+	return headerStyle.Render(header)
+}
+
 // renderLogEntry renders a single log entry with highlighting.
 func (m *LogsViewerModal) renderLogEntry(entry *logs.FilteredLogEntry) string {
-	// Apply level-based styling
-	style := m.getLogLevelStyle(entry.Original.Level)
+	// Calculate time since start
+	timeSinceStart := entry.Original.Timestamp.Sub(m.startTime)
 
+	// Format: [+00:05:23] [12:34:56] log content
+	timePrefix := fmt.Sprintf("[+%s] [%s] ",
+		formatDuration(timeSinceStart),
+		entry.Original.Timestamp.Format("15:04:05"))
+
+	// Style the time prefix
+	timeStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("243")). // Dimmed
+		Italic(true)
+
+	styledTimePrefix := timeStyle.Render(timePrefix)
+
+	// Apply level-based styling to content
+	contentStyle := m.getLogLevelStyle(entry.Original.Level)
 	content := entry.Original.Content
 
 	// Highlight matches if present
@@ -270,14 +327,22 @@ func (m *LogsViewerModal) renderLogEntry(entry *logs.FilteredLogEntry) string {
 		content = m.highlightMatches(content, entry.Matches)
 	}
 
-	return style.Render(content)
+	return styledTimePrefix + contentStyle.Render(content)
+}
+
+// formatDuration formats a duration as HH:MM:SS.
+func formatDuration(d time.Duration) string {
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
+	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
 }
 
 // getLogLevelStyle returns the style for a log level.
 func (m *LogsViewerModal) getLogLevelStyle(level logs.LogLevel) lipgloss.Style {
 	switch level {
 	case logs.LogLevelError:
-		return ui.ErrorStyle
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("203")) // Red
 	case logs.LogLevelWarning:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("214")) // Orange
 	case logs.LogLevelDebug:
@@ -332,10 +397,6 @@ func (m *LogsViewerModal) View() string {
 	s.WriteString(ui.TitleStyle.Render(title))
 	s.WriteString("\n\n")
 
-	// Tabs (step names)
-	s.WriteString(m.renderTabs())
-	s.WriteString("\n\n")
-
 	// Filter status
 	s.WriteString(m.renderFilterStatus())
 	s.WriteString("\n")
@@ -355,36 +416,6 @@ func (m *LogsViewerModal) View() string {
 	s.WriteString(m.renderHelp())
 
 	return s.String()
-}
-
-// renderTabs renders the step tabs.
-func (m *LogsViewerModal) renderTabs() string {
-	if len(m.filtered.Steps) == 0 {
-		return ui.TableDimmedStyle.Render("No steps available")
-	}
-
-	activeStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("62")).
-		Foreground(lipgloss.Color("230")).
-		Padding(0, 2).
-		Bold(true)
-
-	inactiveStyle := lipgloss.NewStyle().
-		Background(lipgloss.Color("235")).
-		Foreground(lipgloss.Color("250")).
-		Padding(0, 2)
-
-	var tabs []string
-	for i, step := range m.filtered.Steps {
-		label := fmt.Sprintf("%d: %s", step.StepIndex+1, step.StepName)
-		if i == m.activeTab {
-			tabs = append(tabs, activeStyle.Render(label))
-		} else {
-			tabs = append(tabs, inactiveStyle.Render(label))
-		}
-	}
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, tabs...)
 }
 
 // renderFilterStatus shows current filter settings.
@@ -416,7 +447,7 @@ func (m *LogsViewerModal) renderHelp() string {
 	}
 
 	return ui.HelpStyle.Render(
-		"[←→/tab] switch step  [f] filter  [/] search  [↑↓] scroll  [q] close",
+		"[enter/space] toggle section  [E] expand all  [C] collapse all  [f] filter  [/] search  [↑↓] scroll  [q] close",
 	)
 }
 

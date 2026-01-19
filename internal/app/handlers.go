@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/git"
+	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/rule"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
@@ -757,4 +759,40 @@ func (m Model) chainSubscription() tea.Cmd {
 		update := <-m.chainExecutor.Updates()
 		return ChainUpdateMsg{Update: update}
 	}
+}
+
+func (m Model) fetchLogs(msg FetchLogsMsg) tea.Cmd {
+	return func() tea.Msg {
+		if m.logManager == nil {
+			return LogsFetchedMsg{Error: fmt.Errorf("log manager not initialized")}
+		}
+
+		var runLogs *logs.RunLogs
+		var err error
+
+		if msg.ChainState != nil {
+			runLogs, err = m.logManager.GetLogsForChain(*msg.ChainState, msg.Branch)
+		} else if msg.RunID != 0 {
+			runLogs, err = m.logManager.GetLogsForRun(msg.RunID, msg.Workflow)
+		} else {
+			return LogsFetchedMsg{Error: fmt.Errorf("no chain state or run ID provided")}
+		}
+
+		return LogsFetchedMsg{
+			Logs:       runLogs,
+			ErrorsOnly: msg.ErrorsOnly,
+			Error:      err,
+		}
+	}
+}
+
+func (m Model) showLogsViewer(runLogs *logs.RunLogs, errorsOnly bool) Model {
+	var logsModal modal.Context
+	if errorsOnly {
+		logsModal = modal.NewLogsViewerModalWithError(runLogs, m.width, m.height)
+	} else {
+		logsModal = modal.NewLogsViewerModal(runLogs, m.width, m.height)
+	}
+	m.modalStack.Push(logsModal)
+	return m
 }

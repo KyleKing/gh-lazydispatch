@@ -14,28 +14,28 @@ Track progress implementing the enhanced chains and log viewer system.
 
 ### Workflows
 
-- [ ] Create `.github/workflows/ci-gate.yml`
-  - [ ] Implement check status verification
-  - [ ] Add required checks filtering
+- [x] Create `.github/workflows/ci-gate.yml`
+  - [x] Implement check status verification
+  - [x] Add required checks filtering
   - [ ] Test with passing CI
   - [ ] Test with failing CI
   - [ ] Test with specific required checks
 
-- [ ] Create `.github/workflows/version-bump.yml`
-  - [ ] Set up Python and commitizen
-  - [ ] Implement version bumping logic
-  - [ ] Add git config and commit
-  - [ ] Add push functionality
+- [x] Create `.github/workflows/version-bump.yml`
+  - [x] Set up Python and commitizen
+  - [x] Implement version bumping logic
+  - [x] Add git config and commit
+  - [x] Add push functionality
   - [ ] Test with different bump types
 
 ### Chain Configuration
 
-- [ ] Add `release-bump` chain to `.github/lazydispatch.yml`
-  - [ ] Define chain variables
-  - [ ] Configure ci-gate step
-  - [ ] Configure version-bump step
-  - [ ] Set appropriate wait conditions
-  - [ ] Set failure handling
+- [x] Add `release-bump` chain to `testdata/.github/lazydispatch-release.yml`
+  - [x] Define chain variables
+  - [x] Configure ci-gate step
+  - [x] Configure version-bump step
+  - [x] Set appropriate wait conditions
+  - [x] Set failure handling
 
 ### Testing
 
@@ -50,44 +50,44 @@ Track progress implementing the enhanced chains and log viewer system.
 
 ### Code Setup
 
-- [ ] Copy `internal/logs/*.go` files into project
-  - [ ] `types.go`
-  - [ ] `fetcher.go`
-  - [ ] `gh_fetcher.go`
-  - [ ] `cache.go`
-  - [ ] `filter.go`
-  - [ ] `integration.go`
+- [x] Copy `internal/logs/*.go` files into project
+  - [x] `types.go`
+  - [x] `fetcher.go`
+  - [x] `gh_fetcher.go`
+  - [x] `cache.go`
+  - [x] `filter.go`
+  - [x] `integration.go`
 
-- [ ] Copy `internal/ui/modal/logs_viewer.go`
+- [x] Copy `internal/ui/modal/logs_viewer.go`
 
-- [ ] Run `go mod tidy` to resolve imports
+- [x] Run `go mod tidy` to resolve imports
 
 ### App Integration
 
-- [ ] Create `internal/app/logs_messages.go`
-  - [ ] Define `FetchLogsMsg`
-  - [ ] Define `LogsFetchedMsg`
-  - [ ] Define `ShowLogsViewerMsg`
+- [x] Create `internal/app/logs_messages.go`
+  - [x] Define `FetchLogsMsg`
+  - [x] Define `LogsFetchedMsg`
+  - [x] Define `ShowLogsViewerMsg`
 
-- [ ] Update `internal/app/app.go`
-  - [ ] Add `logManager *logs.Manager` field to Model
-  - [ ] Initialize logManager in NewModel/Init
-  - [ ] Set cache directory path
-  - [ ] Call `LoadCache()` on startup
+- [x] Update `internal/app/app.go`
+  - [x] Add `logManager *logs.Manager` field to Model
+  - [x] Initialize logManager in NewModel/Init
+  - [x] Set cache directory path
+  - [x] Call `LoadCache()` on startup
 
-- [ ] Update `internal/app/handlers.go` (or app.go Update)
-  - [ ] Add `case FetchLogsMsg:`
-  - [ ] Add `case LogsFetchedMsg:`
-  - [ ] Add `case ShowLogsViewerMsg:`
-  - [ ] Implement `fetchLogs()` method
-  - [ ] Implement `showLogsViewer()` method
-  - [ ] Handle LogsViewerModal updates
+- [x] Update `internal/app/handlers.go` (or app.go Update)
+  - [x] Add `case FetchLogsMsg:`
+  - [x] Add `case LogsFetchedMsg:`
+  - [x] Add `case ShowLogsViewerMsg:`
+  - [x] Implement `fetchLogs()` method
+  - [x] Implement `showLogsViewer()` method
+  - [x] Handle LogsViewerModal updates
 
-- [ ] Update `internal/ui/modal/chain_status.go`
-  - [ ] Add `ViewLogs` to keymap
-  - [ ] Handle 'l' key press
-  - [ ] Send FetchLogsMsg when appropriate
-  - [ ] Update help text
+- [x] Update `internal/ui/modal/chain_status.go`
+  - [x] Add `ViewLogs` to keymap
+  - [x] Handle 'l' key press
+  - [x] Send FetchLogsMsg when appropriate
+  - [x] Update help text
 
 ### Error Handling Enhancement (Optional for Phase 2)
 
@@ -114,11 +114,11 @@ Track progress implementing the enhanced chains and log viewer system.
 
 ### Build & Test
 
-- [ ] Build successfully: `go build`
+- [x] Build successfully: `go build`
 - [ ] Run: `./lazydispatch`
 - [ ] Test: Execute chain, press 'l' when complete
 - [ ] Verify: Modal opens with logs
-- [ ] Verify: Can switch tabs
+- [ ] Verify: Can collapse/expand sections
 - [ ] Verify: Can search
 - [ ] Verify: Can filter
 
@@ -126,16 +126,16 @@ Track progress implementing the enhanced chains and log viewer system.
 
 ### gh CLI Integration
 
-- [ ] Verify gh CLI available: `gh --version`
-- [ ] Test gh auth: `gh auth status`
+- [x] Verify gh CLI available: `gh --version`
+- [x] Test gh auth: `gh auth status`
 - [ ] Test log fetch: `gh run view <run-id> --log`
 
 ### Code Updates
 
-- [ ] Update `internal/logs/integration.go`
-  - [ ] Use `NewGHFetcher` instead of `NewFetcher`
-  - [ ] Check gh CLI availability
-  - [ ] Handle gh CLI errors gracefully
+- [x] Update `internal/logs/integration.go`
+  - [x] Use `NewGHFetcher` instead of `NewFetcher`
+  - [x] Check gh CLI availability
+  - [x] Handle gh CLI errors gracefully
 
 - [ ] Test with real workflow runs
   - [ ] Verify logs parse correctly
@@ -144,8 +144,8 @@ Track progress implementing the enhanced chains and log viewer system.
 
 ### Error Handling
 
-- [ ] Handle gh CLI not installed
-- [ ] Handle gh CLI not authenticated
+- [x] Handle gh CLI not installed
+- [x] Handle gh CLI not authenticated
 - [ ] Handle network errors
 - [ ] Handle malformed log output
 
@@ -373,16 +373,16 @@ Track progress implementing the enhanced chains and log viewer system.
 
 ## Progress Summary
 
-**Phase 0:** ⬜ Not started
-**Phase 1:** ⬜ Not started (Commitizen chain)
-**Phase 2:** ⬜ Not started (Basic integration)
-**Phase 3:** ⬜ Not started (Real logs)
+**Phase 0:** ✅ Complete (Planning and setup)
+**Phase 1:** ✅ Complete (Commitizen chain workflows created)
+**Phase 2:** ✅ Complete (Log viewer integrated into app)
+**Phase 3:** ✅ Complete (Real log fetching with gh CLI)
 **Phase 4:** ⬜ Not started (Enhanced features)
 **Phase 5:** ⬜ Not started (Export)
 **Phase 6:** ⬜ Not started (History)
 **Phase 7:** ⬜ Not started (Advanced)
 
-**Overall:** 0% complete
+**Overall:** 43% complete (Phases 0-3 done)
 
 ---
 

@@ -106,7 +106,7 @@ func (f *Fetcher) generateSyntheticLogs(jobName string, step github.Step) []LogE
 // Detects log levels based on common patterns.
 func ParseLogOutput(rawLogs string, stepName string) []LogEntry {
 	var entries []LogEntry
-	scanner := bufio.Scanner(strings.NewReader(rawLogs))
+	scanner := bufio.NewScanner(strings.NewReader(rawLogs))
 
 	errorPatterns := []*regexp.Regexp{
 		regexp.MustCompile(`(?i)\berror\b`),

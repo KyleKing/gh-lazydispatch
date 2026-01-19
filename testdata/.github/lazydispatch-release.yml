@@ -1,0 +1,51 @@
+version: 2
+chains:
+  release-bump:
+    description: Bump version with commitizen after CI passes on main
+    variables:
+      - name: target_branch
+        type: string
+        description: Branch to verify CI status
+        default: main
+        required: true
+
+      - name: required_checks
+        type: string
+        description: Required check names (comma-separated, empty for all)
+        default: ''
+        required: false
+
+      - name: bump_type
+        type: choice
+        description: Version bump type (empty for auto-detect)
+        options: ['', 'patch', 'minor', 'major']
+        default: ''
+        required: false
+
+      - name: prerelease
+        type: string
+        description: Prerelease identifier (e.g., alpha, beta, rc)
+        default: ''
+        required: false
+
+      - name: push
+        type: boolean
+        description: Push changes and tags to remote
+        default: 'true'
+        required: true
+
+    steps:
+      - workflow: ci-gate.yml
+        wait_for: success
+        on_failure: abort
+        inputs:
+          ref: '{{ var.target_branch }}'
+          required_checks: '{{ var.required_checks }}'
+
+      - workflow: version-bump.yml
+        wait_for: success
+        on_failure: abort
+        inputs:
+          bump_type: '{{ var.bump_type }}'
+          prerelease: '{{ var.prerelease }}'
+          push: '{{ var.push }}'

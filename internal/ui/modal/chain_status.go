@@ -14,6 +14,13 @@ import (
 // ChainStatusStopMsg is sent when the user requests to stop the chain.
 type ChainStatusStopMsg struct{}
 
+// ChainStatusViewLogsMsg is sent when the user requests to view logs.
+type ChainStatusViewLogsMsg struct {
+	State      chain.ChainState
+	Branch     string
+	ErrorsOnly bool
+}
+
 // ChainStatusModal displays the current status of a chain execution.
 type ChainStatusModal struct {
 	state    chain.ChainState
@@ -26,16 +33,18 @@ type ChainStatusModal struct {
 }
 
 type chainStatusKeyMap struct {
-	Close key.Binding
-	Stop  key.Binding
-	Copy  key.Binding
+	Close    key.Binding
+	Stop     key.Binding
+	Copy     key.Binding
+	ViewLogs key.Binding
 }
 
 func defaultChainStatusKeyMap() chainStatusKeyMap {
 	return chainStatusKeyMap{
-		Close: key.NewBinding(key.WithKeys("esc", "q")),
-		Stop:  key.NewBinding(key.WithKeys("ctrl+c")),
-		Copy:  key.NewBinding(key.WithKeys("c")),
+		Close:    key.NewBinding(key.WithKeys("esc", "q")),
+		Stop:     key.NewBinding(key.WithKeys("ctrl+c")),
+		Copy:     key.NewBinding(key.WithKeys("c")),
+		ViewLogs: key.NewBinding(key.WithKeys("l")),
 	}
 }
 
@@ -87,6 +96,17 @@ func (m *ChainStatusModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 			clipboard.WriteAll(script)
 			m.copied = true
 			return m, nil
+		case key.Matches(msg, m.keys.ViewLogs):
+			if m.state.Status == chain.ChainCompleted || m.state.Status == chain.ChainFailed {
+				errorsOnly := m.state.Status == chain.ChainFailed
+				return m, func() tea.Msg {
+					return ChainStatusViewLogsMsg{
+						State:      m.state,
+						Branch:     m.branch,
+						ErrorsOnly: errorsOnly,
+					}
+				}
+			}
 		}
 	}
 	return m, nil
@@ -171,6 +191,8 @@ func (m *ChainStatusModal) View() string {
 
 	if m.state.Status == chain.ChainRunning {
 		s.WriteString(ui.HelpStyle.Render("[esc/q] close (continues)  [C-c] stop  [c] copy script"))
+	} else if m.state.Status == chain.ChainCompleted || m.state.Status == chain.ChainFailed {
+		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [l] view logs  [c] copy script"))
 	} else {
 		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [c] copy script"))
 	}

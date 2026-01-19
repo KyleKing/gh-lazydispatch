@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
@@ -9,6 +11,7 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
@@ -56,8 +59,9 @@ type Model struct {
 	filteredInputs         []string
 	previewingHistoryEntry *frecency.HistoryEntry
 
-	ghClient *github.Client
-	watcher  *watcher.RunWatcher
+	ghClient   *github.Client
+	watcher    *watcher.RunWatcher
+	logManager *logs.Manager
 
 	wfdConfig     *config.WfdConfig
 	chainExecutor *chain.ChainExecutor
@@ -106,6 +110,12 @@ func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string
 	if ghClient, err := github.NewClient(repo); err == nil {
 		m.ghClient = ghClient
 		m.watcher = watcher.NewWatcher(ghClient)
+
+		// Initialize log manager
+		cacheDir, _ := os.UserCacheDir()
+		logCacheDir := filepath.Join(cacheDir, "lazydispatch", "logs")
+		m.logManager = logs.NewManager(ghClient, logCacheDir)
+		m.logManager.LoadCache()
 	}
 
 	if cfg, err := config.Load("."); err == nil && cfg != nil {
@@ -202,8 +212,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case modal.ChainStatusStopMsg:
 		return m.handleChainStatusStop()
 
+	case modal.ChainStatusViewLogsMsg:
+		return m, func() tea.Msg {
+			return FetchLogsMsg{
+				ChainState: &msg.State,
+				Branch:     msg.Branch,
+				ErrorsOnly: msg.ErrorsOnly,
+			}
+		}
+
 	case modal.ValidationErrorResultMsg:
 		return m.handleValidationErrorResult(msg)
+
+	case FetchLogsMsg:
+		return m, m.fetchLogs(msg)
+
+	case LogsFetchedMsg:
+		if msg.Error != nil {
+			// TODO: Show error modal
+			return m, nil
+		}
+		return m, func() tea.Msg {
+			return ShowLogsViewerMsg{
+				Logs:       msg.Logs,
+				ErrorsOnly: msg.ErrorsOnly,
+			}
+		}
+
+	case ShowLogsViewerMsg:
+		m = m.showLogsViewer(msg.Logs, msg.ErrorsOnly)
+		return m, nil
 
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
