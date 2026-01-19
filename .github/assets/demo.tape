@@ -56,16 +56,38 @@ Set Width 1400
 Set Height 900
 
 Hide
-Type `cd ~/Developer/kyleking/gh-lazydispatch/`  Enter  Sleep 250ms
-Type 'go build'  Enter  Sleep 500ms
+Type `cd ~/Developer/kyleking/gh-lazydispatch/testdata`  Enter  Sleep 250ms
+Type '../gh-lazydispatch 2>/dev/null &'  Enter  Sleep 500ms
+Type 'fg'  Enter  Sleep 250ms
 Type `clear`  Enter
 Show
 
 # Start the TUI (shows 'all' by default)
-Type `./gh-lazydispatch`  Sleep 250ms  Enter
-Sleep 1s
+Type `../gh-lazydispatch`  Sleep 250ms  Enter
+Sleep 1.5s
 
-# Show default 'all' selection
+# Show default 'all' selection with tabbed right panel
+Sleep 500ms
+
+# Focus right panel and switch tabs to show Chains
+Tab
+Sleep 500ms
+Type `l`
+Sleep 750ms
+
+# Show Live tab
+Type `l`
+Sleep 750ms
+
+# Back to History tab
+Type `h`
+Sleep 500ms
+Type `h`
+Sleep 500ms
+
+# Return focus to workflows pane
+Tab
+Tab
 Sleep 500ms
 
 # Navigate down to first workflow

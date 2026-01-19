@@ -194,9 +194,7 @@ func (m *Model) handleUp() {
 	case PaneHistory:
 		switch m.rightPanel.ActiveTab() {
 		case panes.TabHistory:
-			if m.selectedHistory > 0 {
-				m.selectedHistory--
-			}
+			m.rightPanel.History().MoveUp()
 		case panes.TabChains:
 			m.rightPanel.Chains().MoveUp()
 		case panes.TabLive:
@@ -228,10 +226,7 @@ func (m *Model) handleDown() {
 	case PaneHistory:
 		switch m.rightPanel.ActiveTab() {
 		case panes.TabHistory:
-			entries := m.currentHistoryEntries()
-			if m.selectedHistory < len(entries)-1 {
-				m.selectedHistory++
-			}
+			m.rightPanel.History().MoveDown()
 		case panes.TabChains:
 			m.rightPanel.Chains().MoveDown()
 		case panes.TabLive:
@@ -256,9 +251,8 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	case PaneHistory:
 		switch m.rightPanel.ActiveTab() {
 		case panes.TabHistory:
-			entries := m.currentHistoryEntries()
-			if m.selectedHistory < len(entries) {
-				entry := entries[m.selectedHistory]
+			entry := m.rightPanel.SelectedHistoryEntry()
+			if entry != nil {
 				if m.viewMode == HistoryPreviewMode {
 					m.branch = entry.Branch
 					m.inputs = make(map[string]string)
@@ -270,7 +264,7 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 					return m.executeWorkflow()
 				}
 				m.viewMode = HistoryPreviewMode
-				m.previewingHistoryEntry = &entry
+				m.previewingHistoryEntry = entry
 			}
 		case panes.TabChains:
 			if name, chainDef, ok := m.rightPanel.SelectedChain(); ok {

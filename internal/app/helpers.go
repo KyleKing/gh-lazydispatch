@@ -39,7 +39,6 @@ func (m *Model) initializeInputs(wf workflow.WorkflowFile) {
 	m.filterText = ""
 	m.selectedInput = -1
 	m.viewMode = WorkflowListMode
-	m.selectedHistory = 0
 	m.syncHistoryEntries()
 }
 

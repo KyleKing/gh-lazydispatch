@@ -80,34 +80,54 @@ func (m ChainListModel) ViewContent() string {
 		var content strings.Builder
 		content.WriteString(ui.SubtitleStyle.Render("No chains configured"))
 		content.WriteString("\n\n")
-		content.WriteString(ui.HelpStyle.Render("Add chains to"))
+		content.WriteString(ui.NormalStyle.Render("Chains let you run multiple"))
 		content.WriteString("\n")
-		content.WriteString(ui.HelpStyle.Render(".github/lazydispatch.yml"))
+		content.WriteString(ui.NormalStyle.Render("workflows in sequence."))
+		content.WriteString("\n\n")
+		content.WriteString(ui.HelpStyle.Render("Create .github/lazydispatch.yml:"))
+		content.WriteString("\n\n")
+		content.WriteString(ui.CLIPreviewStyle.Render("  chains:"))
+		content.WriteString("\n")
+		content.WriteString(ui.CLIPreviewStyle.Render("    deploy:"))
+		content.WriteString("\n")
+		content.WriteString(ui.CLIPreviewStyle.Render("      steps:"))
+		content.WriteString("\n")
+		content.WriteString(ui.CLIPreviewStyle.Render("        - workflow: build.yml"))
+		content.WriteString("\n")
+		content.WriteString(ui.CLIPreviewStyle.Render("        - workflow: deploy.yml"))
 		return content.String()
 	}
 
 	var content strings.Builder
+
+	content.WriteString(ui.TableHeaderStyle.Render(
+		"  Name             Steps  Description"))
+	content.WriteString("\n")
+
 	for i, name := range m.chainNames {
 		chain := m.chains[name]
 		stepCount := len(chain.Steps)
 
-		line := fmt.Sprintf("%s (%d steps)", name, stepCount)
-		if chain.Description != "" {
-			maxDescLen := m.width - len(line) - 6
-			if maxDescLen > 10 {
-				desc := chain.Description
-				if len(desc) > maxDescLen {
-					desc = desc[:maxDescLen-3] + "..."
-				}
-				line = fmt.Sprintf("%s (%d steps) - %s", name, stepCount, desc)
-			}
+		displayName := ui.TruncateWithEllipsis(name, 15)
+		steps := fmt.Sprintf("%d", stepCount)
+		desc := ui.TruncateWithEllipsis(chain.Description, 25)
+		if desc == "" {
+			desc = "(no description)"
 		}
 
+		indicator := "  "
 		if i == m.selectedIndex {
-			content.WriteString(ui.SelectedStyle.Render("> " + line))
-		} else {
-			content.WriteString(ui.NormalStyle.Render("  " + line))
+			indicator = "> "
 		}
+
+		row := indicator + ui.PadRight(displayName, 15) + "  " + ui.PadRight(steps, 5) + "  " + desc
+
+		var rowStyle = ui.TableRowStyle
+		if i == m.selectedIndex {
+			rowStyle = ui.TableSelectedStyle
+		}
+
+		content.WriteString(rowStyle.Render(row))
 		if i < len(m.chainNames)-1 {
 			content.WriteString("\n")
 		}

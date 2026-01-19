@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/theme"
@@ -175,6 +177,14 @@ func TruncateWithEllipsis(s string, maxLen int) string {
 		return s[:maxLen]
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// PadRight pads a string to a specific length with spaces.
+func PadRight(s string, length int) string {
+	if len(s) >= length {
+		return s
+	}
+	return s + strings.Repeat(" ", length-len(s))
 }
 
 // RenderScrollIndicator renders scroll arrows (^ and v) for lists.

@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 	"github.com/kyleking/gh-lazydispatch/internal/validation"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
@@ -18,10 +19,11 @@ func (m Model) View() string {
 	}
 
 	statusBar := m.viewTopStatusBar()
-	statusHeight := 1
+	footerBar := m.viewFooterBar()
+	fixedHeight := 2
 
-	topHeight := (m.height - statusHeight) / 2
-	bottomHeight := m.height - statusHeight - topHeight
+	topHeight := (m.height - fixedHeight) / 2
+	bottomHeight := m.height - fixedHeight - topHeight
 
 	leftWidth := (m.width * 11) / 30
 
@@ -44,7 +46,7 @@ func (m Model) View() string {
 	configPane := m.viewConfigPane(m.width, bottomHeight)
 
 	top := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
-	main := lipgloss.JoinVertical(lipgloss.Left, statusBar, top, configPane)
+	main := lipgloss.JoinVertical(lipgloss.Left, statusBar, top, configPane, footerBar)
 
 	if m.modalStack.HasActive() {
 		return m.modalStack.Render(main)
@@ -91,6 +93,32 @@ func (m Model) viewTopStatusBar() string {
 	}
 
 	return ui.HelpStyle.Render(" " + left + strings.Repeat(" ", padding) + right + " ")
+}
+
+func (m Model) viewFooterBar() string {
+	var hints []string
+
+	hints = append(hints, "[Tab] pane")
+
+	switch m.focused {
+	case PaneWorkflows:
+		hints = append(hints, "[j/k] select", "[Enter] run", "[Space] config")
+	case PaneHistory:
+		switch m.rightPanel.ActiveTab() {
+		case panes.TabHistory:
+			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] apply")
+		case panes.TabChains:
+			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] run chain")
+		case panes.TabLive:
+			hints = append(hints, "[h/l] tab", "[j/k] select", "[d] clear", "[D] clear all")
+		}
+	case PaneConfig:
+		hints = append(hints, "[Enter] run", "[1-0] edit", "[/] filter", "[b] branch")
+	}
+
+	hints = append(hints, "[?] help", "[q] quit")
+
+	return ui.HelpStyle.Render(" " + strings.Join(hints, "  "))
 }
 
 func (m Model) viewInputDetailsPane(width, height int) string {
@@ -310,8 +338,6 @@ func (m Model) viewConfigPane(width, height int) string {
 
 	if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
 		content.WriteString(ui.SubtitleStyle.Render("Select a workflow"))
-		content.WriteString("\n\n")
-		content.WriteString(ui.HelpStyle.Render("[Tab] pane  [1-9] select workflow  [q] quit"))
 		return style.Render(content.String())
 	}
 
@@ -351,9 +377,6 @@ func (m Model) viewConfigPane(width, height int) string {
 		cliCmd = "..." + cliCmd[len(cliCmd)-maxCmdWidth+3:]
 	}
 	content.WriteString(ui.CLIPreviewStyle.Render(cliCmd))
-
-	helpLine := "\n\n" + ui.HelpStyle.Render("[Tab] pane  [Enter] run  [j/k] select  [1-0] edit  [/] filter  [?] help  [q] quit")
-	content.WriteString(helpLine)
 
 	return style.Render(content.String())
 }

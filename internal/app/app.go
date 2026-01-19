@@ -41,7 +41,6 @@ type Model struct {
 	repo      string
 
 	selectedWorkflow int
-	selectedHistory  int
 	branch           string
 	inputs           map[string]string
 	inputOrder       []string

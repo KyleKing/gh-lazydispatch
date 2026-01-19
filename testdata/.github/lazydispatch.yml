@@ -1,0 +1,43 @@
+version: 1
+chains:
+  deploy-all:
+    description: Build, test, and deploy to all environments
+    steps:
+      - workflow: release.yml
+        inputs:
+          version: v1.0.0
+          release_type: patch
+          draft: "true"
+      - workflow: deploy.yml
+        wait_for: success
+        inputs:
+          environment: staging
+          dry_run: "true"
+      - workflow: deploy.yml
+        wait_for: success
+        on_failure: abort
+        inputs:
+          environment: production
+          dry_run: "false"
+
+  quick-test:
+    description: Run tests with default settings
+    steps:
+      - workflow: deploy.yml
+        wait_for: none
+        inputs:
+          environment: development
+          dry_run: "true"
+
+  staged-release:
+    description: Deploy to staging first, then production
+    steps:
+      - workflow: deploy.yml
+        wait_for: success
+        on_failure: abort
+        inputs:
+          environment: staging
+      - workflow: deploy.yml
+        wait_for: success
+        inputs:
+          environment: production

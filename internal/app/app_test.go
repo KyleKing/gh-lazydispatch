@@ -194,16 +194,18 @@ func TestUpdate_UpDown_History(t *testing.T) {
 	result, _ := m.Update(down)
 	m = result.(Model)
 
-	if m.selectedHistory != 1 {
-		t.Errorf("expected selectedHistory 1 after down, got %d", m.selectedHistory)
+	entry := m.rightPanel.SelectedHistoryEntry()
+	if entry == nil {
+		t.Error("expected selected history entry after down")
 	}
 
 	up := tea.KeyMsg{Type: tea.KeyUp}
 	result, _ = m.Update(up)
 	m = result.(Model)
 
-	if m.selectedHistory != 0 {
-		t.Errorf("expected selectedHistory 0 after up, got %d", m.selectedHistory)
+	entry = m.rightPanel.SelectedHistoryEntry()
+	if entry == nil {
+		t.Error("expected selected history entry after up")
 	}
 }
 

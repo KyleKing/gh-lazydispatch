@@ -23,3 +23,12 @@ run = "go test -coverprofile=coverage.out ./..."
 [tasks."test:view-coverage"]
 description = "View coverage report in browser"
 run = ["go tool cover -html=coverage.out"]
+
+[tasks.demo]
+description = "Generate all VHS demo recordings in parallel"
+run = """
+go build -o gh-lazydispatch . && \
+vhs < .github/assets/demo.tape & \
+vhs < .github/assets/chains-demo.tape & \
+wait
+"""

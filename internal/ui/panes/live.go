@@ -1,7 +1,6 @@
 package panes
 
 import (
-	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -86,29 +85,46 @@ func (m LiveRunsModel) ViewContent() string {
 		var content strings.Builder
 		content.WriteString(ui.SubtitleStyle.Render("No active runs"))
 		content.WriteString("\n\n")
-		content.WriteString(ui.HelpStyle.Render("Runs appear here when"))
+		content.WriteString(ui.NormalStyle.Render("Runs appear here when"))
 		content.WriteString("\n")
-		content.WriteString(ui.HelpStyle.Render("Watch is enabled"))
+		content.WriteString(ui.NormalStyle.Render("Watch is enabled."))
+		content.WriteString("\n\n")
+		content.WriteString(ui.HelpStyle.Render("Toggle with [w] in config"))
 		return content.String()
 	}
 
 	var content strings.Builder
+
+	content.WriteString(ui.TableHeaderStyle.Render(
+		"     Workflow                Status"))
+	content.WriteString("\n")
+
 	for i, run := range m.runs {
 		icon := runStatusIcon(run.Status, run.Conclusion)
-		line := fmt.Sprintf("%s %s", icon, run.Workflow)
+		workflow := ui.TruncateWithEllipsis(run.Workflow, 20)
 
+		var status string
 		if run.Status != "" && run.Status != github.StatusCompleted {
-			line = fmt.Sprintf("%s (%s)", line, run.Status)
+			status = run.Status
 		} else if run.Conclusion != "" {
-			line = fmt.Sprintf("%s (%s)", line, run.Conclusion)
-		}
-
-		if i == m.selectedIndex {
-			content.WriteString(ui.SelectedStyle.Render("> " + line))
+			status = run.Conclusion
 		} else {
-			content.WriteString(ui.NormalStyle.Render("  " + line))
+			status = "unknown"
 		}
 
+		indicator := "  "
+		if i == m.selectedIndex {
+			indicator = "> "
+		}
+
+		row := indicator + icon + "  " + ui.PadRight(workflow, 20) + "  " + status
+
+		var rowStyle = ui.TableRowStyle
+		if i == m.selectedIndex {
+			rowStyle = ui.TableSelectedStyle
+		}
+
+		content.WriteString(rowStyle.Render(row))
 		if i < len(m.runs)-1 {
 			content.WriteString("\n")
 		}

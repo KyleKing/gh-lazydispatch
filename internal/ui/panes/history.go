@@ -5,43 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
-
-// HistoryItem represents a history entry in the list.
-type HistoryItem struct {
-	entry frecency.HistoryEntry
-}
-
-func (i HistoryItem) Title() string {
-	return i.entry.Branch
-}
-
-func (i HistoryItem) Description() string {
-	parts := make([]string, 0, len(i.entry.Inputs))
-	for k, v := range i.entry.Inputs {
-		if v != "" {
-			parts = append(parts, k+"="+v)
-		}
-	}
-	desc := strings.Join(parts, ", ")
-	if desc != "" {
-		desc += " | "
-	}
-	desc += formatTimeAgo(i.entry.LastRunAt)
-	return desc
-}
-
-func (i HistoryItem) FilterValue() string {
-	return i.entry.Branch + " " + i.entry.Workflow
-}
-
-func (i HistoryItem) Entry() frecency.HistoryEntry {
-	return i.entry
-}
 
 func formatTimeAgo(t time.Time) string {
 	d := time.Since(t)
@@ -61,7 +28,8 @@ func formatTimeAgo(t time.Time) string {
 
 // HistoryModel manages the history list pane.
 type HistoryModel struct {
-	list           list.Model
+	entries        []frecency.HistoryEntry
+	selectedIndex  int
 	focused        bool
 	width          int
 	height         int
@@ -70,33 +38,15 @@ type HistoryModel struct {
 
 // NewHistoryModel creates a new history pane model.
 func NewHistoryModel() HistoryModel {
-	delegate := list.NewDefaultDelegate()
-	delegate.Styles.SelectedTitle = ui.SelectedStyle
-	delegate.Styles.SelectedDesc = ui.SubtitleStyle
-	delegate.Styles.NormalTitle = ui.NormalStyle
-	delegate.Styles.NormalDesc = ui.SubtitleStyle
-
-	l := list.New([]list.Item{}, delegate, 0, 0)
-	l.Title = "Recent Runs"
-	l.SetShowStatusBar(false)
-	l.SetShowHelp(false)
-	l.Styles.Title = ui.TitleStyle
-
-	return HistoryModel{list: l}
+	return HistoryModel{selectedIndex: 0}
 }
 
 // SetEntries updates the history entries.
 func (m *HistoryModel) SetEntries(entries []frecency.HistoryEntry, workflowFilter string) {
-	items := make([]list.Item, len(entries))
-	for i, e := range entries {
-		items[i] = HistoryItem{entry: e}
-	}
-	m.list.SetItems(items)
+	m.entries = entries
 	m.workflowFilter = workflowFilter
-	if workflowFilter != "" {
-		m.list.Title = "Recent Runs (" + workflowFilter + ")"
-	} else {
-		m.list.Title = "Recent Runs"
+	if m.selectedIndex >= len(entries) && len(entries) > 0 {
+		m.selectedIndex = len(entries) - 1
 	}
 }
 
@@ -104,7 +54,6 @@ func (m *HistoryModel) SetEntries(entries []frecency.HistoryEntry, workflowFilte
 func (m *HistoryModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.list.SetSize(width-4, height-4)
 }
 
 // SetFocused updates the focus state.
@@ -112,40 +61,96 @@ func (m *HistoryModel) SetFocused(focused bool) {
 	m.focused = focused
 }
 
+// MoveUp moves selection up.
+func (m *HistoryModel) MoveUp() {
+	if m.selectedIndex > 0 {
+		m.selectedIndex--
+	}
+}
+
+// MoveDown moves selection down.
+func (m *HistoryModel) MoveDown() {
+	if m.selectedIndex < len(m.entries)-1 {
+		m.selectedIndex++
+	}
+}
+
 // Update handles messages for the history pane.
 func (m HistoryModel) Update(msg tea.Msg) (HistoryModel, tea.Cmd) {
-	if !m.focused {
-		return m, nil
-	}
-
-	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 // View renders the history pane.
 func (m HistoryModel) View() string {
 	style := ui.PaneStyle(m.width, m.height, m.focused)
-	return style.Render(m.list.View())
+	title := "Recent Runs"
+	if m.workflowFilter != "" {
+		title = "Recent Runs (" + m.workflowFilter + ")"
+	}
+	return style.Render(ui.TitleStyle.Render(title) + "\n" + m.ViewContent())
 }
 
 // ViewContent renders just the list content without the pane border.
 func (m HistoryModel) ViewContent() string {
-	return m.list.View()
+	if len(m.entries) == 0 {
+		var content strings.Builder
+		content.WriteString(ui.SubtitleStyle.Render("No recent runs"))
+		content.WriteString("\n\n")
+		content.WriteString(ui.NormalStyle.Render("Run a workflow to see"))
+		content.WriteString("\n")
+		content.WriteString(ui.NormalStyle.Render("history here."))
+		return content.String()
+	}
+
+	var content strings.Builder
+
+	content.WriteString(ui.TableHeaderStyle.Render(
+		"  Branch           Inputs                       Time"))
+	content.WriteString("\n")
+
+	for i, entry := range m.entries {
+		branch := ui.TruncateWithEllipsis(entry.Branch, 15)
+
+		inputParts := make([]string, 0, len(entry.Inputs))
+		for k, v := range entry.Inputs {
+			if v != "" {
+				inputParts = append(inputParts, k+"="+v)
+			}
+		}
+		inputs := strings.Join(inputParts, ", ")
+		inputs = ui.TruncateWithEllipsis(inputs, 25)
+		if inputs == "" {
+			inputs = "(no inputs)"
+		}
+
+		timeAgo := formatTimeAgo(entry.LastRunAt)
+
+		indicator := "  "
+		if i == m.selectedIndex {
+			indicator = "> "
+		}
+
+		row := indicator + ui.PadRight(branch, 15) + "  " + ui.PadRight(inputs, 25) + "  " + timeAgo
+
+		var rowStyle = ui.TableRowStyle
+		if i == m.selectedIndex {
+			rowStyle = ui.TableSelectedStyle
+		}
+
+		content.WriteString(rowStyle.Render(row))
+		if i < len(m.entries)-1 {
+			content.WriteString("\n")
+		}
+	}
+	return content.String()
 }
 
 // SelectedEntry returns the currently selected history entry.
 func (m HistoryModel) SelectedEntry() *frecency.HistoryEntry {
-	item := m.list.SelectedItem()
-	if item == nil {
+	if len(m.entries) == 0 || m.selectedIndex >= len(m.entries) {
 		return nil
 	}
-	hi, ok := item.(HistoryItem)
-	if !ok {
-		return nil
-	}
-	entry := hi.Entry()
-	return &entry
+	return &m.entries[m.selectedIndex]
 }
 
 // HistorySelectedMsg is sent when a history entry is selected.
@@ -163,3 +168,4 @@ func (m HistoryModel) HandleSelect() tea.Cmd {
 		return HistorySelectedMsg{Entry: *entry}
 	}
 }
+

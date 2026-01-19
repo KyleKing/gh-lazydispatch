@@ -4,13 +4,17 @@
 
 Interactive GitHub Actions workflow dispatcher TUI with fuzzy selection, input configuration, and frecency-based history.
 
+![.github/assets/chains-demo.gif](https://raw.githubusercontent.com/kyleking/lazydispatch/main/.github/assets/chains-demo.gif)
+
 ## Features
 
 - Fuzzy search for workflow selection
 - Interactive input configuration for workflow_dispatch inputs
-- Branch selection
+- Branch selection with frecency-based sorting
 - Watch mode for real-time workflow run updates
 - Frecency-based workflow history tracking
+- Workflow chains for multi-step deployments
+- Tabbed right panel (History, Chains, Live runs)
 - Theme support (Catppuccin)
 - Command preview before execution
 
@@ -70,25 +74,100 @@ The tool will discover all workflows with `workflow_dispatch` triggers and prese
 
 ### Keyboard Shortcuts
 
-- `Tab` / `Shift+Tab` - Switch between panes
-- `↑/k`, `↓/j` - Navigate within pane
-- `Enter` - Select / Execute workflow
-- `b` - Select branch
-- `w` - Toggle watch mode
-- `1-9` - Edit input by number
-- `?` - Show help
-- `q`, `Ctrl+C` - Quit
+#### Navigation
+
+| Key | Action |
+|-----|--------|
+| `Tab` / `Shift+Tab` | Switch between panes |
+| `h` / `l` | Switch tabs (when right panel focused) |
+| `j` / `k` or `Up` / `Down` | Navigate within pane |
+| `Enter` | Select / Execute workflow |
+| `Space` | Select workflow and jump to config |
+| `Esc` | Deselect / Close modal |
+
+#### Configuration
+
+| Key | Action |
+|-----|--------|
+| `b` | Select branch |
+| `w` | Toggle watch mode |
+| `1-9`, `0` | Edit input by number |
+| `/` | Filter inputs |
+| `c` | Copy command to clipboard |
+| `r` | Reset all inputs to defaults |
+
+#### Live Runs
+
+| Key | Action |
+|-----|--------|
+| `d` | Clear selected run |
+| `D` | Clear all completed runs |
+
+#### General
+
+| Key | Action |
+|-----|--------|
+| `?` | Show help |
+| `q`, `Ctrl+C` | Quit |
 
 ### Environment Variables
 
 - `CATPPUCCIN_THEME` - Override theme (latte/macchiato)
 
+## Workflow Chains
+
+Chains let you execute multiple workflows in sequence with configurable wait conditions and failure handling. Define chains in `.github/lazydispatch.yml`:
+
+```yaml
+version: 1
+chains:
+  deploy-all:
+    description: Build, test, and deploy to all environments
+    steps:
+      - workflow: build.yml
+        wait_for: success      # Wait for successful completion (default)
+        on_failure: abort      # Stop chain on failure (default)
+      - workflow: test.yml
+        wait_for: completion   # Wait for any completion (success or failure)
+        on_failure: continue   # Continue even if this step fails
+      - workflow: deploy.yml
+        wait_for: none         # Don't wait, dispatch immediately
+        inputs:
+          environment: production
+          version: v1.0.0
+
+  quick-test:
+    description: Run tests with default settings
+    steps:
+      - workflow: test.yml
+```
+
+### Chain Options
+
+| Option | Values | Default | Description |
+|--------|--------|---------|-------------|
+| `wait_for` | `success`, `completion`, `none` | `success` | When to proceed to next step |
+| `on_failure` | `abort`, `skip`, `continue` | `abort` | What to do when step fails |
+| `inputs` | map | - | Override workflow inputs |
+
+### Accessing Chains
+
+1. Press `Tab` to focus the right panel
+2. Press `l` to switch to the Chains tab
+3. Navigate with `j`/`k` and press `Enter` to execute
+
+The status bar shows `Chains(N)` when chains are configured, and `Chain: name (step/total)` during execution.
+
 ## Recording the Demo
 
-Generate the demo GIF using VHS:
+Generate the demo GIFs using VHS:
 
 ```bash
+# Main demo
 vhs < .github/assets/demo.tape
+
+# Chains demo
+vhs < .github/assets/chains-demo.tape
 ```
 
 ## Maintenance

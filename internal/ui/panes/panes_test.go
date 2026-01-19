@@ -121,21 +121,6 @@ func TestHistoryModel_SetEntries(t *testing.T) {
 	}
 }
 
-func TestHistoryItem_Description(t *testing.T) {
-	item := HistoryItem{
-		entry: frecency.HistoryEntry{
-			Branch:    "main",
-			Inputs:    map[string]string{"env": "prod"},
-			LastRunAt: time.Now().Add(-30 * time.Minute),
-		},
-	}
-
-	desc := item.Description()
-	if desc == "" {
-		t.Error("expected non-empty description")
-	}
-}
-
 func TestConfigModel_SetWorkflow(t *testing.T) {
 	m := NewConfigModel()
 	m.SetSize(80, 20)
@@ -511,63 +496,6 @@ func TestFormatTimeAgo(t *testing.T) {
 			result := formatTimeAgo(testTime)
 			if result != tt.expected {
 				t.Errorf("formatTimeAgo() = %q, want %q", result, tt.expected)
-			}
-		})
-	}
-}
-
-func TestHistoryItem_Description_MultipleInputs(t *testing.T) {
-	tests := []struct {
-		name           string
-		inputs         map[string]string
-		expectContains []string
-		expectNotEmpty bool
-	}{
-		{
-			name:           "no inputs",
-			inputs:         map[string]string{},
-			expectContains: []string{},
-			expectNotEmpty: true,
-		},
-		{
-			name:           "one input",
-			inputs:         map[string]string{"env": "prod"},
-			expectContains: []string{"env"},
-			expectNotEmpty: true,
-		},
-		{
-			name:           "multiple inputs",
-			inputs:         map[string]string{"env": "prod", "verbose": "true"},
-			expectContains: []string{"env"},
-			expectNotEmpty: true,
-		},
-		{
-			name:           "empty value omitted",
-			inputs:         map[string]string{"env": "prod", "empty": ""},
-			expectContains: []string{"env"},
-			expectNotEmpty: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			item := HistoryItem{
-				entry: frecency.HistoryEntry{
-					Branch:    "main",
-					Inputs:    tt.inputs,
-					LastRunAt: time.Now(),
-				},
-			}
-
-			desc := item.Description()
-			if tt.expectNotEmpty && desc == "" {
-				t.Error("expected non-empty description")
-			}
-
-			for _, expected := range tt.expectContains {
-				if !containsString(desc, expected) {
-					t.Errorf("Description() missing %q: %s", expected, desc)
-				}
 			}
 		})
 	}
