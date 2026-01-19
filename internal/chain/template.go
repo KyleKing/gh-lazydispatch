@@ -7,7 +7,7 @@ import (
 
 // InterpolationContext provides values for template interpolation.
 type InterpolationContext struct {
-	Trigger  map[string]string
+	Var      map[string]string // chain-level variables (replaces Trigger)
 	Previous *StepResult
 	Steps    map[int]*StepResult
 }
@@ -16,7 +16,7 @@ var templatePattern = regexp.MustCompile(`\{\{\s*([^}]+)\s*\}\}`)
 
 // Interpolate replaces template expressions in a string.
 // Supported expressions:
-//   - {{ trigger.key }} - Value from original trigger inputs
+//   - {{ var.key }} - Value from chain-level variables
 //   - {{ previous.inputs.key }} - Value from previous step's inputs
 //   - {{ steps.N.inputs.key }} - Value from step N's inputs (0-indexed)
 func Interpolate(template string, ctx *InterpolationContext) (string, error) {
@@ -33,10 +33,10 @@ func Interpolate(template string, ctx *InterpolationContext) (string, error) {
 		}
 
 		switch parts[0] {
-		case "trigger":
-			if len(parts) >= 2 && ctx.Trigger != nil {
+		case "var":
+			if len(parts) >= 2 && ctx.Var != nil {
 				key := strings.Join(parts[1:], ".")
-				if val, ok := ctx.Trigger[key]; ok {
+				if val, ok := ctx.Var[key]; ok {
 					return val
 				}
 			}

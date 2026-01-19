@@ -1,13 +1,28 @@
-version: 1
+version: 2
 chains:
   deploy-all:
     description: Build, test, and deploy to all environments
+    variables:
+      - name: version
+        type: string
+        description: Release version (e.g., v1.0.0)
+        default: v1.0.0
+        required: true
+      - name: release_type
+        type: choice
+        description: Type of release
+        options: [major, minor, patch]
+        default: patch
+      - name: draft
+        type: boolean
+        description: Create as draft release
+        default: "true"
     steps:
       - workflow: release.yml
         inputs:
-          version: v1.0.0
-          release_type: patch
-          draft: "true"
+          version: "{{ var.version }}"
+          release_type: "{{ var.release_type }}"
+          draft: "{{ var.draft }}"
       - workflow: deploy.yml
         wait_for: success
         inputs:
@@ -31,6 +46,12 @@ chains:
 
   staged-release:
     description: Deploy to staging first, then production
+    variables:
+      - name: environment
+        type: choice
+        description: Target environment
+        options: [staging, production]
+        default: staging
     steps:
       - workflow: deploy.yml
         wait_for: success

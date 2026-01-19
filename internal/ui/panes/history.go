@@ -105,32 +105,36 @@ func (m HistoryModel) ViewContent() string {
 	var content strings.Builder
 
 	content.WriteString(ui.TableHeaderStyle.Render(
-		"  Branch           Inputs                       Time"))
+		"    Name                 Branch          Time"))
 	content.WriteString("\n")
 
 	for i, entry := range m.entries {
-		branch := ui.TruncateWithEllipsis(entry.Branch, 15)
-
-		inputParts := make([]string, 0, len(entry.Inputs))
-		for k, v := range entry.Inputs {
-			if v != "" {
-				inputParts = append(inputParts, k+"="+v)
-			}
-		}
-		inputs := strings.Join(inputParts, ", ")
-		inputs = ui.TruncateWithEllipsis(inputs, 25)
-		if inputs == "" {
-			inputs = "(no inputs)"
-		}
-
-		timeAgo := formatTimeAgo(entry.LastRunAt)
-
 		indicator := "  "
 		if i == m.selectedIndex {
 			indicator = "> "
 		}
 
-		row := indicator + ui.PadRight(branch, 15) + "  " + ui.PadRight(inputs, 25) + "  " + timeAgo
+		typeIcon := "w"
+		name := entry.Workflow
+		if entry.Type == frecency.EntryTypeChain || entry.ChainName != "" {
+			typeIcon = "c"
+			name = entry.ChainName
+			if len(entry.StepResults) > 0 {
+				name = fmt.Sprintf("%s (%d steps)", name, len(entry.StepResults))
+			}
+		}
+
+		name = ui.TruncateWithEllipsis(name, 18)
+		branch := ui.TruncateWithEllipsis(entry.Branch, 13)
+		timeAgo := formatTimeAgo(entry.LastRunAt)
+
+		row := fmt.Sprintf("%s%s %s  %s  %s",
+			indicator,
+			typeIcon,
+			ui.PadRight(name, 18),
+			ui.PadRight(branch, 13),
+			timeAgo,
+		)
 
 		var rowStyle = ui.TableRowStyle
 		if i == m.selectedIndex {

@@ -6,9 +6,9 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 )
 
-func TestInterpolate_TriggerInputs(t *testing.T) {
+func TestInterpolate_VarInputs(t *testing.T) {
 	ctx := &chain.InterpolationContext{
-		Trigger: map[string]string{
+		Var: map[string]string{
 			"version": "1.0.0",
 			"env":     "production",
 		},
@@ -19,10 +19,10 @@ func TestInterpolate_TriggerInputs(t *testing.T) {
 		template string
 		expected string
 	}{
-		{"simple key", "{{ trigger.version }}", "1.0.0"},
-		{"with spaces", "{{  trigger.env  }}", "production"},
-		{"in text", "Deploy version {{ trigger.version }} to {{ trigger.env }}", "Deploy version 1.0.0 to production"},
-		{"missing key", "{{ trigger.missing }}", "{{ trigger.missing }}"},
+		{"simple key", "{{ var.version }}", "1.0.0"},
+		{"with spaces", "{{  var.env  }}", "production"},
+		{"in text", "Deploy version {{ var.version }} to {{ var.env }}", "Deploy version 1.0.0 to production"},
+		{"missing key", "{{ var.missing }}", "{{ var.missing }}"},
 	}
 
 	for _, tt := range tests {
@@ -112,10 +112,10 @@ func TestInterpolate_StepsByIndex(t *testing.T) {
 
 func TestInterpolate_MissingKey(t *testing.T) {
 	ctx := &chain.InterpolationContext{
-		Trigger: map[string]string{"key": "value"},
+		Var: map[string]string{"key": "value"},
 	}
 
-	template := "{{ trigger.missing }}"
+	template := "{{ var.missing }}"
 	result, err := chain.Interpolate(template, ctx)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -126,7 +126,7 @@ func TestInterpolate_MissingKey(t *testing.T) {
 }
 
 func TestInterpolate_NilContext(t *testing.T) {
-	template := "{{ trigger.key }}"
+	template := "{{ var.key }}"
 	result, err := chain.Interpolate(template, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -138,15 +138,15 @@ func TestInterpolate_NilContext(t *testing.T) {
 
 func TestInterpolateInputs(t *testing.T) {
 	ctx := &chain.InterpolationContext{
-		Trigger: map[string]string{
+		Var: map[string]string{
 			"version": "1.0.0",
 			"env":     "prod",
 		},
 	}
 
 	inputs := map[string]string{
-		"version": "{{ trigger.version }}",
-		"env":     "{{ trigger.env }}",
+		"version": "{{ var.version }}",
+		"env":     "{{ var.env }}",
 		"static":  "static-value",
 	}
 

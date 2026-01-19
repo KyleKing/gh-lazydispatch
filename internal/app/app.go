@@ -62,6 +62,11 @@ type Model struct {
 	wfdConfig     *config.WfdConfig
 	chainExecutor *chain.ChainExecutor
 
+	pendingChainName      string
+	pendingChain          *config.Chain
+	pendingChainVariables map[string]string
+	pendingChainCommands  []string
+
 	rightPanel panes.TabbedRightModel
 
 	width  int
@@ -187,6 +192,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case modal.ChainSelectResultMsg:
 		return m.handleChainSelectResult(msg)
+
+	case modal.ChainVariableResultMsg:
+		return m.handleChainVariableResult(msg)
+
+	case modal.ChainConfirmResultMsg:
+		return m.handleChainConfirmResult(msg)
+
+	case modal.ChainStatusStopMsg:
+		return m.handleChainStatusStop()
 
 	case modal.ValidationErrorResultMsg:
 		return m.handleValidationErrorResult(msg)

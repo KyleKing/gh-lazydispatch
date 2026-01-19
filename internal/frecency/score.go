@@ -31,13 +31,30 @@ func SortByFrecency(entries []HistoryEntry) {
 }
 
 // FilterByWorkflow returns entries matching the given workflow filename.
+// Only filters workflow-type entries (chains are excluded).
 func FilterByWorkflow(entries []HistoryEntry, workflow string) []HistoryEntry {
 	if workflow == "" {
 		return entries
 	}
 	var filtered []HistoryEntry
 	for _, e := range entries {
-		if e.Workflow == workflow {
+		if e.Workflow == workflow && (e.Type == EntryTypeWorkflow || e.Type == "") {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
+}
+
+// FilterByType returns entries matching the given entry type.
+// Empty type "" is treated as workflow for backward compatibility.
+func FilterByType(entries []HistoryEntry, entryType EntryType) []HistoryEntry {
+	var filtered []HistoryEntry
+	for _, e := range entries {
+		effectiveType := e.Type
+		if effectiveType == "" {
+			effectiveType = EntryTypeWorkflow
+		}
+		if effectiveType == entryType {
 			filtered = append(filtered, e)
 		}
 	}

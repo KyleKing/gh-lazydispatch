@@ -82,12 +82,12 @@ func (s *Store) SaveTo(path string) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-// Record adds or updates a history entry for the given repo.
+// Record adds or updates a workflow history entry for the given repo.
 func (s *Store) Record(repo string, workflow, branch string, inputs map[string]string) {
 	entries := s.Entries[repo]
 
 	for i, e := range entries {
-		if e.Workflow == workflow && e.Branch == branch && mapsEqual(e.Inputs, inputs) {
+		if e.Type == EntryTypeWorkflow && e.Workflow == workflow && e.Branch == branch && mapsEqual(e.Inputs, inputs) {
 			entries[i].RunCount++
 			entries[i].LastRunAt = time.Now()
 			s.Entries[repo] = entries
@@ -96,11 +96,38 @@ func (s *Store) Record(repo string, workflow, branch string, inputs map[string]s
 	}
 
 	entries = append(entries, HistoryEntry{
+		Type:      EntryTypeWorkflow,
 		Workflow:  workflow,
 		Branch:    branch,
 		Inputs:    inputs,
 		RunCount:  1,
 		LastRunAt: time.Now(),
+	})
+	s.Entries[repo] = entries
+}
+
+// RecordChain adds or updates a chain history entry for the given repo.
+func (s *Store) RecordChain(repo string, chainName, branch string, inputs map[string]string, stepResults []ChainStepResult) {
+	entries := s.Entries[repo]
+
+	for i, e := range entries {
+		if e.Type == EntryTypeChain && e.ChainName == chainName && e.Branch == branch && mapsEqual(e.Inputs, inputs) {
+			entries[i].RunCount++
+			entries[i].LastRunAt = time.Now()
+			entries[i].StepResults = stepResults
+			s.Entries[repo] = entries
+			return
+		}
+	}
+
+	entries = append(entries, HistoryEntry{
+		Type:        EntryTypeChain,
+		ChainName:   chainName,
+		Branch:      branch,
+		Inputs:      inputs,
+		StepResults: stepResults,
+		RunCount:    1,
+		LastRunAt:   time.Now(),
 	})
 	s.Entries[repo] = entries
 }

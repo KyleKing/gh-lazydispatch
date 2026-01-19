@@ -268,7 +268,7 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 			}
 		case panes.TabChains:
 			if name, chainDef, ok := m.rightPanel.SelectedChain(); ok {
-				return m.executeChain(name, chainDef)
+				return m.startChainFlow(name, chainDef)
 			}
 		}
 	case PaneConfig:
@@ -277,21 +277,115 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) executeChain(name string, chainDef config.Chain) (tea.Model, tea.Cmd) {
+func (m Model) startChainFlow(name string, chainDef config.Chain) (tea.Model, tea.Cmd) {
+	m.pendingChainName = name
+	m.pendingChain = &chainDef
+
+	if len(chainDef.Variables) > 0 {
+		m.modalStack.Push(modal.NewChainVariableModal(name, &chainDef))
+		return m, nil
+	}
+
+	m.pendingChainVariables = nil
+	m.modalStack.Push(modal.NewChainConfirmModal(name, &chainDef, nil, m.branch, m.watchRun))
+	return m, nil
+}
+
+func (m Model) handleChainVariableResult(msg modal.ChainVariableResultMsg) (tea.Model, tea.Cmd) {
+	if msg.Cancelled || m.pendingChain == nil {
+		m.pendingChainName = ""
+		m.pendingChain = nil
+		return m, nil
+	}
+
+	m.pendingChainVariables = msg.Variables
+	m.modalStack.Push(modal.NewChainConfirmModal(
+		m.pendingChainName,
+		m.pendingChain,
+		msg.Variables,
+		m.branch,
+		m.watchRun,
+	))
+	return m, nil
+}
+
+func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Model, tea.Cmd) {
+	if !msg.Confirmed || m.pendingChain == nil {
+		m.pendingChainName = ""
+		m.pendingChain = nil
+		m.pendingChainVariables = nil
+		return m, nil
+	}
+
 	if m.ghClient == nil || m.watcher == nil {
 		return m, nil
 	}
 
-	executor := chain.NewExecutor(m.ghClient, m.watcher, name, &chainDef)
+	chainDef := m.pendingChain
+	chainName := msg.ChainName
+	variables := msg.Variables
+	branch := msg.Branch
+
+	commands := m.buildChainCommands(chainDef, variables, branch)
+	m.pendingChainCommands = commands
+
+	executor := chain.NewExecutor(m.ghClient, m.watcher, chainName, chainDef)
 	m.chainExecutor = executor
 
-	if err := executor.Start(m.inputs, m.branch); err != nil {
+	if err := executor.Start(variables, branch); err != nil {
 		return m, nil
 	}
 
-	m.modalStack.Push(modal.NewChainStatusModal(executor.State()))
+	m.history.RecordChain(m.repo, chainName, branch, variables, nil)
+	m.history.Save()
+
+	statusModal := modal.NewChainStatusModalWithCommands(executor.State(), commands, branch)
+	m.modalStack.Push(statusModal)
+
+	m.pendingChainName = ""
+	m.pendingChain = nil
+	m.pendingChainVariables = nil
 
 	return m, m.chainSubscription()
+}
+
+func (m Model) buildChainCommands(chainDef *config.Chain, variables map[string]string, branch string) []string {
+	commands := make([]string, len(chainDef.Steps))
+
+	ctx := &chain.InterpolationContext{
+		Var:   variables,
+		Steps: make(map[int]*chain.StepResult),
+	}
+
+	for i, step := range chainDef.Steps {
+		inputs, _ := chain.InterpolateInputs(step.Inputs, ctx)
+
+		cfg := runner.RunConfig{
+			Workflow: step.Workflow,
+			Branch:   branch,
+			Inputs:   inputs,
+		}
+		args := runner.BuildArgs(cfg)
+		commands[i] = runner.FormatCommand(args)
+
+		ctx.Steps[i] = &chain.StepResult{
+			Workflow: step.Workflow,
+			Inputs:   inputs,
+		}
+		if i > 0 {
+			ctx.Previous = ctx.Steps[i-1]
+		}
+	}
+
+	return commands
+}
+
+func (m Model) handleChainStatusStop() (tea.Model, tea.Cmd) {
+	if m.chainExecutor != nil {
+		m.chainExecutor.Stop()
+		m.chainExecutor = nil
+	}
+	return m, nil
 }
 
 func (m Model) executeWorkflow() (tea.Model, tea.Cmd) {
@@ -552,21 +646,7 @@ func (m Model) handleRemapResult(msg modal.RemapResultMsg) (tea.Model, tea.Cmd) 
 }
 
 func (m Model) handleChainSelectResult(msg modal.ChainSelectResultMsg) (tea.Model, tea.Cmd) {
-	if m.ghClient == nil || m.watcher == nil {
-		return m, nil
-	}
-
-	chainDef := msg.Chain
-	executor := chain.NewExecutor(m.ghClient, m.watcher, msg.ChainName, &chainDef)
-	m.chainExecutor = executor
-
-	if err := executor.Start(m.inputs, m.branch); err != nil {
-		return m, nil
-	}
-
-	m.modalStack.Push(modal.NewChainStatusModal(executor.State()))
-
-	return m, m.chainSubscription()
+	return m.startChainFlow(msg.ChainName, msg.Chain)
 }
 
 func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {

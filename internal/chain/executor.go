@@ -60,16 +60,16 @@ type ChainUpdate struct {
 
 // ChainExecutor manages the execution of a workflow chain.
 type ChainExecutor struct {
-	client        GitHubClient
-	watcher       RunWatcher
-	chain         *config.Chain
-	chainName     string
-	state         *ChainState
-	triggerInputs map[string]string
-	branch        string
-	updates       chan ChainUpdate
-	mu            sync.RWMutex
-	stopCh        chan struct{}
+	client    GitHubClient
+	watcher   RunWatcher
+	chain     *config.Chain
+	chainName string
+	state     *ChainState
+	variables map[string]string // chain-level variables
+	branch    string
+	updates   chan ChainUpdate
+	mu        sync.RWMutex
+	stopCh    chan struct{}
 }
 
 // NewExecutor creates a new chain executor.
@@ -96,10 +96,69 @@ func NewExecutor(client GitHubClient, w RunWatcher, chainName string, chain *con
 	}
 }
 
-// Start begins executing the chain with the given trigger inputs.
-func (e *ChainExecutor) Start(triggerInputs map[string]string, branch string) error {
+// PreviousStepResult contains the result of a previously completed step.
+type PreviousStepResult struct {
+	Workflow   string
+	RunID      int64
+	Status     string
+	Conclusion string
+}
+
+// NewExecutorFromHistory creates a chain executor that resumes from a specific step.
+// Steps 0..resumeFromStep-1 are pre-populated from previousResults.
+func NewExecutorFromHistory(
+	client GitHubClient,
+	w RunWatcher,
+	chainName string,
+	chain *config.Chain,
+	previousResults []PreviousStepResult,
+	resumeFromStep int,
+) *ChainExecutor {
+	stepStatuses := make([]StepStatus, len(chain.Steps))
+	stepResults := make(map[int]*StepResult)
+
+	for i := 0; i < len(chain.Steps); i++ {
+		if i < resumeFromStep && i < len(previousResults) {
+			prev := previousResults[i]
+			status := StepCompleted
+			if prev.Status == "failed" || prev.Conclusion == "failure" {
+				status = StepFailed
+			} else if prev.Status == "skipped" {
+				status = StepSkipped
+			}
+			stepStatuses[i] = status
+			stepResults[i] = &StepResult{
+				Workflow:   prev.Workflow,
+				RunID:      prev.RunID,
+				Status:     status,
+				Conclusion: prev.Conclusion,
+			}
+		} else {
+			stepStatuses[i] = StepPending
+		}
+	}
+
+	return &ChainExecutor{
+		client:    client,
+		watcher:   w,
+		chain:     chain,
+		chainName: chainName,
+		state: &ChainState{
+			ChainName:    chainName,
+			CurrentStep:  resumeFromStep,
+			StepResults:  stepResults,
+			StepStatuses: stepStatuses,
+			Status:       ChainPending,
+		},
+		updates: make(chan ChainUpdate, 10),
+		stopCh:  make(chan struct{}),
+	}
+}
+
+// Start begins executing the chain with the given variables.
+func (e *ChainExecutor) Start(variables map[string]string, branch string) error {
 	e.mu.Lock()
-	e.triggerInputs = triggerInputs
+	e.variables = variables
 	e.branch = branch
 	e.state.Status = ChainRunning
 	e.mu.Unlock()
@@ -171,8 +230,8 @@ func (e *ChainExecutor) runChain() {
 
 func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, error) {
 	ctx := &InterpolationContext{
-		Trigger: e.triggerInputs,
-		Steps:   e.state.StepResults,
+		Var:   e.variables,
+		Steps: e.state.StepResults,
 	}
 	if idx > 0 {
 		ctx.Previous = e.state.StepResults[idx-1]

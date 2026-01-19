@@ -101,16 +101,18 @@ func (m ChainListModel) ViewContent() string {
 	var content strings.Builder
 
 	content.WriteString(ui.TableHeaderStyle.Render(
-		"  Name             Steps  Description"))
+		"  Name             Steps  Vars  Description"))
 	content.WriteString("\n")
 
 	for i, name := range m.chainNames {
 		chain := m.chains[name]
 		stepCount := len(chain.Steps)
+		varCount := len(chain.Variables)
 
 		displayName := ui.TruncateWithEllipsis(name, 15)
 		steps := fmt.Sprintf("%d", stepCount)
-		desc := ui.TruncateWithEllipsis(chain.Description, 25)
+		vars := fmt.Sprintf("%d", varCount)
+		desc := ui.TruncateWithEllipsis(chain.Description, 20)
 		if desc == "" {
 			desc = "(no description)"
 		}
@@ -120,7 +122,7 @@ func (m ChainListModel) ViewContent() string {
 			indicator = "> "
 		}
 
-		row := indicator + ui.PadRight(displayName, 15) + "  " + ui.PadRight(steps, 5) + "  " + desc
+		row := indicator + ui.PadRight(displayName, 15) + "  " + ui.PadRight(steps, 5) + "  " + ui.PadRight(vars, 4) + "  " + desc
 
 		var rowStyle = ui.TableRowStyle
 		if i == m.selectedIndex {

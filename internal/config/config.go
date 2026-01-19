@@ -18,10 +18,21 @@ type WfdConfig struct {
 	Chains  map[string]Chain `yaml:"chains"`
 }
 
+// ChainVariable represents a variable that can be set when running a chain.
+type ChainVariable struct {
+	Name        string   `yaml:"name"`
+	Type        string   `yaml:"type"`        // "string", "choice", "boolean"
+	Description string   `yaml:"description"`
+	Options     []string `yaml:"options"` // for type: choice
+	Default     string   `yaml:"default"`
+	Required    bool     `yaml:"required"`
+}
+
 // Chain represents a workflow chain definition.
 type Chain struct {
-	Description string      `yaml:"description"`
-	Steps       []ChainStep `yaml:"steps"`
+	Description string          `yaml:"description"`
+	Variables   []ChainVariable `yaml:"variables"`
+	Steps       []ChainStep     `yaml:"steps"`
 }
 
 // ChainStep represents a single step in a workflow chain.
@@ -71,8 +82,8 @@ func LoadFrom(path string) (*WfdConfig, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	if config.Version != 1 {
-		return nil, fmt.Errorf("unsupported config version: %d (expected 1)", config.Version)
+	if config.Version != 1 && config.Version != 2 {
+		return nil, fmt.Errorf("unsupported config version: %d (expected 1 or 2)", config.Version)
 	}
 
 	for name, chain := range config.Chains {
@@ -82,6 +93,11 @@ func LoadFrom(path string) (*WfdConfig, error) {
 			}
 			if chain.Steps[i].OnFailure == "" {
 				chain.Steps[i].OnFailure = FailureAbort
+			}
+		}
+		for i := range chain.Variables {
+			if chain.Variables[i].Type == "" {
+				chain.Variables[i].Type = "string"
 			}
 		}
 		config.Chains[name] = chain

@@ -260,3 +260,119 @@ func TestHasChains(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad_Version2WithVariables(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ".github")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("failed to create .github dir: %v", err)
+	}
+
+	configContent := `version: 2
+chains:
+  deploy:
+    description: "Deploy chain"
+    variables:
+      - name: version
+        type: string
+        description: Release version
+        default: v1.0.0
+        required: true
+      - name: env
+        type: choice
+        options: [staging, production]
+        default: staging
+      - name: dry_run
+        type: boolean
+        default: "true"
+    steps:
+      - workflow: deploy.yml
+        inputs:
+          version: "{{ var.version }}"
+          env: "{{ var.env }}"
+`
+	configPath := filepath.Join(configDir, "lazydispatch.yml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg, err := config.Load(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("expected config, got nil")
+	}
+	if cfg.Version != 2 {
+		t.Errorf("version: got %d, want 2", cfg.Version)
+	}
+
+	chain, ok := cfg.GetChain("deploy")
+	if !ok {
+		t.Fatal("expected chain 'deploy' to exist")
+	}
+
+	if len(chain.Variables) != 3 {
+		t.Fatalf("expected 3 variables, got %d", len(chain.Variables))
+	}
+
+	v := chain.Variables[0]
+	if v.Name != "version" {
+		t.Errorf("variable name: got %q, want %q", v.Name, "version")
+	}
+	if v.Type != "string" {
+		t.Errorf("variable type: got %q, want %q", v.Type, "string")
+	}
+	if !v.Required {
+		t.Error("expected variable to be required")
+	}
+
+	v2 := chain.Variables[1]
+	if v2.Type != "choice" {
+		t.Errorf("variable type: got %q, want %q", v2.Type, "choice")
+	}
+	if len(v2.Options) != 2 {
+		t.Errorf("expected 2 options, got %d", len(v2.Options))
+	}
+}
+
+func TestLoad_Version2DefaultVariableType(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ".github")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("failed to create .github dir: %v", err)
+	}
+
+	configContent := `version: 2
+chains:
+  test:
+    variables:
+      - name: simple
+        description: No type specified
+    steps:
+      - workflow: test.yml
+`
+	configPath := filepath.Join(configDir, "lazydispatch.yml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg, err := config.Load(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	chain, ok := cfg.GetChain("test")
+	if !ok {
+		t.Fatal("expected chain 'test' to exist")
+	}
+
+	if len(chain.Variables) != 1 {
+		t.Fatalf("expected 1 variable, got %d", len(chain.Variables))
+	}
+
+	v := chain.Variables[0]
+	if v.Type != "string" {
+		t.Errorf("default type: got %q, want %q", v.Type, "string")
+	}
+}
