@@ -6,7 +6,7 @@ experimental = true
 
 [tasks.ci]
 description = "Run all checks (used in GitHub Actions)"
-run = ["go test -v ./...", "go build -v ./..."]
+run = ["./scripts/check-test-safety.sh", "go test -v ./...", "go build -v ./..."]
 
 [tasks.format]
 description = "Format code with golangci-lint and golines"

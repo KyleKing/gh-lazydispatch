@@ -94,6 +94,86 @@ type CommandExecutor interface {
 **RealExecutor**: Executes actual system commands (production use)
 **MockExecutor**: Simulates command execution for testing
 
+### Safety Mechanisms
+
+To prevent accidental mutation of real GitHub resources during tests, multiple safety layers are in place:
+
+#### 1. Runtime Safety Check (Primary Protection)
+
+`exec.RealExecutor` includes a runtime check that panics if mutation commands are executed during tests:
+
+```go
+// This will panic during tests:
+executor := exec.NewRealExecutor()
+executor.Execute("gh", "workflow", "run", "test.yml") // PANIC!
+
+// Instead, always use mocks in tests:
+mockExec := exec.NewMockExecutor()
+mockExec.AddCommand("gh", []string{"workflow", "run", "test.yml"}, "", "", nil)
+```
+
+Blocked mutation commands include:
+- `gh workflow run` - Dispatches workflows
+- `gh issue create/edit/close` - Issue mutations
+- `gh pr create/merge/close` - PR mutations
+- `gh run cancel/rerun` - Workflow run mutations
+- And many others (see `internal/exec/executor.go:isMutationCommand`)
+
+Read-only commands are allowed:
+- `gh api` - GitHub API read calls
+- `gh run view/list/watch` - Workflow run inspection
+- Non-gh commands
+
+#### 2. Static Analysis (Secondary Protection)
+
+Run `./scripts/check-test-safety.sh` to detect unsafe patterns:
+- Direct `exec.NewRealExecutor()` usage in test files
+- `runner.Execute*` calls without mock setup
+
+Add to CI to catch issues early:
+```yaml
+- name: Check test safety
+  run: ./scripts/check-test-safety.sh
+```
+
+#### 3. Test Design (Best Practice)
+
+Always use one of these patterns in tests:
+
+```go
+// Pattern 1: SetExecutor for integration tests
+mockExec := exec.NewMockExecutor()
+runner.SetExecutor(mockExec)
+defer runner.SetExecutor(nil)
+
+// Pattern 2: ...WithExecutor for unit tests
+mockExec := &mockCommandExecutor{}
+runner.ExecuteWithExecutor(cfg, mockExec)
+```
+
+### Runner Package Mocking
+
+The `internal/runner` package provides two ways to inject mocks for testing:
+
+1. **SetExecutor (for integration tests)**: Injects `exec.CommandExecutor` globally
+   ```go
+   mockExec := exec.NewMockExecutor()
+   mockExec.AddCommand("gh", []string{"workflow", "run", "test.yml"}, "", "", nil)
+   runner.SetExecutor(mockExec)
+   defer runner.SetExecutor(nil) // Reset after test
+   ```
+
+2. **...WithExecutor functions (for unit tests)**: Accept `runner.CommandExecutor` as parameter
+   ```go
+   mockExec := &mockCommandExecutor{} // Test-specific mock
+   err := runner.ExecuteWithExecutor(cfg, mockExec)
+   ```
+
+This dual approach ensures:
+- No real `gh workflow run` commands execute during tests
+- Chain executor tests can use `SetExecutor` to prevent accidental mutations
+- Runner package tests can use focused mocks with `...WithExecutor` functions
+
 ### Mock Executor Usage
 
 ```go
@@ -124,7 +204,7 @@ Fixtures contain realistic GitHub Actions log output with:
 
 ### GitHub API Mocking via gh CLI
 
-All GitHub API interactions are mocked through the CommandExecutor interface using `gh api` commands:
+All GitHub API interactions are mocked through the CommandExecutor interface using `gh api` and `gh workflow run` commands:
 
 ```go
 mockExec := exec.NewMockExecutor()
@@ -136,6 +216,9 @@ jobsResp := github.JobsResponse{
 jobsJSON, _ := json.Marshal(jobsResp)
 mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/123/jobs"}, string(jobsJSON), "", nil)
 
+// Mock gh workflow run for dispatching workflows
+mockExec.AddCommand("gh", []string{"workflow", "run", "test.yml", "--ref", "main"}, "", "", nil)
+
 // Mock gh run view for log fetching
 logOutput := loadFixture(t, "successful_run.txt")
 mockExec.AddGHRunView(runID, jobID, logOutput)
@@ -144,6 +227,7 @@ mockExec.AddGHRunView(runID, jobID, logOutput)
 **Benefits of unified gh CLI approach**:
 - Single mocking point for all GitHub interactions
 - Consistent authentication handling
+- Prevents accidental mutation of real GitHub resources in tests
 - Simpler test setup
 - No HTTP transport layer mocking needed
 
@@ -291,3 +375,4 @@ Potential testing improvements:
 
 - [AGENTS.md](./AGENTS.md) - AI agent guidelines and project patterns
 - [IMPLEMENTATION_CHECKLIST.md](./IMPLEMENTATION_CHECKLIST.md) - Feature implementation status
+- [docs/test-safety-example.md](./docs/test-safety-example.md) - Detailed examples of test safety violations and fixes

@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	execpkg "github.com/kyleking/gh-lazydispatch/internal/exec"
 )
 
 // RunConfig holds the configuration for running a workflow.
@@ -15,22 +17,33 @@ type RunConfig struct {
 	Watch    bool
 }
 
-// CommandExecutor executes shell commands.
-type CommandExecutor interface {
-	Execute(name string, args ...string) error
+// defaultCommandExecutor wraps exec.CommandExecutor for interactive use.
+type defaultCommandExecutor struct {
+	executor execpkg.CommandExecutor
 }
-
-type defaultCommandExecutor struct{}
 
 func (e defaultCommandExecutor) Execute(name string, args ...string) error {
-	cmd := exec.Command(name, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd.Run()
+	// For interactive execution, we want stdout/stderr to go directly to the terminal
+	if e.executor == nil {
+		cmd := exec.Command(name, args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		return cmd.Run()
+	}
+
+	// When using an injected executor (e.g., for testing), use it
+	_, _, err := e.executor.Execute(name, args...)
+	return err
 }
 
-var executor CommandExecutor = defaultCommandExecutor{}
+var executor = defaultCommandExecutor{executor: nil}
+
+// SetExecutor sets the command executor for testing purposes.
+// Pass nil to reset to default behavior.
+func SetExecutor(exec execpkg.CommandExecutor) {
+	executor = defaultCommandExecutor{executor: exec}
+}
 
 // BuildArgs constructs the gh workflow run arguments.
 func BuildArgs(cfg RunConfig) []string {
@@ -60,6 +73,11 @@ func FormatCommand(args []string) string {
 		}
 	}
 	return "gh " + strings.Join(quoted, " ")
+}
+
+// CommandExecutor executes shell commands (for testing compatibility).
+type CommandExecutor interface {
+	Execute(name string, args ...string) error
 }
 
 // Execute runs the workflow using gh CLI.

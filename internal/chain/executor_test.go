@@ -6,7 +6,9 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
@@ -98,6 +100,11 @@ func TestNewExecutor(t *testing.T) {
 }
 
 func TestChainExecutor_Stop(t *testing.T) {
+	// Setup mock executor to prevent real gh CLI calls
+	mockExec := exec.NewMockExecutor()
+	runner.SetExecutor(mockExec)
+	defer runner.SetExecutor(nil) // Reset after test
+
 	client := &mockGitHubClient{latestID: 123}
 	w := newMockWatcher()
 	chainDef := &config.Chain{
@@ -116,6 +123,12 @@ func TestChainExecutor_Stop(t *testing.T) {
 }
 
 func TestChainExecutor_WaitForNone(t *testing.T) {
+	// Setup mock executor to prevent real gh CLI calls
+	mockExec := exec.NewMockExecutor()
+	mockExec.AddCommand("gh", []string{"workflow", "run", "step1.yml", "--ref", "main"}, "", "", nil)
+	runner.SetExecutor(mockExec)
+	defer runner.SetExecutor(nil) // Reset after test
+
 	client := &mockGitHubClient{
 		latestID: 100,
 		runs: map[int64]*github.WorkflowRun{
@@ -136,17 +149,18 @@ func TestChainExecutor_WaitForNone(t *testing.T) {
 	}
 
 	timeout := time.After(2 * time.Second)
-	var lastState chain.ChainState
 	for {
 		select {
-		case update, ok := <-executor.Updates():
+		case _, ok := <-executor.Updates():
 			if !ok {
-				if lastState.Status != chain.ChainCompleted {
-					t.Errorf("expected ChainCompleted, got %v", lastState.Status)
+				// Channel closed - check final state synchronously
+				finalState := executor.State()
+				if finalState.Status != chain.ChainCompleted {
+					t.Errorf("expected ChainCompleted, got %v", finalState.Status)
 				}
 				return
 			}
-			lastState = update.State
+			// Continue draining updates
 		case <-timeout:
 			t.Fatal("timeout waiting for chain completion")
 		}
