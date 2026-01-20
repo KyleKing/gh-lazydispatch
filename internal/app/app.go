@@ -71,6 +71,11 @@ type Model struct {
 	pendingChainVariables map[string]string
 	pendingChainCommands  []string
 
+	// Metadata for the currently executing chain
+	executingChainName      string
+	executingChainBranch    string
+	executingChainVariables map[string]string
+
 	rightPanel panes.TabbedRightModel
 
 	width  int
@@ -243,6 +248,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m = m.showLogsViewer(msg.Logs, msg.ErrorsOnly)
 		return m, nil
 
+	case panes.HistoryViewLogsMsg:
+		return m, func() tea.Msg {
+			// Reconstruct chain state from history entry
+			chainState := reconstructChainStateFromHistory(msg.Entry)
+			return FetchLogsMsg{
+				ChainState: &chainState,
+				Branch:     msg.Entry.Branch,
+				ErrorsOnly: false,
+			}
+		}
+
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
 	}
@@ -253,4 +269,44 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) updateModal(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmd := m.modalStack.Update(msg)
 	return m, cmd
+}
+
+// reconstructChainStateFromHistory converts a history entry to a chain state for log viewing.
+func reconstructChainStateFromHistory(entry frecency.HistoryEntry) chain.ChainState {
+	stepResults := make(map[int]*chain.StepResult)
+	stepStatuses := make([]chain.StepStatus, len(entry.StepResults))
+
+	for i, result := range entry.StepResults {
+		status := chain.StepCompleted
+		switch result.Status {
+		case "completed":
+			status = chain.StepCompleted
+		case "failed":
+			status = chain.StepFailed
+		case "skipped":
+			status = chain.StepSkipped
+		case "pending":
+			status = chain.StepPending
+		case "running":
+			status = chain.StepRunning
+		case "waiting":
+			status = chain.StepWaiting
+		}
+
+		stepStatuses[i] = status
+		stepResults[i] = &chain.StepResult{
+			Workflow:   result.Workflow,
+			RunID:      result.RunID,
+			Status:     status,
+			Conclusion: result.Conclusion,
+		}
+	}
+
+	return chain.ChainState{
+		ChainName:    entry.ChainName,
+		CurrentStep:  len(entry.StepResults) - 1,
+		StepResults:  stepResults,
+		StepStatuses: stepStatuses,
+		Status:       chain.ChainCompleted,
+	}
 }

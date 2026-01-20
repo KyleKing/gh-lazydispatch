@@ -173,3 +173,23 @@ func (m HistoryModel) HandleSelect() tea.Cmd {
 	}
 }
 
+// HistoryViewLogsMsg is sent when the user wants to view logs for a history entry.
+type HistoryViewLogsMsg struct {
+	Entry frecency.HistoryEntry
+}
+
+// HandleViewLogs processes a view logs request and returns a message.
+func (m HistoryModel) HandleViewLogs() tea.Cmd {
+	entry := m.SelectedEntry()
+	if entry == nil {
+		return nil
+	}
+	// Only allow viewing logs for chain entries that have step results
+	if entry.Type != frecency.EntryTypeChain || len(entry.StepResults) == 0 {
+		return nil
+	}
+	return func() tea.Msg {
+		return HistoryViewLogsMsg{Entry: *entry}
+	}
+}
+

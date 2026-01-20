@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/rule"
@@ -142,6 +143,12 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case msg.String() == "a":
 		if m.viewMode == HistoryPreviewMode && m.previewingHistoryEntry != nil {
 			return m.openRemapModal()
+		}
+		return m, nil
+
+	case msg.String() == "l":
+		if m.focused == PaneHistory && m.rightPanel.ActiveTab() == panes.TabHistory {
+			return m, m.rightPanel.History().HandleViewLogs()
 		}
 		return m, nil
 
@@ -337,6 +344,11 @@ func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Mo
 	if err := executor.Start(variables, branch); err != nil {
 		return m, nil
 	}
+
+	// Store executing chain metadata for history update on completion
+	m.executingChainName = chainName
+	m.executingChainBranch = branch
+	m.executingChainVariables = variables
 
 	m.history.RecordChain(m.repo, chainName, branch, variables, nil)
 	m.history.Save()
@@ -658,11 +670,52 @@ func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {
 
 	state := msg.Update.State
 	if state.Status == chain.ChainCompleted || state.Status == chain.ChainFailed {
+		// Convert chain step results to frecency step results for history
+		stepResults := convertToFrecencyStepResults(state.StepResults)
+
+		// Update history with step results
+		m.history.RecordChain(m.repo, m.executingChainName, m.executingChainBranch, m.executingChainVariables, stepResults)
+		m.history.Save()
+
+		// Clear executing chain metadata
+		m.executingChainName = ""
+		m.executingChainBranch = ""
+		m.executingChainVariables = nil
 		m.chainExecutor = nil
 		return m, nil
 	}
 
 	return m, m.chainSubscription()
+}
+
+// convertToFrecencyStepResults converts chain.StepResult to frecency.ChainStepResult
+func convertToFrecencyStepResults(stepResults map[int]*chain.StepResult) []frecency.ChainStepResult {
+	if len(stepResults) == 0 {
+		return nil
+	}
+
+	// Find the max index to create properly sized slice
+	maxIdx := -1
+	for idx := range stepResults {
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+	}
+
+	results := make([]frecency.ChainStepResult, maxIdx+1)
+	for idx, result := range stepResults {
+		if result != nil {
+			status := string(result.Status)
+			results[idx] = frecency.ChainStepResult{
+				Workflow:   result.Workflow,
+				RunID:      result.RunID,
+				Status:     status,
+				Conclusion: result.Conclusion,
+			}
+		}
+	}
+
+	return results
 }
 
 func (m Model) handleValidationErrorResult(msg modal.ValidationErrorResultMsg) (tea.Model, tea.Cmd) {

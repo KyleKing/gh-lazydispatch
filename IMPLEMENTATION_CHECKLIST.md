@@ -161,24 +161,24 @@ Track progress implementing the enhanced chains and log viewer system.
 
 ### Match Navigation
 
-- [ ] Implement `jumpToNextMatch()`
-- [ ] Implement `jumpToPrevMatch()`
-- [ ] Add visual indicator of current match
-- [ ] Show match count (e.g., "3 of 15")
+- [x] Implement `jumpToNextMatch()`
+- [x] Implement `jumpToPrevMatch()`
+- [x] Add visual indicator of current match
+- [x] Show match count (e.g., "3 of 15")
 
 ### Quick Filters
 
-- [ ] Add preset filters to keymap
-  - [ ] 'e' = errors only
-  - [ ] 'w' = warnings and errors
-  - [ ] 'a' = all logs
+- [x] Add preset filters to keymap
+  - [x] 'e' = errors only
+  - [x] 'w' = warnings and errors
+  - [x] 'a' = all logs
 
-- [ ] Add filter indicator to status line
+- [x] Add filter indicator to status line
 
 ### Case Sensitivity Toggle
 
-- [ ] Add 'i' key to toggle case sensitivity
-- [ ] Update search indicator
+- [x] Add 'i' key to toggle case sensitivity
+- [x] Update search indicator
 
 ### Testing
 
@@ -215,20 +215,20 @@ Track progress implementing the enhanced chains and log viewer system.
 
 ### History Entry Updates
 
-- [ ] Update `internal/frecency/types.go`
-  - [ ] Add `StepResults []HistoryStepResult`
-  - [ ] Define `HistoryStepResult` struct
+- [x] Update `internal/frecency/types.go`
+  - [x] Add `StepResults []HistoryStepResult`
+  - [x] Define `HistoryStepResult` struct
 
-- [ ] Update chain execution handler
-  - [ ] Store step results in history
-  - [ ] Convert `chain.StepResult` to `frecency.HistoryStepResult`
+- [x] Update chain execution handler
+  - [x] Store step results in history
+  - [x] Convert `chain.StepResult` to `frecency.HistoryStepResult`
 
 ### History Pane Integration
 
-- [ ] Add 'l' key to history pane
-- [ ] Implement `reconstructChainStateFromHistory()`
-- [ ] Fetch logs for historical entry
-- [ ] Load from cache if available
+- [x] Add 'l' key to history pane
+- [x] Implement `reconstructChainStateFromHistory()`
+- [x] Fetch logs for historical entry
+- [x] Load from cache if available
 
 ### Testing
 
@@ -377,12 +377,12 @@ Track progress implementing the enhanced chains and log viewer system.
 **Phase 1:** ✅ Complete (Commitizen chain workflows created)
 **Phase 2:** ✅ Complete (Log viewer integrated into app)
 **Phase 3:** ✅ Complete (Real log fetching with gh CLI)
-**Phase 4:** ⬜ Not started (Enhanced features)
+**Phase 4:** ✅ Complete (Enhanced filtering & search - testing pending)
 **Phase 5:** ⬜ Not started (Export)
-**Phase 6:** ⬜ Not started (History)
+**Phase 6:** ✅ Complete (History integration - testing pending)
 **Phase 7:** ⬜ Not started (Advanced)
 
-**Overall:** 43% complete (Phases 0-3 done)
+**Overall:** 67% complete (Phases 0-4, 6 done)
 
 ---
 
@@ -396,5 +396,5 @@ Track blockers, decisions, and deviations from the plan here:
 
 ---
 
-**Last Updated:** 2026-01-19
-**Current Phase:** Phase 0 (Planning)
+**Last Updated:** 2026-01-20
+**Current Phase:** Phase 6 complete (History integration - testing pending)

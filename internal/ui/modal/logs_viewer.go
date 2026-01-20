@@ -14,6 +14,13 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
+// MatchLocation tracks the position of a search match in the rendered viewport.
+type MatchLocation struct {
+	StepIndex  int // index in filtered.Steps
+	EntryIndex int // index in step.Entries
+	LineNumber int // line number in viewport content (0-based)
+}
+
 // LogsViewerModal displays workflow logs in a unified view with collapsible sections.
 type LogsViewerModal struct {
 	runLogs        *logs.RunLogs
@@ -28,32 +35,42 @@ type LogsViewerModal struct {
 	keys           logsViewerKeyMap
 	width          int
 	height         int
-	startTime      time.Time // for calculating relative timestamps
+	startTime      time.Time      // for calculating relative timestamps
+	matches        []MatchLocation // all match positions in rendered content
+	currentMatch   int             // index of current match (-1 if none)
 }
 
 type logsViewerKeyMap struct {
-	Close        key.Binding
-	Search       key.Binding
-	ToggleFilter key.Binding
-	NextMatch    key.Binding
-	PrevMatch    key.Binding
-	ExitSearch   key.Binding
-	ToggleStep   key.Binding
-	ExpandAll    key.Binding
-	CollapseAll  key.Binding
+	Close               key.Binding
+	Search              key.Binding
+	ToggleFilter        key.Binding
+	NextMatch           key.Binding
+	PrevMatch           key.Binding
+	ExitSearch          key.Binding
+	ToggleStep          key.Binding
+	ExpandAll           key.Binding
+	CollapseAll         key.Binding
+	QuickFilterAll      key.Binding
+	QuickFilterWarnings key.Binding
+	QuickFilterErrors   key.Binding
+	ToggleCaseSensitive key.Binding
 }
 
 func defaultLogsViewerKeyMap() logsViewerKeyMap {
 	return logsViewerKeyMap{
-		Close:        key.NewBinding(key.WithKeys("esc", "q")),
-		Search:       key.NewBinding(key.WithKeys("/")),
-		ToggleFilter: key.NewBinding(key.WithKeys("f")),
-		NextMatch:    key.NewBinding(key.WithKeys("n")),
-		PrevMatch:    key.NewBinding(key.WithKeys("N")),
-		ExitSearch:   key.NewBinding(key.WithKeys("esc")),
-		ToggleStep:   key.NewBinding(key.WithKeys("enter", "space")),
-		ExpandAll:    key.NewBinding(key.WithKeys("E")),
-		CollapseAll:  key.NewBinding(key.WithKeys("C")),
+		Close:               key.NewBinding(key.WithKeys("esc", "q")),
+		Search:              key.NewBinding(key.WithKeys("/")),
+		ToggleFilter:        key.NewBinding(key.WithKeys("f")),
+		NextMatch:           key.NewBinding(key.WithKeys("n")),
+		PrevMatch:           key.NewBinding(key.WithKeys("N")),
+		ExitSearch:          key.NewBinding(key.WithKeys("esc")),
+		ToggleStep:          key.NewBinding(key.WithKeys("enter", "space")),
+		ExpandAll:           key.NewBinding(key.WithKeys("E")),
+		CollapseAll:         key.NewBinding(key.WithKeys("C")),
+		QuickFilterAll:      key.NewBinding(key.WithKeys("a")),
+		QuickFilterWarnings: key.NewBinding(key.WithKeys("w")),
+		QuickFilterErrors:   key.NewBinding(key.WithKeys("e")),
+		ToggleCaseSensitive: key.NewBinding(key.WithKeys("i")),
 	}
 }
 
@@ -93,6 +110,8 @@ func NewLogsViewerModal(runLogs *logs.RunLogs, width, height int) *LogsViewerMod
 		width:          width,
 		height:         height,
 		startTime:      startTime,
+		matches:        []MatchLocation{},
+		currentMatch:   -1,
 	}
 
 	m.updateViewportContent()
@@ -134,6 +153,28 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 
 		case key.Matches(msg, m.keys.ToggleFilter):
 			m.cycleFilterLevel()
+			return m, nil
+
+		case key.Matches(msg, m.keys.QuickFilterAll):
+			m.filterCfg.Level = logs.FilterAll
+			m.applyFilter()
+			return m, nil
+
+		case key.Matches(msg, m.keys.QuickFilterWarnings):
+			m.filterCfg.Level = logs.FilterWarnings
+			m.applyFilter()
+			return m, nil
+
+		case key.Matches(msg, m.keys.QuickFilterErrors):
+			m.filterCfg.Level = logs.FilterErrors
+			m.applyFilter()
+			return m, nil
+
+		case key.Matches(msg, m.keys.ToggleCaseSensitive):
+			m.filterCfg.CaseSensitive = !m.filterCfg.CaseSensitive
+			if m.filterCfg.SearchTerm != "" {
+				m.applyFilter()
+			}
 			return m, nil
 
 		case key.Matches(msg, m.keys.NextMatch):
@@ -231,17 +272,95 @@ func (m *LogsViewerModal) applyFilter() {
 
 	m.filter = filter
 	m.filtered = filter.Apply(m.runLogs)
+	m.buildMatchIndex()
+	m.currentMatch = -1
 	m.updateViewportContent()
+}
+
+// buildMatchIndex builds a list of all match locations in the filtered results.
+func (m *LogsViewerModal) buildMatchIndex() {
+	m.matches = []MatchLocation{}
+
+	if m.filterCfg.SearchTerm == "" {
+		return
+	}
+
+	lineNumber := 0
+	for stepIdx, step := range m.filtered.Steps {
+		// Step header line
+		lineNumber++
+
+		// Only count entry lines if step is not collapsed
+		if !m.collapsedSteps[stepIdx] {
+			for entryIdx, entry := range step.Entries {
+				if len(entry.Matches) > 0 {
+					m.matches = append(m.matches, MatchLocation{
+						StepIndex:  stepIdx,
+						EntryIndex: entryIdx,
+						LineNumber: lineNumber,
+					})
+				}
+				lineNumber++
+			}
+		}
+
+		// Empty line after step
+		lineNumber++
+	}
 }
 
 // jumpToNextMatch scrolls to the next search match.
 func (m *LogsViewerModal) jumpToNextMatch() {
-	// TODO: Implement match navigation
+	if len(m.matches) == 0 {
+		return
+	}
+
+	m.currentMatch = (m.currentMatch + 1) % len(m.matches)
+	m.scrollToMatch(m.currentMatch)
 }
 
 // jumpToPrevMatch scrolls to the previous search match.
 func (m *LogsViewerModal) jumpToPrevMatch() {
-	// TODO: Implement match navigation
+	if len(m.matches) == 0 {
+		return
+	}
+
+	if m.currentMatch == -1 {
+		m.currentMatch = len(m.matches) - 1
+	} else {
+		m.currentMatch = (m.currentMatch - 1 + len(m.matches)) % len(m.matches)
+	}
+	m.scrollToMatch(m.currentMatch)
+}
+
+// scrollToMatch scrolls the viewport to show the specified match.
+func (m *LogsViewerModal) scrollToMatch(matchIdx int) {
+	if matchIdx < 0 || matchIdx >= len(m.matches) {
+		return
+	}
+
+	match := m.matches[matchIdx]
+
+	// Center the match in the viewport if possible
+	targetLine := match.LineNumber
+	visibleLines := m.viewport.Height
+	centerOffset := targetLine - visibleLines/2
+
+	// Ensure we don't scroll past the beginning
+	if centerOffset < 0 {
+		centerOffset = 0
+	}
+
+	// Ensure we don't scroll past the end
+	totalLines := m.viewport.TotalLineCount()
+	if centerOffset+visibleLines > totalLines {
+		centerOffset = totalLines - visibleLines
+		if centerOffset < 0 {
+			centerOffset = 0
+		}
+	}
+
+	m.viewport.SetYOffset(centerOffset)
 }
 
 // updateViewportContent refreshes the viewport with current filtered logs.
@@ -266,8 +385,8 @@ func (m *LogsViewerModal) renderUnifiedLogs() string {
 
 		// Render step logs if not collapsed
 		if !m.collapsedSteps[i] {
-			for _, entry := range step.Entries {
-				line := m.renderLogEntry(&entry)
+			for j, entry := range step.Entries {
+				line := m.renderLogEntry(&entry, i, j)
 				sb.WriteString(line)
 				sb.WriteString("\n")
 			}
@@ -302,7 +421,7 @@ func (m *LogsViewerModal) renderStepHeader(idx int, step *logs.FilteredStepLogs)
 }
 
 // renderLogEntry renders a single log entry with highlighting.
-func (m *LogsViewerModal) renderLogEntry(entry *logs.FilteredLogEntry) string {
+func (m *LogsViewerModal) renderLogEntry(entry *logs.FilteredLogEntry, stepIdx, entryIdx int) string {
 	// Calculate time since start
 	timeSinceStart := entry.Original.Timestamp.Sub(m.startTime)
 
@@ -318,13 +437,22 @@ func (m *LogsViewerModal) renderLogEntry(entry *logs.FilteredLogEntry) string {
 
 	styledTimePrefix := timeStyle.Render(timePrefix)
 
+	// Check if this is the current match
+	isCurrentMatch := false
+	if m.currentMatch >= 0 && m.currentMatch < len(m.matches) {
+		match := m.matches[m.currentMatch]
+		if match.StepIndex == stepIdx && match.EntryIndex == entryIdx {
+			isCurrentMatch = true
+		}
+	}
+
 	// Apply level-based styling to content
 	contentStyle := m.getLogLevelStyle(entry.Original.Level)
 	content := entry.Original.Content
 
 	// Highlight matches if present
 	if len(entry.Matches) > 0 {
-		content = m.highlightMatches(content, entry.Matches)
+		content = m.highlightMatches(content, entry.Matches, isCurrentMatch)
 	}
 
 	return styledTimePrefix + contentStyle.Render(content)
@@ -353,15 +481,27 @@ func (m *LogsViewerModal) getLogLevelStyle(level logs.LogLevel) lipgloss.Style {
 }
 
 // highlightMatches applies highlighting to matched portions of text.
-func (m *LogsViewerModal) highlightMatches(content string, matches []logs.MatchPosition) string {
+func (m *LogsViewerModal) highlightMatches(content string, matches []logs.MatchPosition, isCurrentMatch bool) string {
 	if len(matches) == 0 {
 		return content
 	}
 
-	highlightStyle := lipgloss.NewStyle().
+	// Regular match: yellow background, black text
+	regularStyle := lipgloss.NewStyle().
 		Background(lipgloss.Color("220")).
 		Foreground(lipgloss.Color("0")).
 		Bold(true)
+
+	// Current match: cyan background, black text, more prominent
+	currentStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("51")).
+		Foreground(lipgloss.Color("0")).
+		Bold(true)
+
+	highlightStyle := regularStyle
+	if isCurrentMatch {
+		highlightStyle = currentStyle
+	}
 
 	var result strings.Builder
 	lastEnd := 0
@@ -422,14 +562,36 @@ func (m *LogsViewerModal) View() string {
 func (m *LogsViewerModal) renderFilterStatus() string {
 	var parts []string
 
-	// Filter level
-	filterLabel := fmt.Sprintf("Filter: %s", m.filterCfg.Level)
+	// Filter level with descriptive label
+	var filterLabel string
+	switch m.filterCfg.Level {
+	case logs.FilterErrors:
+		filterLabel = "Filter: errors only"
+	case logs.FilterWarnings:
+		filterLabel = "Filter: warnings + errors"
+	case logs.FilterAll:
+		filterLabel = "Filter: all logs"
+	default:
+		filterLabel = fmt.Sprintf("Filter: %s", m.filterCfg.Level)
+	}
 	parts = append(parts, ui.SubtitleStyle.Render(filterLabel))
 
-	// Search term
+	// Search term with case sensitivity indicator
 	if m.filterCfg.SearchTerm != "" {
-		searchLabel := fmt.Sprintf("Search: %q", m.filterCfg.SearchTerm)
+		caseIndicator := "[aa]"
+		if m.filterCfg.CaseSensitive {
+			caseIndicator = "[Aa]"
+		}
+		searchLabel := fmt.Sprintf("Search: %q %s", m.filterCfg.SearchTerm, caseIndicator)
 		parts = append(parts, ui.TableDimmedStyle.Render(searchLabel))
+
+		// Match count and position
+		if len(m.matches) > 0 && m.currentMatch >= 0 {
+			matchLabel := fmt.Sprintf("Match %d of %d", m.currentMatch+1, len(m.matches))
+			parts = append(parts, ui.TitleStyle.Render(matchLabel))
+		} else if len(m.matches) == 0 {
+			parts = append(parts, ui.TableDimmedStyle.Render("No matches"))
+		}
 	}
 
 	// Result count
@@ -446,9 +608,27 @@ func (m *LogsViewerModal) renderHelp() string {
 		return ui.HelpStyle.Render("[enter] apply  [esc] cancel")
 	}
 
-	return ui.HelpStyle.Render(
-		"[enter/space] toggle section  [E] expand all  [C] collapse all  [f] filter  [/] search  [↑↓] scroll  [q] close",
+	helpParts := []string{
+		"[a] all",
+		"[w] warnings",
+		"[e] errors",
+		"[/] search",
+		"[i] case",
+	}
+
+	if len(m.matches) > 0 {
+		helpParts = append(helpParts, "[n/N] next/prev match")
+	}
+
+	helpParts = append(helpParts,
+		"[enter/space] toggle section",
+		"[E] expand all",
+		"[C] collapse all",
+		"[↑↓] scroll",
+		"[q] close",
 	)
+
+	return ui.HelpStyle.Render(strings.Join(helpParts, "  "))
 }
 
 // IsDone returns true if the modal is finished.
