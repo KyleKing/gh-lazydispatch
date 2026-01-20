@@ -1,0 +1,33 @@
+##[group]Run actions/checkout@v4
+Syncing repository: owner/repo
+##[endgroup]
+##[group]Set up Python 3.11
+Successfully set up Python 3.11.7
+##[endgroup]
+##[group]Install dependencies
+##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
+WARNING: pip is being invoked by an old script wrapper. This will fail in a future version of pip.
+Collecting pip
+  Downloading pip-24.0-py3-none-any.whl (2.1 MB)
+Successfully installed pip-24.0
+WARNING: You are using pip version 23.3.2; however, version 24.0 is available.
+WARNING: You should consider upgrading via the '/usr/bin/python3 -m pip install --upgrade pip' command.
+##[endgroup]
+##[group]Run linter
+##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pylint src/
+************* Module src.core
+src/core.py:42:0: W0612: Unused variable 'temp' (unused-variable)
+src/core.py:88:0: W0102: Dangerous default value [] as argument (dangerous-default-value)
+
+-----------------------------------
+Your code has been rated at 8.5/10
+##[endgroup]
+##[group]Run tests
+============================= test session starts ==============================
+collected 42 items
+
+tests/test_core.py ..................                                    [ 42%]
+tests/test_utils.py ........................                             [100%]
+
+============================== 42 passed in 2.13s ===============================
+##[endgroup]

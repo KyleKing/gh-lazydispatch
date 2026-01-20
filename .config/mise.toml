@@ -20,6 +20,10 @@ run = ["hk fix --quiet"]
 description = "Run tests with coverage"
 run = "go test -coverprofile=coverage.out ./..."
 
+[tasks."test:integration"]
+description = "Run integration tests only"
+run = "go test -v -run TestIntegration ./..."
+
 [tasks."test:view-coverage"]
 description = "View coverage report in browser"
 run = ["go tool cover -html=coverage.out"]

@@ -2,23 +2,34 @@ package logs
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
 // GHFetcher fetches real logs using gh CLI.
 type GHFetcher struct {
-	client GitHubClient
+	client   GitHubClient
+	executor exec.CommandExecutor
 }
 
 // NewGHFetcher creates a fetcher that uses gh CLI for real log access.
 func NewGHFetcher(client GitHubClient) *GHFetcher {
-	return &GHFetcher{client: client}
+	return &GHFetcher{
+		client:   client,
+		executor: exec.NewRealExecutor(),
+	}
+}
+
+// NewGHFetcherWithExecutor creates a fetcher with a custom executor (for testing).
+func NewGHFetcherWithExecutor(client GitHubClient, executor exec.CommandExecutor) *GHFetcher {
+	return &GHFetcher{
+		client:   client,
+		executor: executor,
+	}
 }
 
 // FetchStepLogsReal fetches actual logs from GitHub using gh CLI.
@@ -67,21 +78,16 @@ func (f *GHFetcher) FetchStepLogsReal(runID int64, workflow string) ([]*StepLogs
 func (f *GHFetcher) fetchJobLogs(runID, jobID int64) (string, error) {
 	// Use gh CLI to view logs
 	// Command: gh run view <run-id> --log --job <job-id>
-	cmd := exec.Command("gh", "run", "view",
+	stdout, stderr, err := f.executor.Execute("gh", "run", "view",
 		fmt.Sprintf("%d", runID),
 		"--log",
 		"--job", fmt.Sprintf("%d", jobID))
 
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("gh command failed: %w (stderr: %s)", err, stderr.String())
+	if err != nil {
+		return "", fmt.Errorf("gh command failed: %w (stderr: %s)", err, stderr)
 	}
 
-	return stdout.String(), nil
+	return stdout, nil
 }
 
 // parseJobLogsIntoSteps parses raw job logs into separate step logs.
@@ -163,33 +169,33 @@ func (f *GHFetcher) parseJobLogsIntoSteps(
 func (f *GHFetcher) FetchWorkflowLogs(runID int64) (string, error) {
 	// Use gh CLI to view all logs
 	// Command: gh run view <run-id> --log
-	cmd := exec.Command("gh", "run", "view",
+	stdout, stderr, err := f.executor.Execute("gh", "run", "view",
 		fmt.Sprintf("%d", runID),
 		"--log")
 
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("gh command failed: %w (stderr: %s)", err, stderr.String())
+	if err != nil {
+		return "", fmt.Errorf("gh command failed: %w (stderr: %s)", err, stderr)
 	}
 
-	return stdout.String(), nil
+	return stdout, nil
 }
 
 // CheckGHCLIAvailable checks if gh CLI is installed and authenticated.
 func CheckGHCLIAvailable() error {
+	return CheckGHCLIAvailableWithExecutor(exec.NewRealExecutor())
+}
+
+// CheckGHCLIAvailableWithExecutor checks if gh CLI is installed and authenticated using a custom executor.
+func CheckGHCLIAvailableWithExecutor(executor exec.CommandExecutor) error {
 	// Check if gh is installed
-	cmd := exec.Command("gh", "--version")
-	if err := cmd.Run(); err != nil {
+	_, _, err := executor.Execute("gh", "--version")
+	if err != nil {
 		return fmt.Errorf("gh CLI not found: %w (install from https://cli.github.com)", err)
 	}
 
 	// Check if authenticated
-	cmd = exec.Command("gh", "auth", "status")
-	if err := cmd.Run(); err != nil {
+	_, _, err = executor.Execute("gh", "auth", "status")
+	if err != nil {
 		return fmt.Errorf("gh CLI not authenticated: %w (run 'gh auth login')", err)
 	}
 

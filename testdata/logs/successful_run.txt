@@ -1,0 +1,58 @@
+##[group]Run actions/checkout@v4
+Syncing repository: owner/repo
+##[group]Getting Git version info
+Working directory is '/home/runner/work/repo/repo'
+/usr/bin/git version
+git version 2.43.0
+Successfully set up Git version: 2.43.0
+##[endgroup]
+##[group]Initializing the repository
+/usr/bin/git init /home/runner/work/repo/repo
+Initialized empty Git repository in /home/runner/work/repo/repo/.git/
+##[endgroup]
+##[group]Fetching the repository
+/usr/bin/git remote add origin https://github.com/owner/repo
+/usr/bin/git fetch --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+From https://github.com/owner/repo
+ * branch            main       -> FETCH_HEAD
+ * [new branch]      main       -> origin/main
+##[endgroup]
+##[endgroup]
+##[group]Set up Python 3.11
+Successfully set up Python 3.11.7
+##[endgroup]
+##[group]Install dependencies
+##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
+Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.7/x64/lib/python3.11/site-packages (23.3.2)
+Collecting pip
+  Downloading pip-24.0-py3-none-any.whl (2.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 50.2 MB/s eta 0:00:00
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 23.3.2
+    Uninstalling pip-23.3.2:
+      Successfully uninstalled pip-23.3.2
+Successfully installed pip-24.0
+##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install pytest pytest-cov
+Collecting pytest
+  Downloading pytest-8.0.0-py3-none-any.whl (333 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 333.5/333.5 kB 25.8 MB/s eta 0:00:00
+Successfully installed pytest-8.0.0 pytest-cov-4.1.0
+##[endgroup]
+##[group]Run tests
+##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pytest tests/ --cov=src --cov-report=xml
+============================= test session starts ==============================
+platform linux -- Python 3.11.7, pytest-8.0.0, pluggy-1.4.0
+rootdir: /home/runner/work/repo/repo
+configfile: pyproject.toml
+plugins: cov-4.1.0
+collected 42 items
+
+tests/test_core.py ..................                                    [ 42%]
+tests/test_utils.py ........................                             [100%]
+
+---------- coverage: platform linux, python 3.11.7-final-0 -----------
+Coverage XML written to coverage.xml
+
+============================== 42 passed in 2.13s ===============================
+##[endgroup]

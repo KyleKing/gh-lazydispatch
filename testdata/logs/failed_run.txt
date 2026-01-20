@@ -1,0 +1,24 @@
+##[group]Run actions/checkout@v4
+Syncing repository: owner/repo
+##[group]Getting Git version info
+Working directory is '/home/runner/work/repo/repo'
+/usr/bin/git version
+git version 2.43.0
+Successfully set up Git version: 2.43.0
+##[endgroup]
+##[endgroup]
+##[group]Set up Python 3.11
+Successfully set up Python 3.11.7
+##[endgroup]
+##[group]Install dependencies
+##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
+Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.7/x64/lib/python3.11/site-packages (23.3.2)
+Successfully installed pip-24.0
+##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install pytest pytest-cov
+ERROR: Could not find a version that satisfies the requirement invalid-package (from versions: none)
+ERROR: No matching distribution found for invalid-package
+Error: Process completed with exit code 1.
+##[endgroup]
+##[group]Run tests
+##[error]The process '/opt/hostedtoolcache/Python/3.11.7/x64/bin/python' failed with exit code 1
+##[endgroup]
