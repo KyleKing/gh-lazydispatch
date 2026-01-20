@@ -1,7 +1,6 @@
 package internal_test
 
 import (
-	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -12,7 +11,7 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 )
 
 var errMockCommand = errors.New("mock command failed")
@@ -26,8 +25,9 @@ func TestEndToEnd_ChainExecutionWithLogs(t *testing.T) {
 	runner.SetExecutor(mockExec)
 	defer runner.SetExecutor(nil)
 
-	client := newMockGitHubClient()
-	w := newMockRunWatcher()
+	client := testutil.NewMockGitHubClient().
+		WithRun(&github.WorkflowRun{ID: 1000, Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess})
+	w := testutil.NewMockRunWatcher()
 
 	chainDef := &config.Chain{
 		Description: "CI and Deploy pipeline",
@@ -45,7 +45,7 @@ func TestEndToEnd_ChainExecutionWithLogs(t *testing.T) {
 		t.Fatalf("chain start failed: %v", err)
 	}
 
-	drainUpdates(t, executor.Updates(), 2*time.Second)
+	testutil.DrainChainUpdates(t, executor.Updates(), 2*time.Second)
 
 	state := executor.State()
 	if state.Status != chain.ChainCompleted {
@@ -56,14 +56,14 @@ func TestEndToEnd_ChainExecutionWithLogs(t *testing.T) {
 		t.Errorf("executed commands: got %d, want 2", len(mockExec.ExecutedCommands))
 	}
 
-	verifyCommand(t, mockExec.ExecutedCommands[0], "gh", "workflow", "run", "ci.yml")
-	verifyCommand(t, mockExec.ExecutedCommands[1], "gh", "workflow", "run", "deploy.yml")
+	testutil.AssertCommand(t, mockExec.ExecutedCommands[0], "gh", "workflow", "run", "ci.yml")
+	testutil.AssertCommand(t, mockExec.ExecutedCommands[1], "gh", "workflow", "run", "deploy.yml")
 }
 
 // TestEndToEnd_LogFetchingWithGHCLI tests log fetching via mocked gh CLI.
 func TestEndToEnd_LogFetchingWithGHCLI(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
-	setupLogFetchingMocks(mockExec)
+	setupLogFetchingMocks(t, mockExec)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -80,7 +80,7 @@ func TestEndToEnd_LogFetchingWithGHCLI(t *testing.T) {
 		t.Errorf("step count: got %d, want 3", len(stepLogs))
 	}
 
-	verifyStepLogs(t, stepLogs, []string{"Checkout", "Build", "Test"})
+	testutil.AssertStepLogNames(t, stepLogs, []string{"Checkout", "Build", "Test"})
 
 	hasError := false
 	for _, step := range stepLogs {
@@ -99,7 +99,7 @@ func TestEndToEnd_LogFetchingWithGHCLI(t *testing.T) {
 // TestEndToEnd_FailedRunWithErrorLogs tests error detection in logs.
 func TestEndToEnd_FailedRunWithErrorLogs(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
-	setupFailedRunMocks(mockExec)
+	setupFailedRunMocks(t, mockExec)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -131,8 +131,8 @@ func TestEndToEnd_WatcherRegistration(t *testing.T) {
 	runner.SetExecutor(mockExec)
 	defer runner.SetExecutor(nil)
 
-	client := newMockGitHubClient()
-	w := newMockRunWatcher()
+	client := testutil.NewMockGitHubClient()
+	w := testutil.NewMockRunWatcher()
 
 	chainDef := &config.Chain{
 		Steps: []config.ChainStep{
@@ -143,20 +143,20 @@ func TestEndToEnd_WatcherRegistration(t *testing.T) {
 	executor := chain.NewExecutor(client, w, "test-chain", chainDef)
 	_ = executor.Start(map[string]string{}, "main")
 
-	drainUpdates(t, executor.Updates(), 2*time.Second)
+	testutil.DrainChainUpdates(t, executor.Updates(), 2*time.Second)
 
-	if len(w.watched) != 1 {
-		t.Errorf("watched runs: got %d, want 1", len(w.watched))
+	if len(w.Watched) != 1 {
+		t.Errorf("watched runs: got %d, want 1", len(w.Watched))
 	}
 }
 
 // TestEndToEnd_ChainFailureHandling tests chain behavior when a step fails.
 func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 	tests := []struct {
-		name           string
-		onFailure      config.FailureAction
-		wantStatus     chain.ChainStatus
-		wantCmdsCount  int
+		name          string
+		onFailure     config.FailureAction
+		wantStatus    chain.ChainStatus
+		wantCmdsCount int
 	}{
 		{"abort", config.FailureAbort, chain.ChainFailed, 1},
 		{"continue", config.FailureContinue, chain.ChainCompleted, 2},
@@ -171,8 +171,8 @@ func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 			runner.SetExecutor(mockExec)
 			defer runner.SetExecutor(nil)
 
-			client := newMockGitHubClient()
-			w := newMockRunWatcher()
+			client := testutil.NewMockGitHubClient()
+			w := testutil.NewMockRunWatcher()
 
 			chainDef := &config.Chain{
 				Steps: []config.ChainStep{
@@ -184,7 +184,7 @@ func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 			executor := chain.NewExecutor(client, w, "test", chainDef)
 			_ = executor.Start(map[string]string{}, "main")
 
-			drainUpdates(t, executor.Updates(), 2*time.Second)
+			testutil.DrainChainUpdates(t, executor.Updates(), 2*time.Second)
 
 			state := executor.State()
 			if state.Status != tt.wantStatus {
@@ -197,64 +197,15 @@ func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 	}
 }
 
-// Helper types and functions
-
-type mockGitHubClient struct {
-	runs     map[int64]*github.WorkflowRun
-	jobs     map[int64][]github.Job
-	latestID int64
-}
-
-func newMockGitHubClient() *mockGitHubClient {
-	return &mockGitHubClient{
-		latestID: 1000,
-		runs: map[int64]*github.WorkflowRun{
-			1000: {ID: 1000, Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
-		},
-		jobs: map[int64][]github.Job{},
-	}
-}
-
-func (m *mockGitHubClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
-	if run, ok := m.runs[runID]; ok {
-		return run, nil
-	}
-	return &github.WorkflowRun{ID: runID, Status: github.StatusQueued}, nil
-}
-
-func (m *mockGitHubClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error) {
-	return m.jobs[runID], nil
-}
-
-func (m *mockGitHubClient) GetLatestRun(_ string) (*github.WorkflowRun, error) {
-	return &github.WorkflowRun{ID: m.latestID, Status: github.StatusQueued}, nil
-}
-
-func (m *mockGitHubClient) Owner() string { return "owner" }
-func (m *mockGitHubClient) Repo() string  { return "repo" }
-
-type mockRunWatcher struct {
-	watched map[int64]string
-	updates chan watcher.RunUpdate
-}
-
-func newMockRunWatcher() *mockRunWatcher {
-	return &mockRunWatcher{
-		watched: make(map[int64]string),
-		updates: make(chan watcher.RunUpdate, 10),
-	}
-}
-
-func (m *mockRunWatcher) Watch(runID int64, workflow string) { m.watched[runID] = workflow }
-func (m *mockRunWatcher) Unwatch(runID int64)                { delete(m.watched, runID) }
-func (m *mockRunWatcher) Updates() <-chan watcher.RunUpdate  { return m.updates }
+// Setup helpers
 
 func setupChainExecutionMocks(m *exec.MockExecutor) {
 	m.AddCommand("gh", []string{"workflow", "run", "ci.yml", "--ref", "main"}, "", "", nil)
 	m.AddCommand("gh", []string{"workflow", "run", "deploy.yml", "--ref", "main", "-f", "environment=staging"}, "", "", nil)
 }
 
-func setupLogFetchingMocks(m *exec.MockExecutor) {
+func setupLogFetchingMocks(t *testing.T, m *exec.MockExecutor) {
+	t.Helper()
 	jobsResp := github.JobsResponse{
 		Jobs: []github.Job{{
 			ID: 2001, Name: "build", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
@@ -265,8 +216,7 @@ func setupLogFetchingMocks(m *exec.MockExecutor) {
 			},
 		}},
 	}
-	jobsJSON, _ := json.Marshal(jobsResp)
-	m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/1001/jobs"}, string(jobsJSON), "", nil)
+	m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/1001/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
 
 	logOutput := `##[group]Checkout
 Cloning repository...
@@ -281,7 +231,8 @@ All tests passed
 	m.AddGHRunView(1001, 2001, logOutput)
 }
 
-func setupFailedRunMocks(m *exec.MockExecutor) {
+func setupFailedRunMocks(t *testing.T, m *exec.MockExecutor) {
+	t.Helper()
 	jobsResp := github.JobsResponse{
 		Jobs: []github.Job{{
 			ID: 2002, Name: "build", Status: github.StatusCompleted, Conclusion: github.ConclusionFailure,
@@ -291,8 +242,7 @@ func setupFailedRunMocks(m *exec.MockExecutor) {
 			},
 		}},
 	}
-	jobsJSON, _ := json.Marshal(jobsResp)
-	m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/1002/jobs"}, string(jobsJSON), "", nil)
+	m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/1002/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
 
 	logOutput := `##[group]Checkout
 Cloning repository...
@@ -302,48 +252,4 @@ ERROR: Build failed
 ##[error]Compilation error in main.go
 ##[endgroup]`
 	m.AddGHRunView(1002, 2002, logOutput)
-}
-
-func drainUpdates(t *testing.T, updates <-chan chain.ChainUpdate, timeout time.Duration) {
-	t.Helper()
-	deadline := time.After(timeout)
-	for {
-		select {
-		case _, ok := <-updates:
-			if !ok {
-				return
-			}
-		case <-deadline:
-			t.Fatal("timeout waiting for chain updates")
-		}
-	}
-}
-
-func verifyCommand(t *testing.T, cmd exec.ExecutedCommand, expectedArgs ...string) {
-	t.Helper()
-	if cmd.Name != expectedArgs[0] {
-		t.Errorf("command name: got %q, want %q", cmd.Name, expectedArgs[0])
-	}
-	for i, arg := range expectedArgs[1:] {
-		if i >= len(cmd.Args) || cmd.Args[i] != arg {
-			found := ""
-			if i < len(cmd.Args) {
-				found = cmd.Args[i]
-			}
-			t.Errorf("command arg[%d]: got %q, want %q", i, found, arg)
-		}
-	}
-}
-
-func verifyStepLogs(t *testing.T, stepLogs []*logs.StepLogs, expectedNames []string) {
-	t.Helper()
-	if len(stepLogs) != len(expectedNames) {
-		t.Errorf("step count: got %d, want %d", len(stepLogs), len(expectedNames))
-		return
-	}
-	for i, name := range expectedNames {
-		if stepLogs[i].StepName != name {
-			t.Errorf("step[%d] name: got %q, want %q", i, stepLogs[i].StepName, name)
-		}
-	}
 }

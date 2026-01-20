@@ -1,7 +1,6 @@
 package logs_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -9,6 +8,7 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 )
 
 // TestIntegration_SuccessfulWorkflowRun tests fetching logs for a successful workflow run.
@@ -37,8 +37,8 @@ func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 			},
 		},
 	}
-	jobsJSON, _ := json.Marshal(jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12345/jobs"}, string(jobsJSON), "", nil)
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12345/jobs"}, jobsJSON, "", nil)
 
 	// Mock gh run view for log fetching
 	logOutput := loadFixture(t, "successful_run.txt")
@@ -142,8 +142,8 @@ func TestIntegration_FailedWorkflowRun(t *testing.T) {
 			},
 		},
 	}
-	jobsJSON, _ := json.Marshal(jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12346/jobs"}, string(jobsJSON), "", nil)
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12346/jobs"}, jobsJSON, "", nil)
 
 	// Mock gh run view for log fetching
 	logOutput := loadFixture(t, "failed_run.txt")
@@ -222,8 +222,8 @@ func TestIntegration_WorkflowWithWarnings(t *testing.T) {
 			},
 		},
 	}
-	jobsJSON, _ := json.Marshal(jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12347/jobs"}, string(jobsJSON), "", nil)
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12347/jobs"}, jobsJSON, "", nil)
 
 	// Mock gh run view for log fetching
 	logOutput := loadFixture(t, "run_with_warnings.txt")
@@ -279,8 +279,8 @@ func TestIntegration_GHCLIError(t *testing.T) {
 			},
 		},
 	}
-	jobsJSON, _ := json.Marshal(jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12348/jobs"}, string(jobsJSON), "", nil)
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12348/jobs"}, jobsJSON, "", nil)
 
 	// Simulate gh CLI error (e.g., network timeout, auth failure)
 	mockExec.AddGHRunViewError(runID, jobID, "HTTP 401: Bad credentials", fmt.Errorf("exit status 1"))
@@ -417,8 +417,8 @@ func TestIntegration_MultiJobWorkflowRun(t *testing.T) {
 			},
 		},
 	}
-	jobsJSON, _ := json.Marshal(jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12350/jobs"}, string(jobsJSON), "", nil)
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12350/jobs"}, jobsJSON, "", nil)
 
 	// Mock logs with multiple steps
 	logOutput := loadFixture(t, "multi_job_run.txt")

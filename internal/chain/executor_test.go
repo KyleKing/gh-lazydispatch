@@ -7,72 +7,13 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
-	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 )
 
-type mockGitHubClient struct {
-	runs     map[int64]*github.WorkflowRun
-	jobs     map[int64][]github.Job
-	latestID int64
-	err      error
-}
-
-func (m *mockGitHubClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	if run, ok := m.runs[runID]; ok {
-		return run, nil
-	}
-	return &github.WorkflowRun{ID: runID, Status: github.StatusQueued}, nil
-}
-
-func (m *mockGitHubClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	return m.jobs[runID], nil
-}
-
-func (m *mockGitHubClient) GetLatestRun(workflowName string) (*github.WorkflowRun, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	return &github.WorkflowRun{ID: m.latestID, Status: github.StatusQueued}, nil
-}
-
-func (m *mockGitHubClient) Owner() string { return "owner" }
-func (m *mockGitHubClient) Repo() string  { return "repo" }
-
-type mockRunWatcher struct {
-	watched map[int64]string
-	updates chan watcher.RunUpdate
-}
-
-func newMockWatcher() *mockRunWatcher {
-	return &mockRunWatcher{
-		watched: make(map[int64]string),
-		updates: make(chan watcher.RunUpdate, 10),
-	}
-}
-
-func (m *mockRunWatcher) Watch(runID int64, workflowName string) {
-	m.watched[runID] = workflowName
-}
-
-func (m *mockRunWatcher) Unwatch(runID int64) {
-	delete(m.watched, runID)
-}
-
-func (m *mockRunWatcher) Updates() <-chan watcher.RunUpdate {
-	return m.updates
-}
-
 func TestNewExecutor(t *testing.T) {
-	client := &mockGitHubClient{}
-	w := newMockWatcher()
+	client := testutil.NewMockGitHubClient()
+	w := testutil.NewMockRunWatcher()
 	chainDef := &config.Chain{
 		Steps: []config.ChainStep{
 			{Workflow: "step1.yml"},
@@ -100,13 +41,13 @@ func TestNewExecutor(t *testing.T) {
 }
 
 func TestChainExecutor_Stop(t *testing.T) {
-	// Setup mock executor to prevent real gh CLI calls
 	mockExec := exec.NewMockExecutor()
 	runner.SetExecutor(mockExec)
-	defer runner.SetExecutor(nil) // Reset after test
+	defer runner.SetExecutor(nil)
 
-	client := &mockGitHubClient{latestID: 123}
-	w := newMockWatcher()
+	client := testutil.NewMockGitHubClient()
+	client.LatestID = 123
+	w := testutil.NewMockRunWatcher()
 	chainDef := &config.Chain{
 		Steps: []config.ChainStep{
 			{Workflow: "step1.yml", WaitFor: config.WaitSuccess},
@@ -122,12 +63,24 @@ func TestChainExecutor_Stop(t *testing.T) {
 	}
 }
 
+func TestChainExecutor_DoubleStop(t *testing.T) {
+	client := testutil.NewMockGitHubClient()
+	w := testutil.NewMockRunWatcher()
+	chainDef := &config.Chain{
+		Steps: []config.ChainStep{{Workflow: "test.yml"}},
+	}
+
+	executor := chain.NewExecutor(client, w, "test", chainDef)
+	executor.Stop()
+	executor.Stop() // Should not panic
+}
+
 // Chain execution tests moved to internal/integration_test.go for E2E coverage.
 // Kept here: unit tests for specific initialization and state functionality.
 
 func TestNewExecutorFromHistory(t *testing.T) {
-	client := &mockGitHubClient{}
-	w := newMockWatcher()
+	client := testutil.NewMockGitHubClient()
+	w := testutil.NewMockRunWatcher()
 	chainDef := &config.Chain{
 		Steps: []config.ChainStep{
 			{Workflow: "step1.yml"},
@@ -153,5 +106,3 @@ func TestNewExecutorFromHistory(t *testing.T) {
 		t.Errorf("StepStatuses[1]: got %v, want %v", state.StepStatuses[1], chain.StepPending)
 	}
 }
-
-// TestChainExecutor_WatcherIntegration moved to internal/integration_test.go

@@ -70,6 +70,7 @@ type ChainExecutor struct {
 	updates   chan ChainUpdate
 	mu        sync.RWMutex
 	stopCh    chan struct{}
+	stopOnce  sync.Once
 }
 
 // NewExecutor creates a new chain executor.
@@ -180,8 +181,11 @@ func (e *ChainExecutor) Updates() <-chan ChainUpdate {
 }
 
 // Stop stops the chain execution.
+// Safe to call multiple times.
 func (e *ChainExecutor) Stop() {
-	close(e.stopCh)
+	e.stopOnce.Do(func() {
+		close(e.stopCh)
+	})
 }
 
 func (e *ChainExecutor) runChain() {
@@ -345,6 +349,8 @@ func (e *ChainExecutor) sendUpdate() {
 	e.mu.RUnlock()
 
 	select {
+	case <-e.stopCh:
+		return
 	case e.updates <- ChainUpdate{State: state}:
 	default:
 		log.Printf("warning: chain update channel full, update dropped for step %d", state.CurrentStep)

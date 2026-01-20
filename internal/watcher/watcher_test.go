@@ -235,3 +235,11 @@ func TestWatchedRun_IsSuccess(t *testing.T) {
 		})
 	}
 }
+
+func TestWatcher_DoubleStop(t *testing.T) {
+	client := &mockGitHubClient{}
+	w := watcher.NewWatcher(client)
+
+	w.Stop()
+	w.Stop() // Should not panic
+}

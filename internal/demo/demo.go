@@ -89,7 +89,10 @@ func (c *MockConfig) addWorkflowRun(runID int64, name, status, conclusion string
 
 func (c *MockConfig) addRunJobs(runID int64, jobs []github.Job) {
 	resp := github.JobsResponse{Jobs: jobs}
-	jobsJSON, _ := json.Marshal(resp)
+	jobsJSON, err := json.Marshal(resp)
+	if err != nil {
+		panic("demo: failed to marshal jobs: " + err.Error())
+	}
 	c.Executor.AddGHAPIJobs(c.Owner, c.Repo, runID, string(jobsJSON))
 }
 

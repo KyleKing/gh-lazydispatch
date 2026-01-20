@@ -68,6 +68,8 @@ type RunWatcher struct {
 	ticker    *time.Ticker
 	isPolling bool
 	pollingMu sync.Mutex
+	stopOnce  sync.Once
+	wg        sync.WaitGroup
 }
 
 // NewWatcher creates a new RunWatcher.
@@ -154,12 +156,16 @@ func (w *RunWatcher) TotalCount() int {
 }
 
 // Stop stops the watcher and cleans up resources.
+// Safe to call multiple times.
 func (w *RunWatcher) Stop() {
-	w.cancel()
-	if w.ticker != nil {
-		w.ticker.Stop()
-	}
-	close(w.updates)
+	w.stopOnce.Do(func() {
+		w.cancel()
+		if w.ticker != nil {
+			w.ticker.Stop()
+		}
+		w.wg.Wait()
+		close(w.updates)
+	})
 }
 
 // ClearCompleted removes all completed runs from the watch list.
@@ -184,10 +190,12 @@ func (w *RunWatcher) ensurePolling() {
 	w.isPolling = true
 
 	w.ticker = time.NewTicker(PollInterval)
+	w.wg.Add(1)
 	go w.pollLoop()
 }
 
 func (w *RunWatcher) pollLoop() {
+	defer w.wg.Done()
 	for {
 		select {
 		case <-w.ctx.Done():
@@ -272,6 +280,8 @@ func (w *RunWatcher) pollRun(runID int64) {
 
 func (w *RunWatcher) sendUpdate(update RunUpdate) {
 	select {
+	case <-w.ctx.Done():
+		return
 	case w.updates <- update:
 	default:
 		log.Printf("warning: watcher update channel full, update dropped for run %d", update.RunID)
