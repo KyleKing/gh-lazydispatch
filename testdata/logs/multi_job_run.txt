@@ -1,0 +1,40 @@
+##[group]Run actions/checkout@v4
+Syncing repository: owner/repo
+##[group]Getting Git version info
+Working directory is '/home/runner/work/repo/repo'
+/usr/bin/git version
+git version 2.43.0
+##[endgroup]
+##[endgroup]
+##[group]Set up Go 1.21
+##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go version
+go version go1.21.6 linux/amd64
+Successfully set up Go 1.21.6
+##[endgroup]
+##[group]Build application
+##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go build -v ./...
+github.com/owner/repo/internal/config
+github.com/owner/repo/internal/exec
+github.com/owner/repo/internal/github
+github.com/owner/repo/internal/runner
+github.com/owner/repo/cmd/app
+Build completed successfully
+##[endgroup]
+##[group]Run tests
+##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go test -v -race -coverprofile=coverage.out ./...
+=== RUN   TestNewClient
+--- PASS: TestNewClient (0.00s)
+=== RUN   TestClient_GetWorkflowRun
+--- PASS: TestClient_GetWorkflowRun (0.01s)
+=== RUN   TestMockExecutor
+--- PASS: TestMockExecutor (0.00s)
+=== RUN   TestChainExecutor
+--- PASS: TestChainExecutor (0.05s)
+PASS
+coverage: 78.5% of statements
+ok  	github.com/owner/repo/internal	1.234s
+##[endgroup]
+##[group]Upload coverage
+Uploading coverage report to Codecov
+Coverage report uploaded successfully
+##[endgroup]

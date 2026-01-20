@@ -106,6 +106,67 @@ func (m *MockExecutor) Reset() {
 	m.DefaultResult = nil
 }
 
+// AddGHWorkflowRun mocks a successful gh workflow run command.
+func (m *MockExecutor) AddGHWorkflowRun(workflow, branch string, inputs map[string]string) {
+	args := []string{"workflow", "run", workflow}
+	if branch != "" {
+		args = append(args, "--ref", branch)
+	}
+	for k, v := range inputs {
+		if v != "" {
+			args = append(args, "-f", k+"="+v)
+		}
+	}
+	m.AddCommand("gh", args, "", "", nil)
+}
+
+// AddGHWorkflowRunError mocks a failing gh workflow run command.
+func (m *MockExecutor) AddGHWorkflowRunError(workflow, branch string, stderr string, err error) {
+	args := []string{"workflow", "run", workflow}
+	if branch != "" {
+		args = append(args, "--ref", branch)
+	}
+	m.AddCommand("gh", args, "", stderr, err)
+}
+
+// AddGHAPIRun mocks a gh api call for workflow run data.
+func (m *MockExecutor) AddGHAPIRun(owner, repo string, runID int64, status, conclusion string) {
+	path := fmt.Sprintf("repos/%s/%s/actions/runs/%d", owner, repo, runID)
+	runJSON := fmt.Sprintf(`{"id":%d,"name":"CI","status":"%s","conclusion":"%s","html_url":"https://github.com/%s/%s/actions/runs/%d"}`,
+		runID, status, conclusion, owner, repo, runID)
+	m.AddCommand("gh", []string{"api", path}, runJSON, "", nil)
+}
+
+// AddGHAPIJobs mocks a gh api call for workflow run jobs.
+func (m *MockExecutor) AddGHAPIJobs(owner, repo string, runID int64, jobs string) {
+	path := fmt.Sprintf("repos/%s/%s/actions/runs/%d/jobs", owner, repo, runID)
+	m.AddCommand("gh", []string{"api", path}, jobs, "", nil)
+}
+
+// AddGHAPILatestRun mocks a gh api call for the latest workflow run.
+func (m *MockExecutor) AddGHAPILatestRun(owner, repo, workflow string, runID int64, status string) {
+	path := fmt.Sprintf("repos/%s/%s/actions/runs?per_page=1", owner, repo)
+	if workflow != "" {
+		path += "&workflow=" + workflow
+	}
+	runsJSON := fmt.Sprintf(`{"total_count":1,"workflow_runs":[{"id":%d,"name":"CI","status":"%s"}]}`, runID, status)
+	m.AddCommand("gh", []string{"api", path}, runsJSON, "", nil)
+}
+
+// AddGHVersion mocks the gh --version command.
+func (m *MockExecutor) AddGHVersion(version string) {
+	m.AddCommand("gh", []string{"--version"}, fmt.Sprintf("gh version %s (2024-01-01)", version), "", nil)
+}
+
+// AddGHAuthStatus mocks the gh auth status command.
+func (m *MockExecutor) AddGHAuthStatus(authenticated bool, username string) {
+	if authenticated {
+		m.AddCommand("gh", []string{"auth", "status"}, fmt.Sprintf("✓ Logged in to github.com as %s", username), "", nil)
+	} else {
+		m.AddCommand("gh", []string{"auth", "status"}, "", "You are not logged in", fmt.Errorf("exit status 1"))
+	}
+}
+
 // buildCommandKey creates a string key from command name and args.
 func (m *MockExecutor) buildCommandKey(name string, args []string) string {
 	parts := append([]string{name}, args...)

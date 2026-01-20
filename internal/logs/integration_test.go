@@ -392,6 +392,83 @@ func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
 	}
 }
 
+// TestIntegration_MultiJobWorkflowRun tests fetching logs for a workflow with multiple jobs and steps.
+func TestIntegration_MultiJobWorkflowRun(t *testing.T) {
+	runID := int64(12350)
+	jobID := int64(67894)
+
+	mockExec := exec.NewMockExecutor()
+
+	// Mock multi-step job
+	jobsResp := github.JobsResponse{
+		Jobs: []github.Job{
+			{
+				ID:         jobID,
+				Name:       "ci",
+				Status:     github.StatusCompleted,
+				Conclusion: github.ConclusionSuccess,
+				Steps: []github.Step{
+					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+					{Name: "Set up Go 1.21", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
+					{Name: "Build application", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 3},
+					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 4},
+					{Name: "Upload coverage", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 5},
+				},
+			},
+		},
+	}
+	jobsJSON, _ := json.Marshal(jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12350/jobs"}, string(jobsJSON), "", nil)
+
+	// Mock logs with multiple steps
+	logOutput := loadFixture(t, "multi_job_run.txt")
+	mockExec.AddGHRunView(runID, jobID, logOutput)
+
+	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
+	if err != nil {
+		t.Fatalf("failed to create GitHub client: %v", err)
+	}
+
+	fetcher := logs.NewGHFetcherWithExecutor(client, mockExec)
+
+	stepLogs, err := fetcher.FetchStepLogsReal(runID, "ci.yml")
+	if err != nil {
+		t.Fatalf("FetchStepLogsReal failed: %v", err)
+	}
+
+	if len(stepLogs) != 5 {
+		t.Errorf("expected 5 steps, got %d", len(stepLogs))
+	}
+
+	// Verify job name propagation
+	for _, step := range stepLogs {
+		if step.JobName != "ci" {
+			t.Errorf("step %q has wrong job name: got %q, want %q", step.StepName, step.JobName, "ci")
+		}
+	}
+
+	// Verify test step has entries (actual content parsing depends on log format)
+	foundTestStep := false
+	for _, step := range stepLogs {
+		if step.StepName == "Run tests" {
+			foundTestStep = true
+			if len(step.Entries) == 0 {
+				t.Error("expected 'Run tests' step to have log entries")
+			}
+		}
+	}
+	if !foundTestStep {
+		t.Error("expected to find 'Run tests' step")
+	}
+
+	// Verify all steps are marked as success
+	for _, step := range stepLogs {
+		if step.Conclusion != github.ConclusionSuccess {
+			t.Errorf("step %q has wrong conclusion: got %q, want %q", step.StepName, step.Conclusion, github.ConclusionSuccess)
+		}
+	}
+}
+
 // loadFixture loads a test fixture file from testdata/logs/.
 func loadFixture(t *testing.T, filename string) string {
 	t.Helper()
