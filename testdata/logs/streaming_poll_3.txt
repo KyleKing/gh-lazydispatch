@@ -1,0 +1,33 @@
+##[group]Run actions/checkout@v4
+Syncing repository: owner/repo
+##[group]Getting Git version info
+Working directory is '/home/runner/work/repo/repo'
+/usr/bin/git version
+git version 2.43.0
+##[endgroup]
+##[endgroup]
+##[group]Set up Go 1.21
+Downloading Go 1.21.5
+Fetching from https://go.dev/dl/
+Download progress: 25%
+Download progress: 50%
+Download progress: 75%
+Download progress: 100%
+Extracting Go archive
+Successfully installed Go 1.21.5
+##[endgroup]
+##[group]Build application
+##[command]/usr/local/go/bin/go build -v -o app ./cmd/app
+Building main package
+Compiling dependencies
+Successfully built application
+##[endgroup]
+##[group]Run tests
+##[command]/usr/local/go/bin/go test -v ./...
+=== RUN   TestMain
+=== RUN   TestIntegration
+--- PASS: TestMain (0.01s)
+--- PASS: TestIntegration (2.34s)
+PASS
+ok      github.com/owner/repo   2.456s
+##[endgroup]

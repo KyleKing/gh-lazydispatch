@@ -18,6 +18,8 @@ type FetchLogsMsg struct {
 type LogsFetchedMsg struct {
 	Logs       *logs.RunLogs
 	ErrorsOnly bool
+	RunID      int64
+	Workflow   string
 	Error      error
 }
 
@@ -25,4 +27,23 @@ type LogsFetchedMsg struct {
 type ShowLogsViewerMsg struct {
 	Logs       *logs.RunLogs
 	ErrorsOnly bool
+	RunID      int64
+	Workflow   string
+}
+
+// StartLogStreamMsg begins streaming logs for an active run.
+type StartLogStreamMsg struct {
+	RunID      int64
+	Workflow   string
+	AutoScroll bool
+}
+
+// LogStreamUpdateMsg contains new log content from streaming.
+type LogStreamUpdateMsg struct {
+	Update logs.StreamUpdate
+}
+
+// StopLogStreamMsg stops streaming logs for a run.
+type StopLogStreamMsg struct {
+	RunID int64
 }

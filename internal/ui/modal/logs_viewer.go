@@ -38,6 +38,11 @@ type LogsViewerModal struct {
 	startTime      time.Time      // for calculating relative timestamps
 	matches        []MatchLocation // all match positions in rendered content
 	currentMatch   int             // index of current match (-1 if none)
+	isStreaming    bool
+	autoScroll     bool
+	streamRunID    int64
+	liveStatus     string
+	lastUpdateTime time.Time
 }
 
 type logsViewerKeyMap struct {
@@ -54,6 +59,7 @@ type logsViewerKeyMap struct {
 	QuickFilterWarnings key.Binding
 	QuickFilterErrors   key.Binding
 	ToggleCaseSensitive key.Binding
+	ToggleAutoScroll    key.Binding
 }
 
 func defaultLogsViewerKeyMap() logsViewerKeyMap {
@@ -71,6 +77,7 @@ func defaultLogsViewerKeyMap() logsViewerKeyMap {
 		QuickFilterWarnings: key.NewBinding(key.WithKeys("w")),
 		QuickFilterErrors:   key.NewBinding(key.WithKeys("e")),
 		ToggleCaseSensitive: key.NewBinding(key.WithKeys("i")),
+		ToggleAutoScroll:    key.NewBinding(key.WithKeys("s")),
 	}
 }
 
@@ -195,6 +202,10 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 
 		case key.Matches(msg, m.keys.CollapseAll):
 			m.collapseAll()
+			return m, nil
+
+		case key.Matches(msg, m.keys.ToggleAutoScroll):
+			m.toggleAutoScroll()
 			return m, nil
 		}
 	}
@@ -562,6 +573,12 @@ func (m *LogsViewerModal) View() string {
 func (m *LogsViewerModal) renderFilterStatus() string {
 	var parts []string
 
+	// Live indicator (if streaming)
+	if m.isStreaming {
+		indicator := m.renderLiveIndicator()
+		parts = append(parts, indicator)
+	}
+
 	// Filter level with descriptive label
 	var filterLabel string
 	switch m.filterCfg.Level {
@@ -602,6 +619,29 @@ func (m *LogsViewerModal) renderFilterStatus() string {
 	return strings.Join(parts, "  ")
 }
 
+// renderLiveIndicator renders the live streaming status badge.
+func (m *LogsViewerModal) renderLiveIndicator() string {
+	var indicator string
+	var style lipgloss.Style
+
+	switch m.liveStatus {
+	case "in_progress":
+		indicator = "[LIVE]"
+		style = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true) // Red
+	case "queued":
+		indicator = "[QUEUED]"
+		style = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Bold(true) // Yellow
+	case "completed":
+		indicator = "[COMPLETED]"
+		style = lipgloss.NewStyle().Foreground(lipgloss.Color("120")).Bold(true) // Green
+	default:
+		indicator = "[LIVE]"
+		style = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true)
+	}
+
+	return style.Render(indicator)
+}
+
 // renderHelp renders help text.
 func (m *LogsViewerModal) renderHelp() string {
 	if m.searchMode {
@@ -625,10 +665,114 @@ func (m *LogsViewerModal) renderHelp() string {
 		"[E] expand all",
 		"[C] collapse all",
 		"[↑↓] scroll",
-		"[q] close",
 	)
 
+	if m.isStreaming {
+		autoScrollStatus := "off"
+		if m.autoScroll {
+			autoScrollStatus = "on"
+		}
+		helpParts = append(helpParts, fmt.Sprintf("[s] auto-scroll: %s", autoScrollStatus))
+	}
+
+	helpParts = append(helpParts, "[q] close")
+
 	return ui.HelpStyle.Render(strings.Join(helpParts, "  "))
+}
+
+// EnableStreaming enables streaming mode for this viewer.
+func (m *LogsViewerModal) EnableStreaming(runID int64, autoScroll bool) {
+	m.isStreaming = true
+	m.streamRunID = runID
+	m.autoScroll = autoScroll
+	m.liveStatus = "in_progress"
+	m.lastUpdateTime = time.Now()
+}
+
+// DisableStreaming disables streaming mode.
+func (m *LogsViewerModal) DisableStreaming() {
+	m.isStreaming = false
+}
+
+// IsStreaming returns whether streaming is active.
+func (m *LogsViewerModal) IsStreaming() bool {
+	return m.isStreaming
+}
+
+// StreamRunID returns the run ID being streamed.
+func (m *LogsViewerModal) StreamRunID() int64 {
+	return m.streamRunID
+}
+
+// AppendStreamUpdate appends new log entries from streaming.
+func (m *LogsViewerModal) AppendStreamUpdate(update logs.StreamUpdate) {
+	if update.Error != nil {
+		return
+	}
+
+	// Update status
+	if update.Status != "" {
+		m.liveStatus = update.Status
+	}
+
+	// If run completed, disable streaming
+	if update.Status == "completed" {
+		m.isStreaming = false
+	}
+
+	// Append new steps to runLogs
+	for _, newStep := range update.NewSteps {
+		// Find existing step by index or append new one
+		existingStep := m.runLogs.GetStep(newStep.StepIndex)
+		if existingStep != nil {
+			// Append new entries to existing step
+			existingStep.Entries = append(existingStep.Entries, newStep.Entries...)
+			existingStep.Status = newStep.Status
+			existingStep.Conclusion = newStep.Conclusion
+		} else {
+			// Add as new step
+			m.runLogs.AddStep(newStep)
+		}
+	}
+
+	m.lastUpdateTime = time.Now()
+
+	// Re-apply filter and update viewport
+	m.applyFilter()
+
+	// Auto-scroll to bottom if enabled and user is at bottom
+	if m.shouldAutoScroll() {
+		m.scrollToBottom()
+	}
+}
+
+// toggleAutoScroll toggles the auto-scroll feature.
+func (m *LogsViewerModal) toggleAutoScroll() {
+	m.autoScroll = !m.autoScroll
+}
+
+// shouldAutoScroll returns true if we should auto-scroll on new content.
+func (m *LogsViewerModal) shouldAutoScroll() bool {
+	if !m.autoScroll {
+		return false
+	}
+
+	// Only scroll if user is within 3 lines of bottom
+	totalLines := m.viewport.TotalLineCount()
+	currentOffset := m.viewport.YOffset
+	visibleLines := m.viewport.Height
+	bottomLine := currentOffset + visibleLines
+
+	return totalLines-bottomLine <= 3
+}
+
+// scrollToBottom scrolls the viewport to the bottom.
+func (m *LogsViewerModal) scrollToBottom() {
+	totalLines := m.viewport.TotalLineCount()
+	visibleLines := m.viewport.Height
+	if totalLines > visibleLines {
+		m.viewport.SetYOffset(totalLines - visibleLines)
+	}
 }
 
 // IsDone returns true if the modal is finished.

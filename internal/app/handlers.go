@@ -822,11 +822,20 @@ func (m Model) fetchLogs(msg FetchLogsMsg) tea.Cmd {
 
 		var runLogs *logs.RunLogs
 		var err error
+		var runID int64
+		var workflow string
 
 		if msg.ChainState != nil {
 			runLogs, err = m.logManager.GetLogsForChain(*msg.ChainState, msg.Branch)
+			// For chains, get runID from first step if available
+			if runLogs != nil && len(runLogs.Steps) > 0 {
+				runID = runLogs.Steps[0].RunID
+				workflow = runLogs.Steps[0].Workflow
+			}
 		} else if msg.RunID != 0 {
 			runLogs, err = m.logManager.GetLogsForRun(msg.RunID, msg.Workflow)
+			runID = msg.RunID
+			workflow = msg.Workflow
 		} else {
 			return LogsFetchedMsg{Error: fmt.Errorf("no chain state or run ID provided")}
 		}
@@ -834,18 +843,62 @@ func (m Model) fetchLogs(msg FetchLogsMsg) tea.Cmd {
 		return LogsFetchedMsg{
 			Logs:       runLogs,
 			ErrorsOnly: msg.ErrorsOnly,
+			RunID:      runID,
+			Workflow:   workflow,
 			Error:      err,
 		}
 	}
 }
 
-func (m Model) showLogsViewer(runLogs *logs.RunLogs, errorsOnly bool) Model {
+func (m Model) showLogsViewer(runLogs *logs.RunLogs, errorsOnly bool, runID int64, workflow string) Model {
 	var logsModal modal.Context
 	if errorsOnly {
 		logsModal = modal.NewLogsViewerModalWithError(runLogs, m.width, m.height)
 	} else {
 		logsModal = modal.NewLogsViewerModal(runLogs, m.width, m.height)
 	}
+
+	// Check if this is an active run and enable streaming
+	if runID != 0 && m.ghClient != nil {
+		run, err := m.ghClient.GetWorkflowRun(runID)
+		if err == nil && (run.Status == "queued" || run.Status == "in_progress") {
+			// Enable streaming on the modal
+			if viewer, ok := logsModal.(*modal.LogsViewerModal); ok {
+				viewer.EnableStreaming(runID, true)
+			}
+		}
+	}
+
 	m.modalStack.Push(logsModal)
 	return m
+}
+
+func (m *Model) startLogStream(runID int64, workflow string) tea.Cmd {
+	// Stop any existing streamer
+	if m.logStreamer != nil {
+		m.logStreamer.Stop()
+	}
+
+	// Create and start new streamer
+	m.logStreamer = logs.NewLogStreamer(m.ghClient, runID, workflow)
+	m.logStreamer.Start()
+
+	return m.logStreamSubscription()
+}
+
+func (m Model) logStreamSubscription() tea.Cmd {
+	if m.logStreamer == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		update := <-m.logStreamer.Updates()
+		return LogStreamUpdateMsg{Update: update}
+	}
+}
+
+func (m *Model) stopLogStream() {
+	if m.logStreamer != nil {
+		m.logStreamer.Stop()
+		m.logStreamer = nil
+	}
 }

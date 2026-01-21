@@ -59,9 +59,10 @@ type Model struct {
 	filteredInputs         []string
 	previewingHistoryEntry *frecency.HistoryEntry
 
-	ghClient   *github.Client
-	watcher    *watcher.RunWatcher
-	logManager *logs.Manager
+	ghClient    *github.Client
+	watcher     *watcher.RunWatcher
+	logManager  *logs.Manager
+	logStreamer *logs.LogStreamer
 
 	wfdConfig     *config.WfdConfig
 	chainExecutor *chain.ChainExecutor
@@ -241,11 +242,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return ShowLogsViewerMsg{
 				Logs:       msg.Logs,
 				ErrorsOnly: msg.ErrorsOnly,
+				RunID:      msg.RunID,
+				Workflow:   msg.Workflow,
 			}
 		}
 
 	case ShowLogsViewerMsg:
-		m = m.showLogsViewer(msg.Logs, msg.ErrorsOnly)
+		m = m.showLogsViewer(msg.Logs, msg.ErrorsOnly, msg.RunID, msg.Workflow)
+
+		// Start streaming if the modal enabled it
+		if topModal := m.modalStack.Current(); topModal != nil {
+			if viewer, ok := topModal.(*modal.LogsViewerModal); ok && viewer.IsStreaming() {
+				return m, m.startLogStream(msg.RunID, msg.Workflow)
+			}
+		}
+		return m, nil
+
+	case StartLogStreamMsg:
+		return m, m.startLogStream(msg.RunID, msg.Workflow)
+
+	case LogStreamUpdateMsg:
+		// Update the logs viewer modal if it's on top
+		if topModal := m.modalStack.Current(); topModal != nil {
+			if viewer, ok := topModal.(*modal.LogsViewerModal); ok && viewer.IsStreaming() {
+				viewer.AppendStreamUpdate(msg.Update)
+			}
+		}
+		return m, m.logStreamSubscription()
+
+	case StopLogStreamMsg:
+		m.stopLogStream()
 		return m, nil
 
 	case panes.HistoryViewLogsMsg:
@@ -267,7 +293,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateModal(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Check if the current modal is a streaming logs viewer
+	var wasStreaming bool
+	if current := m.modalStack.Current(); current != nil {
+		if viewer, ok := current.(*modal.LogsViewerModal); ok {
+			wasStreaming = viewer.IsStreaming() && viewer.IsDone()
+		}
+	}
+
 	cmd := m.modalStack.Update(msg)
+
+	// If a streaming modal was closed, stop the stream
+	if wasStreaming {
+		m.stopLogStream()
+	}
+
 	return m, cmd
 }
 
