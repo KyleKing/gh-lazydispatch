@@ -3,7 +3,9 @@ package logs_test
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
@@ -694,6 +696,387 @@ func TestIntegration_LogStreamer_IncrementalDetection(t *testing.T) {
 
 	// Clean up
 	streamer.Stop()
+}
+
+// TestIntegration_LargeLogFile tests fetching and parsing a large log file (10k lines).
+func TestIntegration_LargeLogFile(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping large log test in short mode")
+	}
+
+	runID := int64(99999)
+	jobID := int64(88888)
+
+	mockExec := exec.NewMockExecutor()
+
+	// Generate 10k line log using helper
+	largeLog := testutil.GenerateLargeLogFixture(10000)
+	mockExec.AddGHRunView(runID, jobID, largeLog)
+
+	// Setup jobs response
+	jobsResp := github.JobsResponse{
+		Jobs: []github.Job{
+			{
+				ID:         jobID,
+				Name:       "large-job",
+				Status:     github.StatusCompleted,
+				Conclusion: github.ConclusionSuccess,
+				Steps: []github.Step{
+					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+				},
+			},
+		},
+	}
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"}, jobsJSON, "", nil)
+
+	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
+	if err != nil {
+		t.Fatalf("failed to create GitHub client: %v", err)
+	}
+
+	fetcher := logs.NewGHFetcherWithExecutor(client, mockExec)
+
+	start := time.Now()
+	stepLogs, err := fetcher.FetchStepLogsReal(runID, "ci.yml")
+	duration := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("FetchStepLogsReal failed: %v", err)
+	}
+
+	t.Logf("Fetched %d steps with 10k lines in %v", len(stepLogs), duration)
+
+	// Verify performance: should complete in <2 seconds
+	if duration > 2*time.Second {
+		t.Errorf("performance regression: took %v (expected <2s)", duration)
+	}
+
+	// Verify logs were parsed
+	if len(stepLogs) == 0 {
+		t.Error("expected at least one step with logs")
+	}
+
+	totalEntries := 0
+	for _, step := range stepLogs {
+		totalEntries += len(step.Entries)
+	}
+
+	t.Logf("Parsed %d total log entries", totalEntries)
+
+	if totalEntries == 0 {
+		t.Error("expected parsed log entries")
+	}
+}
+
+// TestIntegration_UnicodeCharacters tests proper handling of unicode characters in logs.
+func TestIntegration_UnicodeCharacters(t *testing.T) {
+	runID := int64(99998)
+	jobID := int64(88887)
+
+	mockExec := exec.NewMockExecutor()
+
+	// Use unicode fixture
+	unicodeLog := testutil.GenerateUnicodeLog()
+	mockExec.AddGHRunView(runID, jobID, unicodeLog)
+
+	// Setup jobs response
+	jobsResp := github.JobsResponse{
+		Jobs: []github.Job{
+			{
+				ID:         jobID,
+				Name:       "unicode-job",
+				Status:     github.StatusCompleted,
+				Conclusion: github.ConclusionSuccess,
+				Steps: []github.Step{
+					{Name: "Build", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+				},
+			},
+		},
+	}
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99998/jobs"}, jobsJSON, "", nil)
+
+	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
+	if err != nil {
+		t.Fatalf("failed to create GitHub client: %v", err)
+	}
+
+	fetcher := logs.NewGHFetcherWithExecutor(client, mockExec)
+
+	stepLogs, err := fetcher.FetchStepLogsReal(runID, "ci.yml")
+	if err != nil {
+		t.Fatalf("FetchStepLogsReal failed: %v", err)
+	}
+
+	// Verify unicode characters were preserved
+	foundUnicode := false
+	for _, step := range stepLogs {
+		for _, entry := range step.Entries {
+			if strings.Contains(entry.Content, "🚀") ||
+				strings.Contains(entry.Content, "テスト") ||
+				strings.Contains(entry.Content, "测试") {
+				foundUnicode = true
+				break
+			}
+		}
+	}
+
+	if !foundUnicode {
+		t.Error("expected to find unicode characters in parsed logs")
+	}
+
+	t.Logf("Successfully parsed logs with unicode characters")
+}
+
+// TestIntegration_ANSIColorCodes tests proper handling of ANSI color codes in logs.
+func TestIntegration_ANSIColorCodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping ANSI test in short mode")
+	}
+
+	runID := int64(99997)
+	jobID := int64(88886)
+
+	mockExec := exec.NewMockExecutor()
+
+	ansiLog := testutil.GenerateANSILog()
+	mockExec.AddGHRunView(runID, jobID, ansiLog)
+
+	// Setup jobs response
+	jobsResp := github.JobsResponse{
+		Jobs: []github.Job{
+			{
+				ID:         jobID,
+				Name:       "ansi-job",
+				Status:     github.StatusCompleted,
+				Conclusion: github.ConclusionSuccess,
+				Steps: []github.Step{
+					{Name: "Test", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+				},
+			},
+		},
+	}
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99997/jobs"}, jobsJSON, "", nil)
+
+	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
+	if err != nil {
+		t.Fatalf("failed to create GitHub client: %v", err)
+	}
+
+	fetcher := logs.NewGHFetcherWithExecutor(client, mockExec)
+
+	stepLogs, err := fetcher.FetchStepLogsReal(runID, "ci.yml")
+	if err != nil {
+		t.Fatalf("FetchStepLogsReal failed: %v", err)
+	}
+
+	// Verify ANSI codes are either preserved or stripped consistently
+	foundANSI := false
+	for _, step := range stepLogs {
+		for _, entry := range step.Entries {
+			if strings.Contains(entry.Content, "\x1b[") {
+				foundANSI = true
+				break
+			}
+		}
+	}
+
+	// Log whether ANSI codes were preserved or stripped
+	if foundANSI {
+		t.Logf("ANSI color codes preserved in logs")
+	} else {
+		t.Logf("ANSI color codes stripped from logs")
+	}
+
+	// Verify content is readable regardless of ANSI handling
+	totalEntries := 0
+	for _, step := range stepLogs {
+		totalEntries += len(step.Entries)
+	}
+
+	if totalEntries == 0 {
+		t.Error("expected to find log entries")
+	} else {
+		t.Logf("Successfully parsed %d log entries from ANSI log", totalEntries)
+	}
+}
+
+// TestIntegration_NetworkTimeout tests handling of network timeout scenarios.
+func TestIntegration_NetworkTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping timeout test in short mode")
+	}
+
+	runID := int64(99996)
+
+	mockExec := exec.NewMockExecutor()
+
+	// Simulate timeout by adding command that returns context error
+	mockExec.AddCommand("gh", []string{"api", fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs", runID)},
+		"", "context deadline exceeded", fmt.Errorf("context deadline exceeded"))
+
+	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
+	if err != nil {
+		t.Fatalf("failed to create GitHub client: %v", err)
+	}
+
+	fetcher := logs.NewGHFetcherWithExecutor(client, mockExec)
+
+	// Execute - should handle timeout gracefully
+	_, err = fetcher.FetchStepLogsReal(runID, "ci.yml")
+
+	// Should return error for API failure
+	if err == nil {
+		t.Error("expected error for timeout scenario")
+	}
+
+	if !strings.Contains(err.Error(), "context deadline exceeded") &&
+		!strings.Contains(err.Error(), "exit status 1") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+
+	t.Logf("Timeout handled correctly with error: %v", err)
+}
+
+// TestIntegration_VeryLargeLogFile tests fetching an extremely large log file (50k lines).
+func TestIntegration_VeryLargeLogFile(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping very large log test in short mode")
+	}
+
+	runID := int64(99995)
+	jobID := int64(88885)
+
+	mockExec := exec.NewMockExecutor()
+
+	// Generate 50k line log
+	largeLog := testutil.GenerateLargeLogFixture(50000)
+	mockExec.AddGHRunView(runID, jobID, largeLog)
+
+	// Setup jobs response
+	jobsResp := github.JobsResponse{
+		Jobs: []github.Job{
+			{
+				ID:         jobID,
+				Name:       "very-large-job",
+				Status:     github.StatusCompleted,
+				Conclusion: github.ConclusionSuccess,
+				Steps: []github.Step{
+					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+				},
+			},
+		},
+	}
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99995/jobs"}, jobsJSON, "", nil)
+
+	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
+	if err != nil {
+		t.Fatalf("failed to create GitHub client: %v", err)
+	}
+
+	fetcher := logs.NewGHFetcherWithExecutor(client, mockExec)
+
+	start := time.Now()
+	stepLogs, err := fetcher.FetchStepLogsReal(runID, "ci.yml")
+	duration := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("FetchStepLogsReal failed: %v", err)
+	}
+
+	t.Logf("Fetched %d steps with 50k lines in %v", len(stepLogs), duration)
+
+	// Performance check
+	if duration > 5*time.Second {
+		t.Errorf("performance regression: took %v (expected <5s)", duration)
+	}
+
+	totalEntries := 0
+	for _, step := range stepLogs {
+		totalEntries += len(step.Entries)
+	}
+
+	t.Logf("Parsed %d total log entries", totalEntries)
+
+	if totalEntries == 0 {
+		t.Error("expected parsed log entries")
+	}
+}
+
+// TestIntegration_MixedLogContent tests logs with various patterns.
+func TestIntegration_MixedLogContent(t *testing.T) {
+	runID := int64(99994)
+	jobID := int64(88884)
+
+	mockExec := exec.NewMockExecutor()
+
+	// Generate mixed content log
+	mixedLog := testutil.GenerateMixedLog(1000)
+	mockExec.AddGHRunView(runID, jobID, mixedLog)
+
+	// Setup jobs response
+	jobsResp := github.JobsResponse{
+		Jobs: []github.Job{
+			{
+				ID:         jobID,
+				Name:       "mixed-job",
+				Status:     github.StatusCompleted,
+				Conclusion: github.ConclusionSuccess,
+				Steps: []github.Step{
+					{Name: "Mixed test", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+				},
+			},
+		},
+	}
+	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99994/jobs"}, jobsJSON, "", nil)
+
+	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
+	if err != nil {
+		t.Fatalf("failed to create GitHub client: %v", err)
+	}
+
+	fetcher := logs.NewGHFetcherWithExecutor(client, mockExec)
+
+	stepLogs, err := fetcher.FetchStepLogsReal(runID, "ci.yml")
+	if err != nil {
+		t.Fatalf("FetchStepLogsReal failed: %v", err)
+	}
+
+	// Verify various log levels detected
+	hasError := false
+	hasWarning := false
+	hasInfo := false
+
+	for _, step := range stepLogs {
+		for _, entry := range step.Entries {
+			switch entry.Level {
+			case logs.LogLevelError:
+				hasError = true
+			case logs.LogLevelWarning:
+				hasWarning = true
+			case logs.LogLevelInfo:
+				hasInfo = true
+			}
+		}
+	}
+
+	if !hasError {
+		t.Error("expected to find error-level logs")
+	}
+
+	if !hasWarning {
+		t.Error("expected to find warning-level logs")
+	}
+
+	if !hasInfo {
+		t.Error("expected to find info-level logs")
+	}
+
+	t.Logf("Successfully parsed mixed log content with all log levels")
 }
 
 // loadFixture loads a test fixture file from testdata/logs/.

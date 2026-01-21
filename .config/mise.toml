@@ -28,6 +28,18 @@ run = "go test -v -run TestIntegration ./..."
 description = "View coverage report in browser"
 run = ["go tool cover -html=coverage.out"]
 
+[tasks.bench]
+description = "Run benchmarks for logs package"
+run = "go test -bench=. -benchmem ./internal/logs/..."
+
+[tasks."bench:compare"]
+description = "Compare benchmark results (requires old-bench.txt and new-bench.txt)"
+run = "benchstat old-bench.txt new-bench.txt"
+
+[tasks."bench:save"]
+description = "Run benchmarks and save results to bench.txt"
+run = "go test -bench=. -benchmem ./internal/logs/... | tee bench.txt"
+
 [tasks.demo]
 description = "Generate all VHS demo recordings in parallel"
 run = """
