@@ -235,7 +235,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case LogsFetchedMsg:
 		if msg.Error != nil {
-			// TODO: Show error modal
+			m.modalStack.Push(modal.NewErrorModal("Failed to Fetch Logs", msg.Error.Error()))
 			return m, nil
 		}
 		return m, func() tea.Msg {

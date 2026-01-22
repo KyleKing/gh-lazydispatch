@@ -83,17 +83,20 @@ Arrows: → ← ↑ ↓
 
 // GenerateANSILog creates logs with ANSI color codes.
 // Tests proper handling of terminal color escape sequences.
+// Includes ##[group] markers for proper parsing.
 func GenerateANSILog() string {
-	return "\x1b[32mSuccess: Build completed\x1b[0m\n" +
-		"\x1b[31mError: Test failed\x1b[0m\n" +
-		"\x1b[33mWarning: Deprecated API\x1b[0m\n" +
-		"\x1b[1;34mBold Blue: Information\x1b[0m\n" +
-		"\x1b[36mCyan: Debug message\x1b[0m\n" +
-		"\x1b[35mMagenta: Trace\x1b[0m\n" +
-		"\x1b[1mBold: Important\x1b[0m\n" +
-		"\x1b[4mUnderline: Emphasized\x1b[0m\n" +
-		"\x1b[7mReverse: Highlighted\x1b[0m\n" +
-		"\x1b[0mReset: Normal text\n"
+	return `##[group]Test
+2024-01-01T00:00:01Z ` + "\x1b[32mSuccess: Build completed\x1b[0m" + `
+2024-01-01T00:00:02Z ` + "\x1b[31mError: Test failed\x1b[0m" + `
+2024-01-01T00:00:03Z ` + "\x1b[33mWarning: Deprecated API\x1b[0m" + `
+2024-01-01T00:00:04Z ` + "\x1b[1;34mBold Blue: Information\x1b[0m" + `
+2024-01-01T00:00:05Z ` + "\x1b[36mCyan: Debug message\x1b[0m" + `
+2024-01-01T00:00:06Z ` + "\x1b[35mMagenta: Trace\x1b[0m" + `
+2024-01-01T00:00:07Z ` + "\x1b[1mBold: Important\x1b[0m" + `
+2024-01-01T00:00:08Z ` + "\x1b[4mUnderline: Emphasized\x1b[0m" + `
+2024-01-01T00:00:09Z ` + "\x1b[7mReverse: Highlighted\x1b[0m" + `
+2024-01-01T00:00:10Z ` + "\x1b[0mReset: Normal text" + `
+##[endgroup]`
 }
 
 // LoadFixture loads a test fixture file from testdata.

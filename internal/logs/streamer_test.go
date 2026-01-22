@@ -239,10 +239,12 @@ func TestLogStreamer_StartStop(t *testing.T) {
 
 	streamer.Stop()
 
-	// Verify channel closed
-	_, ok := <-streamer.Updates()
-	if ok {
-		t.Error("expected channel closed after Stop")
+	// Drain any buffered updates and verify channel eventually closes
+	for {
+		_, ok := <-streamer.Updates()
+		if !ok {
+			break // Channel closed as expected
+		}
 	}
 
 	// Verify Stop is idempotent
@@ -392,10 +394,12 @@ func TestLogStreamer_ConcurrentStop(t *testing.T) {
 		<-done
 	}
 
-	// Verify no panic occurred and channel is closed
-	_, ok := <-streamer.Updates()
-	if ok {
-		t.Error("expected channel to be closed")
+	// Drain any buffered updates and verify channel eventually closes
+	for {
+		_, ok := <-streamer.Updates()
+		if !ok {
+			break // Channel closed as expected
+		}
 	}
 }
 

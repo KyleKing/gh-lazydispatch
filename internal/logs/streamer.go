@@ -141,13 +141,13 @@ func (s *LogStreamer) poll() {
 
 	// Detect new logs
 	newSteps := s.detectNewLogs(currentLogs)
-	if len(newSteps) > 0 {
-		s.sendUpdate(StreamUpdate{
-			RunID:    s.runID,
-			Status:   run.Status,
-			NewSteps: newSteps,
-		})
-	}
+
+	// Always send status update (NewSteps may be nil if no changes)
+	s.sendUpdate(StreamUpdate{
+		RunID:    s.runID,
+		Status:   run.Status,
+		NewSteps: newSteps,
+	})
 }
 
 // detectNewLogs compares current logs against last known state.
