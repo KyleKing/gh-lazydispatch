@@ -151,6 +151,32 @@ cd testdata
 ../lazydispatch
 ```
 
+### Test Safety
+
+The codebase has safety mechanisms to prevent accidental mutation of GitHub resources during tests.
+
+**Blocked Commands in Tests:**
+- `gh workflow run` - Dispatch workflows
+- `gh issue create/edit/close/delete` - Issue operations
+- `gh pr create/merge/close/edit` - Pull request operations
+- `gh run cancel/rerun` - Workflow run mutations
+- `gh release create/delete` - Release management
+
+**Safe Approach - Using Mocks:**
+```go
+func TestMyFeature(t *testing.T) {
+    mockExec := exec.NewMockExecutor()
+    mockExec.AddCommand("gh", []string{"workflow", "run", "test.yml"}, "", "", nil)
+    runner.SetExecutor(mockExec)
+    defer runner.SetExecutor(nil)
+
+    // Safe to call runner functions - uses mock
+    runID, err := runner.ExecuteAndGetRunID(config, client)
+}
+```
+
+Read-only commands (`gh api`, `gh run view`, `gh run list`, `gh run watch`) are always allowed.
+
 ### Recording Demo
 
 Generate demo GIF using VHS:

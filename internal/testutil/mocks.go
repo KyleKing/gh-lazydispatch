@@ -7,22 +7,24 @@ import (
 
 // MockGitHubClient implements both chain.GitHubClient and watcher.GitHubClient interfaces.
 type MockGitHubClient struct {
-	Runs     map[int64]*github.WorkflowRun
-	Jobs     map[int64][]github.Job
-	LatestID int64
-	Err      error
-	owner    string
-	repo     string
+	Runs            map[int64]*github.WorkflowRun
+	Jobs            map[int64][]github.Job
+	LatestID        int64
+	LatestByWorkflow map[string]int64 // Map workflow name to run ID
+	Err             error
+	owner           string
+	repo            string
 }
 
 // NewMockGitHubClient creates a MockGitHubClient with sensible defaults.
 func NewMockGitHubClient() *MockGitHubClient {
 	return &MockGitHubClient{
-		Runs:     make(map[int64]*github.WorkflowRun),
-		Jobs:     make(map[int64][]github.Job),
-		LatestID: 1000,
-		owner:    "owner",
-		repo:     "repo",
+		Runs:             make(map[int64]*github.WorkflowRun),
+		Jobs:             make(map[int64][]github.Job),
+		LatestByWorkflow: make(map[string]int64),
+		LatestID:         1000,
+		owner:            "owner",
+		repo:             "repo",
 	}
 }
 
@@ -68,10 +70,15 @@ func (m *MockGitHubClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error)
 	return m.Jobs[runID], nil
 }
 
-func (m *MockGitHubClient) GetLatestRun(_ string) (*github.WorkflowRun, error) {
+func (m *MockGitHubClient) GetLatestRun(workflow string) (*github.WorkflowRun, error) {
 	if m.Err != nil {
 		return nil, m.Err
 	}
+	// Check if there's a specific run ID for this workflow
+	if runID, ok := m.LatestByWorkflow[workflow]; ok {
+		return &github.WorkflowRun{ID: runID, Status: github.StatusQueued}, nil
+	}
+	// Fall back to default LatestID
 	return &github.WorkflowRun{ID: m.LatestID, Status: github.StatusQueued}, nil
 }
 

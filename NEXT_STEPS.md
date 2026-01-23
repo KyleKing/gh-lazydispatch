@@ -18,12 +18,12 @@ Pre-release tasks for gh-lazydispatch v1.0.
   - [x] Add keyboard shortcut table for log viewer
 - [x] Increase test coverage for UI packages:
   - [x] `internal/ui/modal` (15.7% -> 26.0%)
-  - [ ] `internal/ui/panes` (24.4%) - deferred
+  - [x] `internal/ui/panes` (24.4% -> 57.6%)
 
 ## Medium Priority
 
-- [ ] Review and consolidate `docs/` - consider merging remaining docs into CONTRIBUTING.md
-- [ ] Add integration test for full chain execution with log viewing
+- [x] Review and consolidate `docs/` - merged test-safety into CONTRIBUTING.md, kept chain-examples.md
+- [x] Add integration test for full chain execution with log viewing
 - [ ] Benchmark log filtering with large logs (>10k lines)
 
 ## Low Priority (Post-Release)
@@ -48,12 +48,11 @@ Removed outdated development/design docs (implementation complete):
 Kept user/developer-facing docs:
 
 - `README.md` - user documentation (updated with log viewer)
-- `CONTRIBUTING.md` - developer guide with architecture
+- `CONTRIBUTING.md` - developer guide with architecture and test safety
 - `AGENTS.md` / `CLAUDE.md` - AI assistant guidelines
 - `TESTING.md` - test strategy
 - `UX.md` - UI layout documentation
-- `docs/chain-examples.md` - chain configuration examples
-- `docs/test-safety-example.md` - mock safety documentation
+- `docs/chain-examples.md` - advanced chain configuration examples
 - `testdata/README.md` - test fixtures explanation
 
 ## Verification

@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
@@ -577,4 +579,405 @@ func findSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// --- TabbedRightModel Tests ---
+
+func TestTabbedRightModel_Creation(t *testing.T) {
+	m := NewTabbedRight()
+
+	if m.ActiveTab() != TabHistory {
+		t.Errorf("expected initial tab to be TabHistory, got %v", m.ActiveTab())
+	}
+}
+
+func TestTabbedRightModel_TabSwitching(t *testing.T) {
+	m := NewTabbedRight()
+	m.SetSize(80, 24)
+	m.SetFocused(true)
+
+	if m.ActiveTab() != TabHistory {
+		t.Error("expected TabHistory initially")
+	}
+
+	m.NextTab()
+	if m.ActiveTab() != TabChains {
+		t.Error("expected TabChains after NextTab")
+	}
+
+	m.NextTab()
+	if m.ActiveTab() != TabLive {
+		t.Error("expected TabLive after second NextTab")
+	}
+
+	m.NextTab()
+	if m.ActiveTab() != TabHistory {
+		t.Error("expected TabHistory after third NextTab (wrap around)")
+	}
+
+	m.PrevTab()
+	if m.ActiveTab() != TabLive {
+		t.Error("expected TabLive after PrevTab")
+	}
+}
+
+func TestTabbedRightModel_SetSize(t *testing.T) {
+	m := NewTabbedRight()
+	m.SetSize(100, 30)
+
+	view := m.View()
+	if view == "" {
+		t.Error("expected non-empty view")
+	}
+}
+
+func TestTabbedRightModel_SetHistoryEntries(t *testing.T) {
+	m := NewTabbedRight()
+	m.SetSize(80, 24)
+
+	entries := []frecency.HistoryEntry{
+		{Workflow: "test.yml", Branch: "main", LastRunAt: time.Now()},
+	}
+
+	m.SetHistoryEntries(entries, "test.yml")
+
+	entry := m.SelectedHistoryEntry()
+	if entry == nil {
+		t.Fatal("expected non-nil entry")
+	}
+	if entry.Workflow != "test.yml" {
+		t.Errorf("expected workflow 'test.yml', got %q", entry.Workflow)
+	}
+}
+
+func TestTabbedRightModel_SetChains(t *testing.T) {
+	m := NewTabbedRight()
+	m.SetSize(80, 24)
+
+	chains := map[string]config.Chain{
+		"deploy": {
+			Description: "Deploy to prod",
+			Steps:       []config.ChainStep{{Workflow: "build.yml"}},
+		},
+	}
+
+	m.SetChains(chains)
+	m.NextTab()
+
+	name, chain, ok := m.SelectedChain()
+	if !ok {
+		t.Fatal("expected chain to be selected")
+	}
+	if name != "deploy" {
+		t.Errorf("expected chain name 'deploy', got %q", name)
+	}
+	if chain.Description != "Deploy to prod" {
+		t.Errorf("expected description 'Deploy to prod', got %q", chain.Description)
+	}
+}
+
+func TestTabbedRightModel_ViewRendering(t *testing.T) {
+	m := NewTabbedRight()
+	m.SetSize(80, 24)
+	m.SetFocused(true)
+
+	view := m.View()
+	if !findSubstring(view, "History") {
+		t.Error("view should contain History tab")
+	}
+	if !findSubstring(view, "Chains") {
+		t.Error("view should contain Chains tab")
+	}
+	if !findSubstring(view, "Live") {
+		t.Error("view should contain Live tab")
+	}
+}
+
+// --- LiveRunsModel Tests ---
+
+func TestLiveRunsModel_Creation(t *testing.T) {
+	m := NewLiveRunsModel()
+
+	if m.RunCount() != 0 {
+		t.Errorf("expected 0 runs initially, got %d", m.RunCount())
+	}
+
+	_, ok := m.SelectedRun()
+	if ok {
+		t.Error("expected no selected run initially")
+	}
+}
+
+func TestLiveRunsModel_SetRuns(t *testing.T) {
+	m := NewLiveRunsModel()
+	m.SetSize(80, 24)
+
+	runs := []watcher.WatchedRun{
+		{RunID: 1, Workflow: "test.yml", Status: "in_progress"},
+		{RunID: 2, Workflow: "build.yml", Status: "completed", Conclusion: "success"},
+	}
+
+	m.SetRuns(runs)
+
+	if m.RunCount() != 2 {
+		t.Errorf("expected 2 runs, got %d", m.RunCount())
+	}
+
+	run, ok := m.SelectedRun()
+	if !ok {
+		t.Fatal("expected selected run")
+	}
+	if run.RunID != 1 {
+		t.Errorf("expected first run selected, got ID %d", run.RunID)
+	}
+}
+
+func TestLiveRunsModel_Navigation(t *testing.T) {
+	m := NewLiveRunsModel()
+	m.SetSize(80, 24)
+
+	runs := []watcher.WatchedRun{
+		{RunID: 1, Workflow: "first.yml"},
+		{RunID: 2, Workflow: "second.yml"},
+		{RunID: 3, Workflow: "third.yml"},
+	}
+	m.SetRuns(runs)
+
+	if m.SelectedIndex() != 0 {
+		t.Errorf("expected initial index 0, got %d", m.SelectedIndex())
+	}
+
+	m.MoveDown()
+	if m.SelectedIndex() != 1 {
+		t.Errorf("expected index 1 after MoveDown, got %d", m.SelectedIndex())
+	}
+
+	m.MoveDown()
+	if m.SelectedIndex() != 2 {
+		t.Errorf("expected index 2 after second MoveDown, got %d", m.SelectedIndex())
+	}
+
+	m.MoveDown()
+	if m.SelectedIndex() != 2 {
+		t.Error("expected index to stay at 2 at boundary")
+	}
+
+	m.MoveUp()
+	if m.SelectedIndex() != 1 {
+		t.Errorf("expected index 1 after MoveUp, got %d", m.SelectedIndex())
+	}
+
+	m.MoveUp()
+	m.MoveUp()
+	if m.SelectedIndex() != 0 {
+		t.Error("expected index to stay at 0 at upper boundary")
+	}
+}
+
+func TestLiveRunsModel_SetRunsAdjustsSelection(t *testing.T) {
+	m := NewLiveRunsModel()
+
+	runs := []watcher.WatchedRun{
+		{RunID: 1}, {RunID: 2}, {RunID: 3},
+	}
+	m.SetRuns(runs)
+	m.MoveDown()
+	m.MoveDown()
+
+	m.SetRuns([]watcher.WatchedRun{{RunID: 1}})
+
+	if m.SelectedIndex() != 0 {
+		t.Errorf("expected selection to adjust to 0, got %d", m.SelectedIndex())
+	}
+}
+
+func TestLiveRunsModel_ActiveCount(t *testing.T) {
+	m := NewLiveRunsModel()
+
+	runs := []watcher.WatchedRun{
+		{RunID: 1, Status: "in_progress"},
+		{RunID: 2, Status: "completed", Conclusion: "success"},
+		{RunID: 3, Status: "queued"},
+	}
+	m.SetRuns(runs)
+
+	if m.ActiveCount() != 2 {
+		t.Errorf("expected 2 active runs, got %d", m.ActiveCount())
+	}
+}
+
+func TestLiveRunsModel_ViewEmpty(t *testing.T) {
+	m := NewLiveRunsModel()
+	m.SetSize(80, 24)
+
+	view := m.ViewContent()
+	if !findSubstring(view, "No active runs") {
+		t.Error("empty view should indicate no active runs")
+	}
+}
+
+func TestLiveRunsModel_ViewWithRuns(t *testing.T) {
+	m := NewLiveRunsModel()
+	m.SetSize(80, 24)
+
+	runs := []watcher.WatchedRun{
+		{RunID: 1, Workflow: "test.yml", Status: "in_progress"},
+	}
+	m.SetRuns(runs)
+
+	view := m.ViewContent()
+	if !findSubstring(view, "test.yml") {
+		t.Error("view should contain workflow name")
+	}
+}
+
+func TestRunStatusIcon(t *testing.T) {
+	tests := []struct {
+		status     string
+		conclusion string
+		expected   string
+	}{
+		{"queued", "", "o"},
+		{"in_progress", "", "*"},
+		{"completed", "success", "+"},
+		{"completed", "failure", "x"},
+		{"completed", "cancelled", "-"},
+		{"completed", "unknown", "?"},
+		{"unknown", "", "?"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.status+"_"+tt.conclusion, func(t *testing.T) {
+			got := runStatusIcon(tt.status, tt.conclusion)
+			if got != tt.expected {
+				t.Errorf("runStatusIcon(%q, %q) = %q, want %q", tt.status, tt.conclusion, got, tt.expected)
+			}
+		})
+	}
+}
+
+// --- ChainListModel Tests ---
+
+func TestChainListModel_Creation(t *testing.T) {
+	m := NewChainListModel()
+
+	_, _, ok := m.SelectedChain()
+	if ok {
+		t.Error("expected no chain selected initially")
+	}
+}
+
+func TestChainListModel_SetChains(t *testing.T) {
+	m := NewChainListModel()
+	m.SetSize(80, 24)
+
+	chains := map[string]config.Chain{
+		"alpha": {Description: "Alpha chain"},
+		"beta":  {Description: "Beta chain"},
+		"gamma": {Description: "Gamma chain"},
+	}
+
+	m.SetChains(chains)
+
+	name, _, ok := m.SelectedChain()
+	if !ok {
+		t.Fatal("expected chain to be selected")
+	}
+	if name != "alpha" {
+		t.Errorf("expected first chain alphabetically 'alpha', got %q", name)
+	}
+}
+
+func TestChainListModel_Navigation(t *testing.T) {
+	m := NewChainListModel()
+	m.SetSize(80, 24)
+
+	chains := map[string]config.Chain{
+		"alpha": {Description: "Alpha"},
+		"beta":  {Description: "Beta"},
+		"gamma": {Description: "Gamma"},
+	}
+	m.SetChains(chains)
+
+	name, _, _ := m.SelectedChain()
+	if name != "alpha" {
+		t.Errorf("expected 'alpha', got %q", name)
+	}
+
+	m.MoveDown()
+	name, _, _ = m.SelectedChain()
+	if name != "beta" {
+		t.Errorf("expected 'beta', got %q", name)
+	}
+
+	m.MoveDown()
+	name, _, _ = m.SelectedChain()
+	if name != "gamma" {
+		t.Errorf("expected 'gamma', got %q", name)
+	}
+
+	m.MoveDown()
+	name, _, _ = m.SelectedChain()
+	if name != "gamma" {
+		t.Error("expected to stay at 'gamma' at boundary")
+	}
+
+	m.MoveUp()
+	name, _, _ = m.SelectedChain()
+	if name != "beta" {
+		t.Errorf("expected 'beta', got %q", name)
+	}
+
+	m.MoveUp()
+	m.MoveUp()
+	name, _, _ = m.SelectedChain()
+	if name != "alpha" {
+		t.Error("expected to stay at 'alpha' at upper boundary")
+	}
+}
+
+func TestChainListModel_ViewEmpty(t *testing.T) {
+	m := NewChainListModel()
+	m.SetSize(80, 24)
+
+	view := m.ViewContent()
+	if !findSubstring(view, "No chains configured") {
+		t.Error("empty view should indicate no chains")
+	}
+}
+
+func TestChainListModel_ViewWithChains(t *testing.T) {
+	m := NewChainListModel()
+	m.SetSize(80, 24)
+
+	chains := map[string]config.Chain{
+		"deploy": {
+			Description: "Deploy to prod",
+			Steps:       []config.ChainStep{{Workflow: "build.yml"}, {Workflow: "deploy.yml"}},
+			Variables:   []config.ChainVariable{{Name: "env"}},
+		},
+	}
+	m.SetChains(chains)
+
+	view := m.ViewContent()
+	if !findSubstring(view, "deploy") {
+		t.Error("view should contain chain name")
+	}
+	if !findSubstring(view, "Deploy to prod") {
+		t.Error("view should contain description")
+	}
+}
+
+func TestChainListModel_FocusState(t *testing.T) {
+	m := NewChainListModel()
+	m.SetFocused(true)
+
+	if !m.focused {
+		t.Error("expected focused to be true")
+	}
+
+	m.SetFocused(false)
+	if m.focused {
+		t.Error("expected focused to be false")
+	}
 }
