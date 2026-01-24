@@ -16,11 +16,9 @@ enable = [
   "errorlint",
   "fatcontext",
   "gocritic",
-  "goimports",
   "gomoddirectives",
   "gomodguard",
   "gosec",
-  "gosimple",
   "govet",
   "iface",
   "ineffassign",
@@ -36,10 +34,8 @@ enable = [
   "revive",
   "sqlclosecheck",
   "staticcheck",
-  "stylecheck",
   "testifylint",
   "testpackage",
-  "typecheck",
   "unconvert",
   "unused",
   "wastedassign",
@@ -47,6 +43,9 @@ enable = [
   "wsl",
 ]
 relative-path-mode = "gomod"
+
+[formatters]
+enable = ["goimports"]
 
 [linters.settings]
 
@@ -58,6 +57,3 @@ checks = ["all"]
 
 [linters.settings.testifylint]
 enable-all = true
-
-[run]
-timeout = "1m"
