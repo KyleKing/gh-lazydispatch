@@ -1,7 +1,7 @@
 # Configuration file for golangci-lint
 # For more options, see https://golangci-lint.run/usage/configuration/
 
-version: 2
+version: "2"
 
 linters:
   disable:
