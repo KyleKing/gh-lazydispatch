@@ -1,3 +1,4 @@
+// Package theme provides color theme detection and management for the TUI.
 package theme
 
 import (

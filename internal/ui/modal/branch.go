@@ -1,3 +1,4 @@
+// Package modal provides modal dialogs for user interactions in the TUI application.
 package modal
 
 import (

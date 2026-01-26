@@ -71,16 +71,6 @@ func TestBranchModalSetSize(t *testing.T) {
 				t.Errorf("terminalHeight = %d, want %d", modal.terminalHeight, tt.terminalHeight)
 			}
 
-			// Check that list dimensions are set correctly
-			expectedHeight := int(float64(tt.terminalHeight) * 0.8)
-			if expectedHeight > 30 {
-				expectedHeight = 30
-			}
-
-			if expectedHeight < 10 {
-				expectedHeight = 10
-			}
-
 			// We can't directly inspect list height, but we can check terminal values were stored
 			if modal.terminalHeight != tt.terminalHeight {
 				t.Errorf("terminal height not stored correctly")

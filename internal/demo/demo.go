@@ -1,3 +1,4 @@
+// Package demo provides demo mode functionality for branch selection workflows.
 package demo
 
 import (

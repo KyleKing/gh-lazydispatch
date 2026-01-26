@@ -1,3 +1,4 @@
+// Package validation provides input validation and history-based suggestions for workflow inputs.
 package validation
 
 import (

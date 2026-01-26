@@ -1,3 +1,4 @@
+// Package browser provides cross-platform browser opening functionality.
 package browser
 
 import (

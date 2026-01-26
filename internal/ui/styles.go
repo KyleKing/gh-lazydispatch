@@ -1,3 +1,4 @@
+// Package ui provides shared UI styling and components for the TUI application.
 package ui
 
 import (

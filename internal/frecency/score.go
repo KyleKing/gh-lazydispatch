@@ -1,3 +1,4 @@
+// Package frecency provides frequency and recency-based scoring for workflow history.
 package frecency
 
 import (

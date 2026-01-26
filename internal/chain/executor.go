@@ -1,3 +1,4 @@
+// Package chain provides workflow chain execution and template interpolation.
 package chain
 
 import (

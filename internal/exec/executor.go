@@ -1,3 +1,4 @@
+// Package exec provides command execution with mocking support for testing.
 package exec
 
 import (

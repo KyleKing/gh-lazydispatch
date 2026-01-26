@@ -1,3 +1,4 @@
+// Package rule provides parsing and validation of workflow input validation rules.
 package rule
 
 import (
@@ -68,12 +69,12 @@ func ParseValidationComment(comment string) (*ValidationRule, error) {
 		return &ValidationRule{Type: RuleRegex, Pattern: ruleValue}, nil
 
 	case "range":
-		min, max, err := parseRange(ruleValue)
+		minVal, maxVal, err := parseRange(ruleValue)
 		if err != nil {
 			return nil, fmt.Errorf("invalid range: %w", err)
 		}
 
-		return &ValidationRule{Type: RuleRange, Min: min, Max: max}, nil
+		return &ValidationRule{Type: RuleRange, Min: minVal, Max: maxVal}, nil
 
 	case "required":
 		return &ValidationRule{Type: RuleRequired}, nil
@@ -93,12 +94,12 @@ func ParseValidationComment(comment string) (*ValidationRule, error) {
 		return &ValidationRule{Type: RuleSuffix, Pattern: ruleValue}, nil
 
 	case "length":
-		min, max, err := parseRange(ruleValue)
+		minVal, maxVal, err := parseRange(ruleValue)
 		if err != nil {
 			return nil, fmt.Errorf("invalid length: %w", err)
 		}
 
-		return &ValidationRule{Type: RuleLength, Min: min, Max: max}, nil
+		return &ValidationRule{Type: RuleLength, Min: minVal, Max: maxVal}, nil
 
 	default:
 		return nil, nil
@@ -194,19 +195,19 @@ func parseRange(s string) (int, int, error) {
 		return 0, 0, errors.New("expected format: min-max")
 	}
 
-	min, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+	minVal, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 	if err != nil {
 		return 0, 0, fmt.Errorf("invalid min value: %w", err)
 	}
 
-	max, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+	maxVal, err := strconv.Atoi(strings.TrimSpace(parts[1]))
 	if err != nil {
 		return 0, 0, fmt.Errorf("invalid max value: %w", err)
 	}
 
-	if min > max {
+	if minVal > maxVal {
 		return 0, 0, errors.New("min must be less than or equal to max")
 	}
 
-	return min, max, nil
+	return minVal, maxVal, nil
 }

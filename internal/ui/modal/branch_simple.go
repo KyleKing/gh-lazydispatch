@@ -240,9 +240,10 @@ func (m *SimpleBranchModal) View() string {
 
 			// Add indicators for current/default
 			indicator := ""
-			if branch == m.currentBranch {
+			switch branch {
+			case m.currentBranch:
 				indicator = " *"
-			} else if branch == m.defaultBranch {
+			case m.defaultBranch:
 				indicator = " ·"
 			}
 

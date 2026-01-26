@@ -1,3 +1,4 @@
+// Package workflow provides discovery and parsing of GitHub Actions workflow files.
 package workflow
 
 import (

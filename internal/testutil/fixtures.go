@@ -1,3 +1,4 @@
+// Package testutil provides testing utilities, fixtures, and mocks for unit tests.
 package testutil
 
 import (

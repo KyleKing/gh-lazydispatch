@@ -133,9 +133,10 @@ func (m *ChainRerunModal) View() string {
 			}
 
 			icon := "+"
-			if status == "failed" || status == "failure" {
+			switch status {
+			case "failed", "failure":
 				icon = "x"
-			} else if status == "skipped" {
+			case "skipped":
 				icon = "-"
 			}
 

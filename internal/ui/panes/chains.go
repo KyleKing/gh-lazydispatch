@@ -1,3 +1,4 @@
+// Package panes provides the main UI panes for workflow, history, and configuration views.
 package panes
 
 import (

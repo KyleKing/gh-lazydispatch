@@ -1,3 +1,4 @@
+// Package errors defines custom error types for workflow chain execution and GitHub API operations.
 package errors
 
 import (

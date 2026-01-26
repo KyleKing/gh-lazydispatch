@@ -1,3 +1,4 @@
+// Package app implements the main Bubbletea application for the interactive workflow dispatcher TUI.
 package app
 
 import (

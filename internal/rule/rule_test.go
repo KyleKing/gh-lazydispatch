@@ -360,7 +360,7 @@ func TestParseRange(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			min, max, err := parseRange(tt.input)
+			minVal, maxVal, err := parseRange(tt.input)
 
 			if tt.wantError {
 				if err == nil {
@@ -375,12 +375,12 @@ func TestParseRange(t *testing.T) {
 				return
 			}
 
-			if min != tt.wantMin {
-				t.Errorf("min = %d, want %d", min, tt.wantMin)
+			if minVal != tt.wantMin {
+				t.Errorf("min = %d, want %d", minVal, tt.wantMin)
 			}
 
-			if max != tt.wantMax {
-				t.Errorf("max = %d, want %d", max, tt.wantMax)
+			if maxVal != tt.wantMax {
+				t.Errorf("max = %d, want %d", maxVal, tt.wantMax)
 			}
 		})
 	}

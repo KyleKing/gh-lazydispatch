@@ -1,3 +1,4 @@
+// Package runner provides workflow execution functionality using the GitHub CLI.
 package runner
 
 import (

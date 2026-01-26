@@ -24,7 +24,7 @@ func Parse(data []byte) (WorkflowFile, error) {
 
 	inputComments, err := parseInputComments(data)
 	if err != nil {
-		return wf, nil
+		return wf, err
 	}
 
 	if wf.On.WorkflowDispatch != nil && wf.On.WorkflowDispatch.Inputs != nil {

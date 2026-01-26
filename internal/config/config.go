@@ -1,3 +1,4 @@
+// Package config provides configuration file parsing and management for workflow dispatch chains.
 package config
 
 import (

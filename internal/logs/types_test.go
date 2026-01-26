@@ -104,7 +104,7 @@ func TestRunLogs_AllSteps(t *testing.T) {
 	// Verify it's a copy by checking we can modify it without affecting original
 	originalLen := len(rl.Steps)
 
-	steps = append(steps, &StepLogs{StepName: "new"})
+	_ = append(steps, &StepLogs{StepName: "new"})
 
 	if len(rl.Steps) != originalLen {
 		t.Error("AllSteps should return a copy, not a reference to internal slice")

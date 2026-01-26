@@ -39,9 +39,10 @@ func TestErrorModal_Dismiss(t *testing.T) {
 			modal := NewErrorModal("Error", "Message")
 
 			_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(tt.key)})
-			if tt.key == "esc" {
+			switch tt.key {
+			case "esc":
 				_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyEsc})
-			} else if tt.key == "enter" {
+			case "enter":
 				_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyEnter})
 			}
 

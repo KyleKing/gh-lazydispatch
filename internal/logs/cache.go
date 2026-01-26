@@ -1,3 +1,4 @@
+// Package logs provides workflow run log fetching, caching, filtering, and streaming functionality.
 package logs
 
 import (
