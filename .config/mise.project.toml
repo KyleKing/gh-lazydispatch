@@ -1,0 +1,18 @@
+# Project-specific tasks for gh-lazydispatch
+# Generic tasks are in mise.toml (managed by copier template)
+
+[tasks."bench:compare"]
+description = "Compare benchmark results (requires old-bench.txt and new-bench.txt)"
+run = "benchstat old-bench.txt new-bench.txt"
+
+[tasks."bench:save"]
+description = "Run benchmarks and save results to bench.txt"
+run = "go test -bench=. -benchmem ./internal/logs/... | tee bench.txt"
+
+[tasks."test:integration"]
+description = "Run integration tests only"
+run = "go test -v -run TestIntegration ./..."
+
+[tasks."test:safety"]
+description = "Check for unsafe test patterns"
+run = "./scripts/check-test-safety.sh"

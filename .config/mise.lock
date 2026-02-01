@@ -34,9 +34,10 @@ backend = "aqua:golangci/golangci-lint"
 env = ["hk"]
 
 [[tools.hk]]
-version = "0.8.2"
+version = "1.32.0"
 backend = "aqua:jdx/hk"
 env = ["hk"]
+"platforms.macos-arm64" = { checksum = "sha256:4c3afc7acbcb7ee70aa6389a4af6835ff96c5771acd211b4da20080339eae014", url = "https://github.com/jdx/hk/releases/download/v1.32.0/hk-aarch64-apple-darwin.tar.gz"}
 
 [[tools.ls-lint]]
 version = "2.3.0"

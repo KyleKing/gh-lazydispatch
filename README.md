@@ -1,8 +1,35 @@
-# lazydispatch
+# gh-lazydispatch
+
+Interactive GitHub Workflow Dispatcher (standalone or with the GH CLI)
+
+## Installation
+
+
+
+### Homebrew
+
+```bash
+brew install kyleking/tap/gh-lazydispatch
+```
+
+### Go Install
+
+
+```bash
+go install github.com/kyleking/gh-lazydispatch/cmd/gh-lazydispatch@latest
+```
+
+
+## Development
+
+```bash
+mise install && hk install --mise
+mise run ci
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full development workflow.
 
 ![.github/assets/demo.gif](https://raw.githubusercontent.com/kyleking/lazydispatch/main/.github/assets/demo.gif)
-
-Interactive GitHub Actions workflow dispatcher TUI with fuzzy selection, input configuration, and frecency-based history.
 
 ![.github/assets/chains-demo.gif](https://raw.githubusercontent.com/kyleking/lazydispatch/main/.github/assets/chains-demo.gif)
 

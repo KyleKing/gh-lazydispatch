@@ -1,9 +1,12 @@
 // Install with `hk install --mise` to ensure local tools are available
+// Update hk_version when upgrading hk in the template
 
-amends "package://github.com/jdx/hk/releases/download/v0.8.2/hk@0.8.2#/Config.pkl"
-import "package://github.com/jdx/hk/releases/download/v0.8.2/hk@0.8.2#/Builtins.pkl"
+local hk_version = "1.32.0"
 
-min_hk_version = "0.8.2"
+amends "package://github.com/jdx/hk/releases/download/v\(hk_version)/hk@\(hk_version)#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v\(hk_version)/hk@\(hk_version)#/Builtins.pkl"
+
+min_hk_version = hk_version
 
 local file_list = List("**/*.{gitignore,go,md,pkl,toml,yaml,yml}")
 

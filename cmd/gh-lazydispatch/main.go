@@ -16,6 +16,8 @@ import (
 
 var (
 	version = "dev"
+	commit  = "none"
+	date    = "unknown"
 )
 
 func main() {
@@ -31,7 +33,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("lazydispatch %s\n", version)
+		fmt.Printf("gh-lazydispatch %s (commit: %s, built: %s)\n", version, commit, date)
 		os.Exit(0)
 	}
 
@@ -85,10 +87,10 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Println(`lazydispatch - Interactive GitHub Workflow Dispatcher
+	fmt.Println(`gh-lazydispatch - Interactive GitHub Workflow Dispatcher
 
 Usage:
-  lazydispatch [flags]
+  gh-lazydispatch [flags]
 
 Description:
   A TUI for triggering GitHub Actions workflow_dispatch workflows with
@@ -97,7 +99,7 @@ Description:
 
 Flags:
   -h, --help     Show this help message
-  -v, --version  Show version
+  -v, --version  Show version (includes commit and build date)
 
 Environment Variables:
   CATPPUCCIN_THEME   Override theme (latte/macchiato)
