@@ -4,7 +4,13 @@ Interactive GitHub Workflow Dispatcher (standalone or with the GH CLI)
 
 ## Installation
 
+### GH CLI Extension
 
+> **Note:** Requires a [GitHub Release](https://github.com/kyleking/gh-lazydispatch/releases) with precompiled binaries. For development, see [local install instructions](CONTRIBUTING.md#development-install).
+
+```bash
+gh extension install kyleking/gh-lazydispatch
+```
 
 ### Homebrew
 
@@ -13,7 +19,6 @@ brew install kyleking/tap/gh-lazydispatch
 ```
 
 ### Go Install
-
 
 ```bash
 go install github.com/kyleking/gh-lazydispatch/cmd/gh-lazydispatch@latest
@@ -60,8 +65,10 @@ Other alternatives:
 
 ### As a GitHub CLI Extension (Recommended)
 
+> **Note:** Requires a [GitHub Release](https://github.com/kyleking/gh-lazydispatch/releases) with precompiled binaries. For development, see [local install instructions](CONTRIBUTING.md#development-install).
+
 ```bash
-gh extension install KyleKing/lazydispatch
+gh extension install KyleKing/gh-lazydispatch
 ```
 
 Then run with:
