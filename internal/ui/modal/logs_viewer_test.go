@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 )
 
@@ -95,7 +95,7 @@ func TestLogsViewerModal_Close(t *testing.T) {
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
 	// Press q to close
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
 
 	if !modal.IsDone() {
 		t.Error("modal should be done after q key")
@@ -107,7 +107,7 @@ func TestLogsViewerModal_CloseEscape(t *testing.T) {
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
 	// Press esc to close
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 
 	if !modal.IsDone() {
 		t.Error("modal should be done after esc key")
@@ -121,7 +121,7 @@ func TestLogsViewerModal_ToggleFilter(t *testing.T) {
 	initialLevel := modal.filterCfg.Level
 
 	// Press f to toggle filter
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("f")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'f', Text: "f"})
 
 	if modal.filterCfg.Level == initialLevel {
 		t.Error("filter level should have changed after f key")
@@ -133,21 +133,21 @@ func TestLogsViewerModal_QuickFilters(t *testing.T) {
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
 	// Press e for errors only
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("e")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'e', Text: "e"})
 
 	if modal.filterCfg.Level != logs.FilterErrors {
 		t.Error("expected error filter after e key")
 	}
 
 	// Press w for warnings
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("w")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'w', Text: "w"})
 
 	if modal.filterCfg.Level != logs.FilterWarnings {
 		t.Error("expected warning filter after w key")
 	}
 
 	// Press a for all
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
 
 	if modal.filterCfg.Level != logs.FilterAll {
 		t.Error("expected all filter after a key")
@@ -159,14 +159,14 @@ func TestLogsViewerModal_SearchMode(t *testing.T) {
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
 	// Press / to enter search mode
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("/")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 
 	if !modal.searchMode {
 		t.Error("expected search mode after / key")
 	}
 
 	// Exit search mode with esc
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 
 	// Search mode should be off but modal should not be done
 	if modal.searchMode {
@@ -181,7 +181,7 @@ func TestLogsViewerModal_ToggleCaseSensitivity(t *testing.T) {
 	initialCaseSensitive := modal.filterCfg.CaseSensitive
 
 	// Press i to toggle case sensitivity
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("i")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
 
 	if modal.filterCfg.CaseSensitive == initialCaseSensitive {
 		t.Error("case sensitivity should have toggled after i key")
@@ -220,7 +220,7 @@ func TestLogsViewerModal_CollapseExpand(t *testing.T) {
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
 	// Press C to collapse all
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("C")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'C', Text: "C"})
 
 	for stepIdx := range runLogs.Steps {
 		if !modal.collapsedSteps[stepIdx] {
@@ -229,7 +229,7 @@ func TestLogsViewerModal_CollapseExpand(t *testing.T) {
 	}
 
 	// Press E to expand all
-	_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("E")})
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'E', Text: "E"})
 
 	for stepIdx := range runLogs.Steps {
 		if modal.collapsedSteps[stepIdx] {

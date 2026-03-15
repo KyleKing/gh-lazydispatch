@@ -3,7 +3,7 @@ package modal
 import (
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 )
 
@@ -63,14 +63,14 @@ func TestSelectModal_Navigation(t *testing.T) {
 		t.Errorf("expected selected 0, got %d", modal.selected)
 	}
 
-	down := tea.KeyMsg{Type: tea.KeyDown}
+	down := tea.KeyPressMsg{Code: tea.KeyDown}
 	modal.Update(down)
 
 	if modal.selected != 1 {
 		t.Errorf("expected selected 1 after down, got %d", modal.selected)
 	}
 
-	up := tea.KeyMsg{Type: tea.KeyUp}
+	up := tea.KeyPressMsg{Code: tea.KeyUp}
 	modal.Update(up)
 
 	if modal.selected != 0 {
@@ -85,7 +85,7 @@ func TestSelectModal_Select(t *testing.T) {
 		t.Errorf("expected initial selection 1 (current='b'), got %d", modal.selected)
 	}
 
-	enter := tea.KeyMsg{Type: tea.KeyEnter}
+	enter := tea.KeyPressMsg{Code: tea.KeyEnter}
 	modal.Update(enter)
 
 	if !modal.IsDone() {
@@ -100,7 +100,7 @@ func TestSelectModal_Select(t *testing.T) {
 func TestSelectModal_Escape(t *testing.T) {
 	modal := NewSelectModal("Test", []string{"a", "b"}, "a", "a")
 
-	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
 	modal.Update(esc)
 
 	if !modal.IsDone() {
@@ -119,7 +119,7 @@ func TestInputModal_Enter(t *testing.T) {
 		t.Errorf("expected initial value 'initial', got %q", modal.input.Value())
 	}
 
-	enter := tea.KeyMsg{Type: tea.KeyEnter}
+	enter := tea.KeyPressMsg{Code: tea.KeyEnter}
 	modal.Update(enter)
 
 	if !modal.IsDone() {
@@ -134,7 +134,7 @@ func TestInputModal_Enter(t *testing.T) {
 func TestInputModal_Escape(t *testing.T) {
 	modal := NewInputModal("Title", "", "", "", "value", nil, nil)
 
-	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
 	modal.Update(esc)
 
 	if !modal.IsDone() {
@@ -149,14 +149,14 @@ func TestConfirmModal_Navigation(t *testing.T) {
 		t.Error("expected selected to be true initially")
 	}
 
-	right := tea.KeyMsg{Type: tea.KeyRight}
+	right := tea.KeyPressMsg{Code: tea.KeyRight}
 	modal.Update(right)
 
 	if modal.selected {
 		t.Error("expected selected to be false after right")
 	}
 
-	left := tea.KeyMsg{Type: tea.KeyLeft}
+	left := tea.KeyPressMsg{Code: tea.KeyLeft}
 	modal.Update(left)
 
 	if !modal.selected {
@@ -167,7 +167,7 @@ func TestConfirmModal_Navigation(t *testing.T) {
 func TestConfirmModal_QuickKeys(t *testing.T) {
 	modal := NewConfirmModal("Confirm?", "", false, false)
 
-	y := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}}
+	y := tea.KeyPressMsg{Code: 'y', Text: "y"}
 	modal.Update(y)
 
 	if !modal.IsDone() {
@@ -182,7 +182,7 @@ func TestConfirmModal_QuickKeys(t *testing.T) {
 func TestConfirmModal_QuickNo(t *testing.T) {
 	modal := NewConfirmModal("Confirm?", "", true, true)
 
-	n := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
+	n := tea.KeyPressMsg{Code: 'n', Text: "n"}
 	modal.Update(n)
 
 	if !modal.IsDone() {
@@ -213,7 +213,7 @@ func TestRunConfirmModal_Confirm(t *testing.T) {
 
 	modal := NewRunConfirmModal(cfg)
 
-	enter := tea.KeyMsg{Type: tea.KeyEnter}
+	enter := tea.KeyPressMsg{Code: tea.KeyEnter}
 	modal.Update(enter)
 
 	if !modal.IsDone() {
@@ -238,7 +238,7 @@ func TestRunConfirmModal_Cancel(t *testing.T) {
 	cfg := runner.RunConfig{Workflow: "test.yml"}
 	modal := NewRunConfirmModal(cfg)
 
-	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
 	modal.Update(esc)
 
 	if !modal.IsDone() {
@@ -259,13 +259,13 @@ func TestFilterModal_ApplyFilter(t *testing.T) {
 	items := []string{"environment", "debug", "verbose"}
 	modal := NewFilterModal("Filter", items, "")
 
-	enterE := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}}
+	enterE := tea.KeyPressMsg{Code: 'e', Text: "e"}
 	modal.Update(enterE)
 
-	enterN := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
+	enterN := tea.KeyPressMsg{Code: 'n', Text: "n"}
 	modal.Update(enterN)
 
-	enter := tea.KeyMsg{Type: tea.KeyEnter}
+	enter := tea.KeyPressMsg{Code: tea.KeyEnter}
 	_, cmd := modal.Update(enter)
 
 	if !modal.IsDone() {
@@ -296,7 +296,7 @@ func TestFilterModal_Cancel(t *testing.T) {
 	items := []string{"a", "b"}
 	modal := NewFilterModal("Filter", items, "initial")
 
-	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
 	_, cmd := modal.Update(esc)
 
 	if !modal.IsDone() {
@@ -326,7 +326,7 @@ func TestResetModal_Confirm(t *testing.T) {
 	}
 	modal := NewResetModal(diffs)
 
-	enter := tea.KeyMsg{Type: tea.KeyEnter}
+	enter := tea.KeyPressMsg{Code: tea.KeyEnter}
 	_, cmd := modal.Update(enter)
 
 	if !modal.IsDone() {
@@ -353,7 +353,7 @@ func TestResetModal_Cancel(t *testing.T) {
 	diffs := []ResetDiff{{Name: "a", Current: "b", Default: "c"}}
 	modal := NewResetModal(diffs)
 
-	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
 	_, cmd := modal.Update(esc)
 
 	if !modal.IsDone() {
@@ -383,7 +383,7 @@ func TestHelpModal(t *testing.T) {
 		t.Error("expected modal not done initially")
 	}
 
-	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
 	modal.Update(esc)
 
 	if !modal.IsDone() {
@@ -397,7 +397,7 @@ func TestValidationErrorModal_Override(t *testing.T) {
 	}
 	modal := NewValidationErrorModal(errors)
 
-	c := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}}
+	c := tea.KeyPressMsg{Code: 'c', Text: "c"}
 	_, cmd := modal.Update(c)
 
 	if !modal.IsDone() {
@@ -424,7 +424,7 @@ func TestValidationErrorModal_Cancel(t *testing.T) {
 	errors := map[string][]string{"a": {"error"}}
 	modal := NewValidationErrorModal(errors)
 
-	esc := tea.KeyMsg{Type: tea.KeyEscape}
+	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
 	_, cmd := modal.Update(esc)
 
 	if !modal.IsDone() {

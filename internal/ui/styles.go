@@ -2,10 +2,11 @@
 package ui
 
 import (
+	"image/color"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	"charm.land/lipgloss/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/theme"
 	"github.com/sahilm/fuzzy"
 )
@@ -14,15 +15,15 @@ var currentTheme theme.Theme
 
 // Colors used throughout the UI.
 var (
-	PrimaryColor   lipgloss.Color
-	SecondaryColor lipgloss.Color
-	AccentColor    lipgloss.Color
-	MutedColor     lipgloss.Color
-	SoftMutedColor lipgloss.Color
-	TextColor      lipgloss.Color
-	ModalBgColor   lipgloss.Color
-	ErrorColor     lipgloss.Color
-	LinkColor      lipgloss.Color
+	PrimaryColor   color.Color
+	SecondaryColor color.Color
+	AccentColor    color.Color
+	MutedColor     color.Color
+	SoftMutedColor color.Color
+	TextColor      color.Color
+	ModalBgColor   color.Color
+	ErrorColor     color.Color
+	LinkColor      color.Color
 )
 
 // Styles for the application (initialized in ApplyTheme).
@@ -178,8 +179,8 @@ func RemoveListBackgrounds(l list.Model) list.Model {
 	l.Styles.HelpStyle = l.Styles.HelpStyle.UnsetBackground()
 	l.Styles.TitleBar = l.Styles.TitleBar.UnsetBackground()
 	l.Styles.Spinner = l.Styles.Spinner.UnsetBackground()
-	l.Styles.FilterPrompt = l.Styles.FilterPrompt.UnsetBackground()
-	l.Styles.FilterCursor = l.Styles.FilterCursor.UnsetBackground()
+	l.Styles.Filter.Focused.Prompt = l.Styles.Filter.Focused.Prompt.UnsetBackground()
+	l.Styles.Filter.Blurred.Prompt = l.Styles.Filter.Blurred.Prompt.UnsetBackground()
 	l.Styles.DefaultFilterCharacterMatch = l.Styles.DefaultFilterCharacterMatch.UnsetBackground()
 	l.Styles.StatusBar = l.Styles.StatusBar.UnsetBackground()
 	l.Styles.StatusEmpty = l.Styles.StatusEmpty.UnsetBackground()

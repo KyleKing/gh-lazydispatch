@@ -3,8 +3,8 @@ package modal
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -47,7 +47,7 @@ func NewResetModal(diffs []ResetDiff) *ResetModal {
 // Update handles input for the reset modal.
 func (m *ResetModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, m.keys.Confirm):
 			if len(m.diffs) == 0 {

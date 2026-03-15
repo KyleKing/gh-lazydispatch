@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
@@ -13,9 +14,9 @@ import (
 )
 
 // View implements tea.Model.
-func (m Model) View() string {
+func (m Model) View() tea.View {
 	if m.width == 0 || m.height == 0 {
-		return "Loading..."
+		return tea.NewView("Loading...")
 	}
 
 	statusBar := m.viewTopStatusBar()
@@ -49,11 +50,17 @@ func (m Model) View() string {
 	top := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
 	main := lipgloss.JoinVertical(lipgloss.Left, statusBar, top, configPane, footerBar)
 
+	var content string
 	if m.modalStack.HasActive() {
-		return m.modalStack.Render(main)
+		content = m.modalStack.Render(main)
+	} else {
+		content = main
 	}
 
-	return main
+	v := tea.NewView(content)
+	v.AltScreen = true
+
+	return v
 }
 
 func (m Model) viewTopStatusBar() string {

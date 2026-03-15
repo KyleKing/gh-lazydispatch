@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -52,7 +52,7 @@ func NewValidationErrorModal(errors map[string][]string) *ValidationErrorModal {
 // Update handles input for the validation error modal.
 func (m *ValidationErrorModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, m.keys.Close):
 			m.done = true

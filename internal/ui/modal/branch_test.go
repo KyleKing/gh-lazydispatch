@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestBranchModalCreation(t *testing.T) {
@@ -188,7 +188,7 @@ func TestBranchModalKeyHandling(t *testing.T) {
 	modal := NewBranchModal("Test", branches, "main")
 
 	// Test Enter key selects branch
-	ctx, _ := modal.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	ctx, _ := modal.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	branchModal := ctx.(*BranchModal)
 
 	if !branchModal.done {
@@ -201,7 +201,7 @@ func TestBranchModalKeyHandling(t *testing.T) {
 
 	// Test Esc key cancels
 	modal2 := NewBranchModal("Test", branches, "main")
-	ctx2, _ := modal2.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	ctx2, _ := modal2.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 	branchModal2 := ctx2.(*BranchModal)
 
 	if !branchModal2.done {

@@ -1,18 +1,22 @@
 package theme
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"image/color"
+
+	"charm.land/lipgloss/v2"
+)
 
 // Theme defines semantic color roles for the UI.
 type Theme struct {
-	Primary   lipgloss.Color // Mauve - titles, focused borders
-	Secondary lipgloss.Color // Surface2 - unfocused borders
-	Accent    lipgloss.Color // Teal - selected items
-	Muted     lipgloss.Color // Overlay2 - subtitles, help text
-	SoftMuted lipgloss.Color // Overlay1 - default values, less critical info
-	Text      lipgloss.Color // Text - normal text
-	ModalBg   lipgloss.Color // Mantle - modal background
-	Error     lipgloss.Color // Red - error messages
-	Link      lipgloss.Color // Blue - URLs and links
+	Primary   color.Color // Mauve - titles, focused borders
+	Secondary color.Color // Surface2 - unfocused borders
+	Accent    color.Color // Teal - selected items
+	Muted     color.Color // Overlay2 - subtitles, help text
+	SoftMuted color.Color // Overlay1 - default values, less critical info
+	Text      color.Color // Text - normal text
+	ModalBg   color.Color // Mantle - modal background
+	Error     color.Color // Red - error messages
+	Link      color.Color // Blue - URLs and links
 }
 
 // Latte returns the Catppuccin Latte (light) theme.

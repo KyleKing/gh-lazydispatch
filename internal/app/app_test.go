@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
@@ -67,7 +67,7 @@ func TestNew(t *testing.T) {
 func TestUpdate_Tab(t *testing.T) {
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
-	msg := tea.KeyMsg{Type: tea.KeyTab}
+	msg := tea.KeyPressMsg{Code: tea.KeyTab}
 	result, _ := m.Update(msg)
 	m = result.(Model)
 
@@ -93,7 +93,7 @@ func TestUpdate_Tab(t *testing.T) {
 func TestUpdate_ShiftTab(t *testing.T) {
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
-	msg := tea.KeyMsg{Type: tea.KeyShiftTab}
+	msg := tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
 	result, _ := m.Update(msg)
 	m = result.(Model)
 
@@ -105,7 +105,7 @@ func TestUpdate_ShiftTab(t *testing.T) {
 func TestUpdate_UpDown_Workflows(t *testing.T) {
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
-	down := tea.KeyMsg{Type: tea.KeyDown}
+	down := tea.KeyPressMsg{Code: tea.KeyDown}
 	result, _ := m.Update(down)
 	m = result.(Model)
 
@@ -113,7 +113,7 @@ func TestUpdate_UpDown_Workflows(t *testing.T) {
 		t.Errorf("expected selectedWorkflow 1 after down, got %d", m.selectedWorkflow)
 	}
 
-	up := tea.KeyMsg{Type: tea.KeyUp}
+	up := tea.KeyPressMsg{Code: tea.KeyUp}
 	result, _ = m.Update(up)
 	m = result.(Model)
 
@@ -125,7 +125,7 @@ func TestUpdate_UpDown_Workflows(t *testing.T) {
 func TestUpdate_Watch(t *testing.T) {
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}}
+	msg := tea.KeyPressMsg{Code: 'w', Text: "w"}
 	result, _ := m.Update(msg)
 	m = result.(Model)
 
@@ -163,12 +163,12 @@ func TestView_NotEmpty(t *testing.T) {
 	m.height = 40
 
 	view := m.View()
-	if view == "" {
+	if view.Content == "" {
 		t.Error("expected non-empty view")
 	}
 
-	if len(view) < 100 {
-		t.Errorf("expected view to be substantial, got length %d", len(view))
+	if len(view.Content) < 100 {
+		t.Errorf("expected view to be substantial, got length %d", len(view.Content))
 	}
 }
 
@@ -194,7 +194,7 @@ func TestUpdate_UpDown_History(t *testing.T) {
 		t.Skip("need at least 2 history entries for this test")
 	}
 
-	down := tea.KeyMsg{Type: tea.KeyDown}
+	down := tea.KeyPressMsg{Code: tea.KeyDown}
 	result, _ := m.Update(down)
 	m = result.(Model)
 
@@ -203,7 +203,7 @@ func TestUpdate_UpDown_History(t *testing.T) {
 		t.Error("expected selected history entry after down")
 	}
 
-	up := tea.KeyMsg{Type: tea.KeyUp}
+	up := tea.KeyPressMsg{Code: tea.KeyUp}
 	result, _ = m.Update(up)
 	m = result.(Model)
 
@@ -217,7 +217,7 @@ func TestUpdate_UpDown_Config(t *testing.T) {
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.focused = PaneConfig
 
-	down := tea.KeyMsg{Type: tea.KeyDown}
+	down := tea.KeyPressMsg{Code: tea.KeyDown}
 	result, _ := m.Update(down)
 	m = result.(Model)
 
@@ -229,7 +229,7 @@ func TestUpdate_UpDown_Config(t *testing.T) {
 		t.Errorf("expected InputDetailMode, got %d", m.viewMode)
 	}
 
-	up := tea.KeyMsg{Type: tea.KeyUp}
+	up := tea.KeyPressMsg{Code: tea.KeyUp}
 	result, _ = m.Update(up)
 	m = result.(Model)
 
@@ -242,7 +242,7 @@ func TestUpdate_Space(t *testing.T) {
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.focused = PaneWorkflows
 
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}}
+	msg := tea.KeyPressMsg{Code: ' ', Text: " "}
 	result, _ := m.Update(msg)
 	m = result.(Model)
 

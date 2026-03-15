@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -43,7 +43,7 @@ func NewRunConfirmModal(cfg runner.RunConfig) *RunConfirmModal {
 // Update handles input for the run confirm modal.
 func (m *RunConfirmModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, m.keys.Confirm):
 			m.done = true

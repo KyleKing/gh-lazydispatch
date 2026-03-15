@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/validation"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
@@ -129,7 +129,7 @@ func (m *RemapModal) buildOptions() {
 // Update handles input for the remap modal.
 func (m *RemapModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, m.keys.Up):
 			if m.selected > 0 {

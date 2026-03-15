@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/browser"
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	chainerr "github.com/kyleking/gh-lazydispatch/internal/errors"
@@ -84,7 +84,7 @@ func (m *ChainStatusModal) SetCommands(commands []string, branch string) {
 // Update handles input for the chain status modal.
 func (m *ChainStatusModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, m.keys.Close):
 			m.done = true

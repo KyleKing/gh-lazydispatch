@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -87,7 +87,7 @@ func NewLogsViewerModal(runLogs *logs.RunLogs, width, height int) *LogsViewerMod
 	filter, _ := logs.NewFilter(filterCfg)
 	filtered := filter.Apply(runLogs)
 
-	vp := viewport.New(width-4, height-10)
+	vp := viewport.New(viewport.WithWidth(width-4), viewport.WithHeight(height-10))
 	vp.SetContent("")
 
 	searchInput := textinput.New()
@@ -142,11 +142,11 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.viewport.Width = msg.Width - 4
-		m.viewport.Height = msg.Height - 10
+		m.viewport.SetWidth(msg.Width - 4)
+		m.viewport.SetHeight(msg.Height - 10)
 		m.updateViewportContent()
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.searchMode {
 			return m.handleSearchInput(msg)
 		}
@@ -225,7 +225,7 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 }
 
 // handleSearchInput processes input when in search mode.
-func (m *LogsViewerModal) handleSearchInput(msg tea.KeyMsg) (Context, tea.Cmd) {
+func (m *LogsViewerModal) handleSearchInput(msg tea.KeyPressMsg) (Context, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.ExitSearch):
 		m.searchMode = false
@@ -233,7 +233,7 @@ func (m *LogsViewerModal) handleSearchInput(msg tea.KeyMsg) (Context, tea.Cmd) {
 
 		return m, nil
 
-	case msg.Type == tea.KeyEnter:
+	case msg.Code == tea.KeyEnter:
 		m.filterCfg.SearchTerm = m.searchInput.Value()
 		m.applyFilter()
 		m.searchMode = false
@@ -370,7 +370,7 @@ func (m *LogsViewerModal) scrollToMatch(matchIdx int) {
 
 	// Center the match in the viewport if possible
 	targetLine := match.LineNumber
-	visibleLines := m.viewport.Height
+	visibleLines := m.viewport.Height()
 	centerOffset := targetLine - visibleLines/2
 
 	// Ensure we don't scroll past the beginning
@@ -784,8 +784,8 @@ func (m *LogsViewerModal) shouldAutoScroll() bool {
 
 	// Only scroll if user is within 3 lines of bottom
 	totalLines := m.viewport.TotalLineCount()
-	currentOffset := m.viewport.YOffset
-	visibleLines := m.viewport.Height
+	currentOffset := m.viewport.YOffset()
+	visibleLines := m.viewport.Height()
 	bottomLine := currentOffset + visibleLines
 
 	return totalLines-bottomLine <= 3
@@ -794,7 +794,7 @@ func (m *LogsViewerModal) shouldAutoScroll() bool {
 // scrollToBottom scrolls the viewport to the bottom.
 func (m *LogsViewerModal) scrollToBottom() {
 	totalLines := m.viewport.TotalLineCount()
-	visibleLines := m.viewport.Height
+	visibleLines := m.viewport.Height()
 
 	if totalLines > visibleLines {
 		m.viewport.SetYOffset(totalLines - visibleLines)

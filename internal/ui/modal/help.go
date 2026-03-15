@@ -1,8 +1,8 @@
 package modal
 
 import (
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -32,7 +32,7 @@ func NewHelpModal() *HelpModal {
 // Update handles input for the help modal.
 func (m *HelpModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if key.Matches(msg, m.keys.Close) {
 			m.done = true
 		}

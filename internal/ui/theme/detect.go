@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	lipgloss "charm.land/lipgloss/v2"
 )
 
 // Detect returns the appropriate theme based on terminal background and environment variables.
@@ -19,7 +19,7 @@ func Detect() Theme {
 		}
 	}
 
-	if lipgloss.HasDarkBackground() {
+	if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
 		return Macchiato()
 	}
 

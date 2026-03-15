@@ -3,9 +3,9 @@ package modal
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/rule"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -46,14 +46,19 @@ func NewInputModal(title, description, defaultVal, inputType, current string, op
 	ti.SetValue(current)
 	ti.Focus()
 	ti.CharLimit = 256
-	ti.Width = 40
+	ti.SetWidth(40)
 
 	// Remove backgrounds from textinput styles to prevent visual artifacts in modal
-	ti.PromptStyle = ti.PromptStyle.UnsetBackground()
-	ti.TextStyle = ti.TextStyle.UnsetBackground()
-	ti.PlaceholderStyle = ti.PlaceholderStyle.UnsetBackground()
-	ti.CompletionStyle = ti.CompletionStyle.UnsetBackground()
-	ti.Cursor.Style = ti.Cursor.Style.UnsetBackground()
+	s := ti.Styles()
+	s.Focused.Prompt = s.Focused.Prompt.UnsetBackground()
+	s.Focused.Text = s.Focused.Text.UnsetBackground()
+	s.Focused.Placeholder = s.Focused.Placeholder.UnsetBackground()
+	s.Focused.Suggestion = s.Focused.Suggestion.UnsetBackground()
+	s.Blurred.Prompt = s.Blurred.Prompt.UnsetBackground()
+	s.Blurred.Text = s.Blurred.Text.UnsetBackground()
+	s.Blurred.Placeholder = s.Blurred.Placeholder.UnsetBackground()
+	s.Blurred.Suggestion = s.Blurred.Suggestion.UnsetBackground()
+	ti.SetStyles(s)
 
 	return &InputModal{
 		title:           title,
@@ -98,7 +103,7 @@ func (m *InputModal) validate() string {
 // Update handles input for the input modal.
 func (m *InputModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, m.keys.RestoreDefault):
 			m.input.SetValue(m.defaultVal)

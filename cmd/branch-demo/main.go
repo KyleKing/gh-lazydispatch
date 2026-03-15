@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 )
@@ -56,7 +56,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if msg.String() == "ctrl+c" || (msg.String() == "q" && m.done) {
 			return m, tea.Quit
 		}
@@ -87,30 +87,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
+func (m model) View() tea.View {
 	if m.width == 0 || m.height == 0 {
-		return "Loading..."
+		return tea.NewView("Loading...")
 	}
+
+	var content string
 
 	if m.done {
 		if m.result != "" {
-			return fmt.Sprintf("Selected branch: %s\n\nPress 'q' to quit.", m.result)
+			content = fmt.Sprintf("Selected branch: %s\n\nPress 'q' to quit.", m.result)
+		} else {
+			content = "Cancelled.\n\nPress 'q' to quit."
 		}
-
-		return "Cancelled.\n\nPress 'q' to quit."
+	} else {
+		// Show debug info
+		debugInfo := fmt.Sprintf("Terminal: %dx%d\n", m.width, m.height)
+		modalView := m.branchModal.View()
+		content = debugInfo + "\n" + modalView
 	}
 
-	// Show debug info
-	debugInfo := fmt.Sprintf("Terminal: %dx%d\n", m.width, m.height)
+	v := tea.NewView(content)
+	v.AltScreen = true
 
-	modalView := m.branchModal.View()
-
-	// Simple centering
-	return debugInfo + "\n" + modalView
+	return v
 }
 
 func main() {
-	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
+	p := tea.NewProgram(initialModel())
 
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error: %v\n", err)

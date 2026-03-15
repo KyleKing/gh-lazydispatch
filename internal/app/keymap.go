@@ -1,6 +1,6 @@
 package app
 
-import "github.com/charmbracelet/bubbles/key"
+import "charm.land/bubbles/v2/key"
 
 // KeyMap defines all keyboard shortcuts for the application.
 type KeyMap struct {
@@ -79,7 +79,7 @@ func DefaultKeyMap() KeyMap {
 		Quit:     key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 		Reset:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reset inputs")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev pane")),
-		Space:    key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "select")),
+		Space:    key.NewBinding(key.WithKeys("space"), key.WithHelp("space", "select")),
 		Tab:      key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next pane")),
 		TabNext:  key.NewBinding(key.WithKeys("l", "right"), key.WithHelp("l", "next tab")),
 		TabPrev:  key.NewBinding(key.WithKeys("h", "left"), key.WithHelp("h", "prev tab")),

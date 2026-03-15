@@ -2,8 +2,8 @@
 package modal
 
 import (
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/list"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -146,7 +146,7 @@ func _pinBranches(branches []string, current string, defaultBranch string) []str
 // Update handles input for the branch modal.
 func (m *BranchModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			if item, ok := m.list.SelectedItem().(BranchItem); ok {

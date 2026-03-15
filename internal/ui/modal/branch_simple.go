@@ -3,9 +3,9 @@ package modal
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -54,11 +54,16 @@ func NewSimpleBranchModal(title string, branches []string, current string, defau
 	ti.Prompt = "/ "
 
 	// Remove backgrounds from textinput styles to prevent visual artifacts in modal
-	ti.PromptStyle = ti.PromptStyle.UnsetBackground()
-	ti.TextStyle = ti.TextStyle.UnsetBackground()
-	ti.PlaceholderStyle = ti.PlaceholderStyle.UnsetBackground()
-	ti.CompletionStyle = ti.CompletionStyle.UnsetBackground()
-	ti.Cursor.Style = ti.Cursor.Style.UnsetBackground()
+	s := ti.Styles()
+	s.Focused.Prompt = s.Focused.Prompt.UnsetBackground()
+	s.Focused.Text = s.Focused.Text.UnsetBackground()
+	s.Focused.Placeholder = s.Focused.Placeholder.UnsetBackground()
+	s.Focused.Suggestion = s.Focused.Suggestion.UnsetBackground()
+	s.Blurred.Prompt = s.Blurred.Prompt.UnsetBackground()
+	s.Blurred.Text = s.Blurred.Text.UnsetBackground()
+	s.Blurred.Placeholder = s.Blurred.Placeholder.UnsetBackground()
+	s.Blurred.Suggestion = s.Blurred.Suggestion.UnsetBackground()
+	ti.SetStyles(s)
 
 	selected := 0
 
@@ -100,7 +105,7 @@ func (m *SimpleBranchModal) SetSize(width, height int) {
 // Update handles input for the simple branch modal.
 func (m *SimpleBranchModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.filtering {
 			switch msg.String() {
 			case "enter":

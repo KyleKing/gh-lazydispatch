@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestErrorModal_Display(t *testing.T) {
@@ -38,12 +38,13 @@ func TestErrorModal_Dismiss(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			modal := NewErrorModal("Error", "Message")
 
-			_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(tt.key)})
 			switch tt.key {
 			case "esc":
-				_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyEsc})
+				_, _ = modal.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+			case "q":
+				_, _ = modal.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
 			case "enter":
-				_, _ = modal.Update(tea.KeyMsg{Type: tea.KeyEnter})
+				_, _ = modal.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 			}
 
 			if !modal.IsDone() {

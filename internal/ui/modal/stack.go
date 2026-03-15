@@ -1,8 +1,8 @@
 package modal
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -107,7 +107,7 @@ func placeCenter(background, modal string, width, height int) string {
 
 	styledModal := modalStyle.Render(modal)
 
-	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, styledModal, lipgloss.WithWhitespaceChars(" "), lipgloss.WithWhitespaceForeground(lipgloss.NoColor{}))
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, styledModal, lipgloss.WithWhitespaceChars(" "))
 }
 
 // ModalClosedMsg is sent when a modal is closed.
