@@ -5,6 +5,8 @@ import (
 )
 
 func TestRealExecutor_SafetyCheck_BlocksMutations(t *testing.T) {
+	t.Parallel()
+
 	executor := NewRealExecutor()
 
 	tests := []struct {
@@ -65,6 +67,8 @@ func TestRealExecutor_SafetyCheck_BlocksMutations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				r := recover()
 				if tt.shouldPanic && r == nil {
@@ -83,6 +87,8 @@ func TestRealExecutor_SafetyCheck_BlocksMutations(t *testing.T) {
 }
 
 func TestIsMutationCommand(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		command    string
@@ -135,6 +141,8 @@ func TestIsMutationCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := isMutationCommand(tt.command, tt.args)
 			if result != tt.isMutation {
 				t.Errorf("isMutationCommand(%s, %v) = %v, want %v",

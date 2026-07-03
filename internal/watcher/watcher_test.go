@@ -36,6 +36,8 @@ func (m *mockGitHubClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error)
 }
 
 func TestNewWatcher(t *testing.T) {
+	t.Parallel()
+
 	client := &mockGitHubClient{}
 
 	w := watcher.NewWatcher(client)
@@ -55,6 +57,8 @@ func TestNewWatcher(t *testing.T) {
 }
 
 func TestWatch_AddsRun(t *testing.T) {
+	t.Parallel()
+
 	client := &mockGitHubClient{
 		runs: map[int64]*github.WorkflowRun{
 			123: {ID: 123, Name: "test-workflow", Status: github.StatusQueued},
@@ -81,6 +85,8 @@ func TestWatch_AddsRun(t *testing.T) {
 }
 
 func TestUnwatch_RemovesRun(t *testing.T) {
+	t.Parallel()
+
 	client := &mockGitHubClient{
 		runs: map[int64]*github.WorkflowRun{
 			123: {ID: 123, Name: "test-workflow", Status: github.StatusQueued},
@@ -104,6 +110,8 @@ func TestUnwatch_RemovesRun(t *testing.T) {
 }
 
 func TestPollRun_UpdatesState(t *testing.T) {
+	t.Parallel()
+
 	client := &mockGitHubClient{
 		runs: map[int64]*github.WorkflowRun{
 			123: {ID: 123, Name: "test-workflow", Status: github.StatusInProgress},
@@ -133,6 +141,8 @@ func TestPollRun_UpdatesState(t *testing.T) {
 }
 
 func TestPollRun_SurfacesError(t *testing.T) {
+	t.Parallel()
+
 	expectedErr := errors.New("API error")
 	client := &mockGitHubClient{err: expectedErr}
 
@@ -156,6 +166,8 @@ func TestPollRun_SurfacesError(t *testing.T) {
 }
 
 func TestClearCompleted(t *testing.T) {
+	t.Parallel()
+
 	client := &mockGitHubClient{
 		runs: map[int64]*github.WorkflowRun{
 			1: {ID: 1, Name: "run1", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
@@ -186,6 +198,8 @@ func TestClearCompleted(t *testing.T) {
 }
 
 func TestActiveCount(t *testing.T) {
+	t.Parallel()
+
 	client := &mockGitHubClient{
 		runs: map[int64]*github.WorkflowRun{
 			1: {ID: 1, Name: "run1", Status: github.StatusCompleted},
@@ -209,6 +223,8 @@ func TestActiveCount(t *testing.T) {
 }
 
 func TestWatchedRun_IsActive(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		status   string
@@ -221,6 +237,8 @@ func TestWatchedRun_IsActive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			run := watcher.WatchedRun{Status: tt.status}
 			if run.IsActive() != tt.expected {
 				t.Errorf("IsActive: got %v, want %v", run.IsActive(), tt.expected)
@@ -230,6 +248,8 @@ func TestWatchedRun_IsActive(t *testing.T) {
 }
 
 func TestWatchedRun_IsSuccess(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		status     string
@@ -243,6 +263,8 @@ func TestWatchedRun_IsSuccess(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			run := watcher.WatchedRun{Status: tt.status, Conclusion: tt.conclusion}
 			if run.IsSuccess() != tt.expected {
 				t.Errorf("IsSuccess: got %v, want %v", run.IsSuccess(), tt.expected)
@@ -252,6 +274,8 @@ func TestWatchedRun_IsSuccess(t *testing.T) {
 }
 
 func TestWatcher_DoubleStop(t *testing.T) {
+	t.Parallel()
+
 	client := &mockGitHubClient{}
 	w := watcher.NewWatcher(client)
 

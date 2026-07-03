@@ -11,6 +11,8 @@ import (
 )
 
 func TestNewClientWithExecutor(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		repoName    string
@@ -46,6 +48,8 @@ func TestNewClientWithExecutor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mockExec := exec.NewMockExecutor()
 			client, err := github.NewClientWithExecutor(tt.repoName, mockExec)
 
@@ -73,6 +77,8 @@ func TestNewClientWithExecutor(t *testing.T) {
 }
 
 func TestClient_GetWorkflowRun(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		runID       int64
@@ -135,6 +141,8 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mockExec := exec.NewMockExecutor()
 			tt.setupMock(mockExec)
 
@@ -169,6 +177,8 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 }
 
 func TestClient_GetWorkflowRunJobs(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		runID       int64
@@ -241,6 +251,8 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mockExec := exec.NewMockExecutor()
 			tt.setupMock(mockExec)
 
@@ -271,6 +283,8 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 }
 
 func TestClient_GetLatestRun(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		workflowName string
@@ -333,6 +347,8 @@ func TestClient_GetLatestRun(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mockExec := exec.NewMockExecutor()
 			tt.setupMock(mockExec)
 
@@ -371,6 +387,8 @@ func TestClient_GetLatestRun(t *testing.T) {
 }
 
 func TestClient_CommandsExecuted(t *testing.T) {
+	t.Parallel()
+
 	mockExec := exec.NewMockExecutor()
 
 	resp := github.RunsResponse{

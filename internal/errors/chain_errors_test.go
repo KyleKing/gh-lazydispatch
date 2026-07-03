@@ -8,6 +8,8 @@ import (
 )
 
 func TestStepExecutionError(t *testing.T) {
+	t.Parallel()
+
 	cause := errors.New("run failed")
 	err := &chainerr.StepExecutionError{
 		StepIndex: 2,
@@ -33,6 +35,8 @@ func TestStepExecutionError(t *testing.T) {
 }
 
 func TestStepExecutionError_NoURL(t *testing.T) {
+	t.Parallel()
+
 	err := &chainerr.StepExecutionError{
 		StepIndex: 0,
 		Workflow:  "ci.yml",
@@ -46,6 +50,8 @@ func TestStepExecutionError_NoURL(t *testing.T) {
 }
 
 func TestStepDispatchError(t *testing.T) {
+	t.Parallel()
+
 	cause := errors.New("workflow not found")
 	err := &chainerr.StepDispatchError{
 		Workflow:   "deploy.yml",
@@ -70,6 +76,8 @@ func TestStepDispatchError(t *testing.T) {
 }
 
 func TestInterpolationError(t *testing.T) {
+	t.Parallel()
+
 	cause := errors.New("invalid template")
 	err := &chainerr.InterpolationError{
 		Field: "environment",
@@ -88,6 +96,8 @@ func TestInterpolationError(t *testing.T) {
 }
 
 func TestRunWaitError(t *testing.T) {
+	t.Parallel()
+
 	cause := errors.New("API timeout")
 	err := &chainerr.RunWaitError{
 		RunID:  99999,
@@ -111,6 +121,8 @@ func TestRunWaitError(t *testing.T) {
 }
 
 func TestGetRunURL_NestedError(t *testing.T) {
+	t.Parallel()
+
 	innerErr := &chainerr.RunWaitError{
 		RunID:  123,
 		RunURL: "https://example.com/run/123",
@@ -130,6 +142,8 @@ func TestGetRunURL_NestedError(t *testing.T) {
 }
 
 func TestGetSuggestion_NoSuggestion(t *testing.T) {
+	t.Parallel()
+
 	err := &chainerr.StepExecutionError{
 		StepIndex: 0,
 		Workflow:  "ci.yml",

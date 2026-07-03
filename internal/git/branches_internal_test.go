@@ -9,6 +9,8 @@ import (
 )
 
 func TestParseBranches(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		output string
@@ -53,6 +55,8 @@ func TestParseBranches(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := _parseBranches(tt.output)
 
 			if !reflect.DeepEqual(got, tt.want) {
@@ -63,6 +67,8 @@ func TestParseBranches(t *testing.T) {
 }
 
 func TestDeduplicateBranches(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		branches []string
@@ -97,6 +103,8 @@ func TestDeduplicateBranches(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := _deduplicateBranches(tt.branches)
 
 			if !reflect.DeepEqual(got, tt.want) {
@@ -107,6 +115,8 @@ func TestDeduplicateBranches(t *testing.T) {
 }
 
 func TestDefaultBranches(t *testing.T) {
+	t.Parallel()
+
 	got := _defaultBranches()
 
 	expectedBranches := []string{"main", "master", "develop"}
@@ -134,6 +144,8 @@ func (m *mockCommandRunner) RunCommand(_ context.Context, _ ...string) ([]byte, 
 }
 
 func TestFetchBranches(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		output         string
@@ -206,6 +218,8 @@ func TestFetchBranches(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mock := &mockCommandRunner{
 				output: []byte(tt.output),
 				err:    tt.err,
@@ -226,6 +240,8 @@ func TestFetchBranches(t *testing.T) {
 }
 
 func TestGetCurrentBranch(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		output         string
@@ -272,6 +288,8 @@ func TestGetCurrentBranch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mock := &mockCommandRunner{
 				output: []byte(tt.output),
 				err:    tt.err,
@@ -287,6 +305,8 @@ func TestGetCurrentBranch(t *testing.T) {
 }
 
 func TestGetDefaultBranch(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		output         string
@@ -339,6 +359,8 @@ func TestGetDefaultBranch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mock := &mockCommandRunner{
 				output: []byte(tt.output),
 				err:    tt.err,
@@ -354,6 +376,8 @@ func TestGetDefaultBranch(t *testing.T) {
 }
 
 func TestFetchBranchesTimeout(t *testing.T) {
+	t.Parallel()
+
 	mock := &mockCommandRunner{
 		output: []byte("  origin/main"),
 		err:    context.DeadlineExceeded,

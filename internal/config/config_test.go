@@ -9,6 +9,8 @@ import (
 )
 
 func TestLoad_ValidConfig(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
@@ -51,6 +53,8 @@ chains:
 }
 
 func TestLoad_MissingFile(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	cfg, err := config.Load(dir)
@@ -64,6 +68,8 @@ func TestLoad_MissingFile(t *testing.T) {
 }
 
 func TestLoad_InvalidYAML(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
@@ -83,6 +89,8 @@ func TestLoad_InvalidYAML(t *testing.T) {
 }
 
 func TestLoad_UnsupportedVersion(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
@@ -106,6 +114,8 @@ chains: {}
 }
 
 func TestLoad_DefaultValues(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
@@ -150,6 +160,8 @@ chains:
 }
 
 func TestChainNames_Sorted(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
@@ -195,6 +207,8 @@ chains:
 }
 
 func TestGetChain_Exists(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
@@ -231,6 +245,8 @@ chains:
 }
 
 func TestGetChain_NotFound(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
@@ -262,6 +278,8 @@ chains:
 }
 
 func TestHasChains(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		config   *config.WfdConfig
@@ -274,6 +292,8 @@ func TestHasChains(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := tt.config.HasChains()
 			if result != tt.expected {
 				t.Errorf("got %v, want %v", result, tt.expected)
@@ -283,6 +303,8 @@ func TestHasChains(t *testing.T) {
 }
 
 func TestLoad_Version2WithVariables(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
@@ -365,6 +387,8 @@ chains:
 }
 
 func TestLoad_Version2DefaultVariableType(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
