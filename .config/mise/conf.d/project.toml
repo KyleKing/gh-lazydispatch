@@ -1,5 +1,5 @@
 # Project-specific tasks for gh-lazydispatch
-# Generic tasks are in mise.toml (managed by copier template)
+# Generic tasks are in template.toml (managed by copier template)
 
 [tasks."bench:compare"]
 description = "Compare benchmark results (requires old-bench.txt and new-bench.txt)"

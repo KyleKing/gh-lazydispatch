@@ -1,4 +1,0 @@
-- Finish BubbleTea v2 Migration as PoC for other apps (along with the template)
-    - Review Chore version updates in GitHub Dependabot: https://github.com/KyleKing/gh-lazydispatch/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen+
-- Verify that this utility works, and then properly publish for reuse
-    - (I anticipate there to be rough edges...)

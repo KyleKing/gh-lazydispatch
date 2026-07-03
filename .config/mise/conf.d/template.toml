@@ -43,6 +43,18 @@ run = "golangci-lint run ./..."
 description = "Run tests with coverage"
 run = "go test -coverprofile=coverage.out ./..."
 
+[tasks."test:coverage-min"]
+description = "Verify minimum coverage threshold (70%)"
+run = '''
+go test -coverprofile=coverage.out -coverpkg=./... ./...
+coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+echo "Current coverage: ${coverage}%"
+if (( $(awk "BEGIN {print ($coverage < 70)}") )); then
+    echo "Coverage ${coverage}% is below 70% minimum threshold"
+    exit 1
+fi
+'''
+
 [tasks."test:view-coverage"]
 description = "View coverage report in browser"
 run = "go tool cover -html=coverage.out"

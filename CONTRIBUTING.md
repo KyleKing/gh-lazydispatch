@@ -12,21 +12,20 @@ mise run ci
 
 ## Tasks
 
-Shared tasks live in `.config/mise.template.toml` (managed by the copier template).
-Project-specific tasks go in `.config/mise.project.toml` or other `mise.*.toml` files.
+Shared tasks live in `.config/mise/conf.d/template.toml` (managed by the copier template). Project-specific tasks go in additional `.config/mise/conf.d/*.toml` files, which mise always loads regardless of `MISE_ENV`.
 
-| Command | Description |
-|---------|-------------|
-| `mise run bench` | Run benchmarks |
-| `mise run build` | Build binary |
-| `mise run ci` | Full CI check (tests + build) |
-| `mise run clean` | Clean build artifacts |
-| `mise run demo` | Generate VHS demo recordings |
-| `mise run format` | Auto-fix lint and formatting |
-| `mise run hooks` | Run git hooks |
-| `mise run lint` | Run linter |
-| `mise run test` | Run tests with coverage |
-| `mise tasks` | List all available tasks |
+| Command           | Description                   |
+| ----------------- | ----------------------------- |
+| `mise run bench`  | Run benchmarks                |
+| `mise run build`  | Build binary                  |
+| `mise run ci`     | Full CI check (tests + build) |
+| `mise run clean`  | Clean build artifacts         |
+| `mise run demo`   | Generate VHS demo recordings  |
+| `mise run format` | Auto-fix lint and formatting  |
+| `mise run hooks`  | Run git hooks                 |
+| `mise run lint`   | Run linter                    |
+| `mise run test`   | Run tests with coverage       |
+| `mise tasks`      | List all available tasks      |
 
 ## Code Guidelines
 
@@ -45,7 +44,6 @@ Conventional commits enforced via [commitizen](https://commitizen-tools.github.i
 Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 Git hooks run automatically via hk on commit and push.
-
 
 ## Development Install
 
@@ -71,7 +69,6 @@ mise run build
 ./gh-lazydispatch [args]
 ```
 
-
 ## Releases
 
 Automated via goreleaser on tag push. **Note:** For GH CLI extensions, the first release is required before users can run `gh extension install kyleking/gh-lazydispatch`.
@@ -80,37 +77,41 @@ Automated via goreleaser on tag push. **Note:** For GH CLI extensions, the first
 
 1. Tag and push:
 
-   ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
+    ```bash
+    git tag v0.1.0
+    git push origin v0.1.0
+    ```
 
-2. GitHub Actions will automatically:
-   - Run tests and build
-   - Create release with binaries for Linux, macOS, Windows, and FreeBSD (amd64/arm64)
-   - Publish to GitHub Releases
+1. GitHub Actions will automatically:
 
-3. Verify the release has properly named binaries:
-   - `gh-lazydispatch-linux-amd64`
-   - `gh-lazydispatch-darwin-arm64`
-   - `gh-lazydispatch-windows-amd64.exe`
-   - etc.
+    - Run tests and build
+    - Create release with binaries for Linux, macOS, Windows, and FreeBSD (amd64/arm64)
+    - Publish to GitHub Releases
+
+1. Verify the release has properly named binaries:
+
+    - `gh-lazydispatch-linux-amd64`
+    - `gh-lazydispatch-darwin-arm64`
+    - `gh-lazydispatch-windows-amd64.exe`
+    - etc.
 
 ### Updating the Homebrew Formula
 
 After a release, update `Formula/gh-lazydispatch.rb`:
 
 1. Download the release binaries from the GitHub release page
-2. Generate SHA256 checksums:
 
-   ```bash
-   shasum -a 256 gh-lazydispatch-darwin-arm64 gh-lazydispatch-darwin-amd64 gh-lazydispatch-linux-arm64 gh-lazydispatch-linux-amd64
-   ```
+1. Generate SHA256 checksums:
 
-   Or run `mise run brew:sha` for a reminder of these steps.
+    ```bash
+    shasum -a 256 gh-lazydispatch-darwin-arm64 gh-lazydispatch-darwin-amd64 gh-lazydispatch-linux-arm64 gh-lazydispatch-linux-amd64
+    ```
 
-3. Update the `version` and `sha256` values in `Formula/gh-lazydispatch.rb`
-4. Commit and push the formula changes
+    Or run `mise run brew:sha` for a reminder of these steps.
+
+1. Update the `version` and `sha256` values in `Formula/gh-lazydispatch.rb`
+
+1. Commit and push the formula changes
 
 ### Installing via Homebrew
 
@@ -127,7 +128,6 @@ brew install --formula ./Formula/gh-lazydispatch.rb
 ```
 
 To set up a [homebrew tap](https://docs.brew.sh/Taps) for `brew install kyleking/tap/gh-lazydispatch`, create a `homebrew-tap` repo at `https://github.com/kyleking/homebrew-tap` and copy the formula there.
-
 
 ## Troubleshooting
 
@@ -167,12 +167,12 @@ flowchart TD
 
 ### Input Type Mapping
 
-| `workflow_dispatch` input type | TUI Component |
-|-------------------------------|---------------|
-| `string` (default) | Text input |
-| `boolean` | Confirm |
-| `choice` | Select with options |
-| `environment` | Select with repo environments |
+| `workflow_dispatch` input type | TUI Component                 |
+| ------------------------------ | ----------------------------- |
+| `string` (default)             | Text input                    |
+| `boolean`                      | Confirm                       |
+| `choice`                       | Select with options           |
+| `environment`                  | Select with repo environments |
 
 ## Design Decisions
 
@@ -181,6 +181,7 @@ flowchart TD
 The project uses **sequential prompts** (Bubbletea with modal stack) rather than a full-screen dashboard:
 
 **Rationale:**
+
 - Simpler mental model: one decision at a time
 - Easier to implement and maintain
 - Better accessibility
@@ -192,16 +193,19 @@ The project uses **sequential prompts** (Bubbletea with modal stack) rather than
 ### Library Choices
 
 **charmbracelet/bubbles** for lists:
+
 - Built-in fuzzy filtering via sahilm/fuzzy
 - Pagination and navigation
 - Minimal boilerplate
 
 **charmbracelet/bubbletea** for TUI:
+
 - Elm architecture (Model-Update-View)
 - Composable components
 - No external dependencies (fzf, etc.)
 
 **go-gh/v2** for GitHub integration:
+
 - Native API access with inherited auth
 - Repository detection
 - Command execution
@@ -223,6 +227,7 @@ recency_weight =
 This prioritizes workflows that are both frequently used AND recently used, matching user mental models better than pure frequency or recency alone.
 
 **Storage:** JSON file at `~/.local/share/lazydispatch/history.json` following XDG Base Directory spec. Each entry includes:
+
 - Repository path
 - Workflow filename
 - Branch used
@@ -285,6 +290,7 @@ go test ./...
 ```
 
 Test against sample workflows in `testdata/`:
+
 ```bash
 cd testdata
 ../lazydispatch
@@ -295,6 +301,7 @@ cd testdata
 The codebase has safety mechanisms to prevent accidental mutation of GitHub resources during tests.
 
 **Blocked Commands in Tests:**
+
 - `gh workflow run` - Dispatch workflows
 - `gh issue create/edit/close/delete` - Issue operations
 - `gh pr create/merge/close/edit` - Pull request operations
@@ -302,6 +309,7 @@ The codebase has safety mechanisms to prevent accidental mutation of GitHub reso
 - `gh release create/delete` - Release management
 
 **Safe Approach - Using Mocks:**
+
 ```go
 func TestMyFeature(t *testing.T) {
     mockExec := exec.NewMockExecutor()
@@ -319,6 +327,7 @@ Read-only commands (`gh api`, `gh run view`, `gh run list`, `gh run watch`) are 
 ### Recording Demo
 
 Generate demo GIF using VHS:
+
 ```bash
 vhs < .github/assets/demo.tape
 ```
@@ -326,10 +335,11 @@ vhs < .github/assets/demo.tape
 ### Release Process
 
 Releases are automated via goreleaser:
+
 1. Tag version: `git tag v1.0.0`
-2. Push: `git push origin v1.0.0`
-3. GitHub Actions builds binaries for multiple platforms
-4. Creates GitHub release with artifacts
+1. Push: `git push origin v1.0.0`
+1. GitHub Actions builds binaries for multiple platforms
+1. Creates GitHub release with artifacts
 
 ## YAML Parsing
 
@@ -357,9 +367,9 @@ type WorkflowInput struct {
 ### Edge Cases Handled
 
 1. **`on` as string vs map**: `on: push` vs `on: { workflow_dispatch: ... }`
-2. **Boolean quirk**: GitHub converts booleans to strings in `github.event.inputs`, preserved in `inputs` context
-3. **Missing type**: Defaults to `string` when `type` omitted
-4. **Environment type**: Requires API call to fetch repo environments (not yet implemented)
+1. **Boolean quirk**: GitHub converts booleans to strings in `github.event.inputs`, preserved in `inputs` context
+1. **Missing type**: Defaults to `string` when `type` omitted
+1. **Environment type**: Requires API call to fetch repo environments (not yet implemented)
 
 ## References
 

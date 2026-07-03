@@ -1,5 +1,5 @@
 // Install with `hk install --mise` to ensure local tools are available
-// Update hk_version when upgrading hk in the template
+// The hk version is pinned by hk_version in copier.yml
 
 local hk_version = "1.32.0"
 

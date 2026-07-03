@@ -3,16 +3,30 @@
 
 version = 2
 
+[formatters]
+enable = [
+  "gci",
+  "gofmt",
+  "gofumpt",
+  "goimports"
+]
+
+[formatters.settings.gci]
+sections = ["standard", "default", "prefix(github.com/kyleking/gh-lazydispatch)"]
+
+[formatters.settings.gofumpt]
+extra-rules = true
+
+[formatters.settings.goimports]
+local-prefixes = ["github.com/kyleking/gh-lazydispatch"]
+
 [linters]
 disable = [
   "depguard", # requires allowlist/denylist configuration
-  "execinquery", # deprecated in favor of gosec G202
-  "exportloopref", # deprecated, replaced by copyloopvar
   "forbidigo", # requires custom regex configuration
   "gochecknoglobals", # BubbleTea/lipgloss styles use package-level vars
   "goheader", # copyright headers add noise for personal projects
-  "gomnd", # replaced by mnd
-  "wsl" # deprecated, whitespace linting too nitpicky
+  "wsl" # whitespace linting too nitpicky
 ]
 enable = [
   "asciicheck",
@@ -36,7 +50,6 @@ enable = [
   "fatcontext",
   "forcetypeassert",
   "funlen",
-  "gci",
   "ginkgolinter",
   "gocheckcompilerdirectives",
   "gochecknoinits",
@@ -47,14 +60,10 @@ enable = [
   "gocyclo",
   "godot",
   "godox",
-  "gofmt",
-  "gofumpt",
-  "goimports",
   "gomoddirectives",
   "gomodguard",
   "goprintffuncname",
   "gosec",
-  "gosimple",
   "gosmopolitan",
   "govet",
   "grouper",
@@ -95,20 +104,18 @@ enable = [
   "spancheck",
   "sqlclosecheck",
   "staticcheck",
-  "stylecheck",
   "tagalign",
   "tagliatelle",
-  "tenv",
   "testableexamples",
   "testifylint",
   "testpackage",
   "thelper",
   "tparallel",
-  "typecheck",
   "unconvert",
   "unparam",
   "unused",
   "usestdlibvars",
+  "usetesting",
   "wastedassign",
   "whitespace",
   "wrapcheck",
@@ -134,9 +141,6 @@ lines = 100
 statements = 50
 ignore-comments = true
 
-[linters.settings.gci]
-sections = ["standard", "default", "prefix(github.com/kyleking/gh-lazydispatch)"]
-
 [linters.settings.gocognit]
 min-complexity = 20
 
@@ -155,13 +159,6 @@ min-complexity = 15
 [linters.settings.godot]
 scope = "declarations"
 capital = true
-
-[linters.settings.gofumpt]
-extra-rules = true
-lang-version = "1.23"
-
-[linters.settings.goimports]
-local-prefixes = "github.com/kyleking/gh-lazydispatch"
 
 [linters.settings.gomodguard]
 blocked.modules = []
@@ -249,12 +246,7 @@ rules = [
 ]
 
 [linters.settings.staticcheck]
-checks = ["all"]
-
-[linters.settings.stylecheck]
 checks = ["all", "-ST1000"]
-dot-import-whitelist = []
-http-status-code-whitelist = []
 
 [linters.settings.tagliatelle]
 case.rules.json = "snake"
