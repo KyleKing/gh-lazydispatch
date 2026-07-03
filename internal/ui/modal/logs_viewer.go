@@ -85,6 +85,7 @@ func defaultLogsViewerKeyMap() logsViewerKeyMap {
 // NewLogsViewerModal creates a new unified logs viewer modal.
 func NewLogsViewerModal(runLogs *logs.RunLogs, width, height int) *LogsViewerModal {
 	filterCfg := logs.NewFilterConfig()
+	//nolint:errcheck // NewFilterConfig's defaults (no regex) never produce a compile error
 	filter, _ := logs.NewFilter(filterCfg)
 	filtered := filter.Apply(runLogs)
 

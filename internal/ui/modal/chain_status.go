@@ -99,6 +99,7 @@ func (m *ChainStatusModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 			}
 		case key.Matches(msg, m.keys.Copy):
 			script := m.buildBashScript()
+			//nolint:errcheck // best-effort clipboard write; no error-surfacing UI hook exists for this action
 			clipboard.WriteAll(script)
 
 			m.copied = true
@@ -118,6 +119,7 @@ func (m *ChainStatusModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 			}
 		case key.Matches(msg, m.keys.OpenBrowser):
 			if url := m.GetFailedStepRunURL(); url != "" {
+				//nolint:errcheck // best-effort browser launch; no error-surfacing UI hook exists for this action
 				browser.Open(url)
 			}
 		}

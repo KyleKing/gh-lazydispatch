@@ -1,14 +1,16 @@
-package frecency
+package frecency_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 )
 
 func TestStore_Record(t *testing.T) {
-	store := NewStore()
+	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
 
@@ -32,7 +34,7 @@ func TestStore_Record(t *testing.T) {
 }
 
 func TestStore_Record_Increment(t *testing.T) {
-	store := NewStore()
+	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
@@ -49,7 +51,7 @@ func TestStore_Record_Increment(t *testing.T) {
 }
 
 func TestStore_Record_DifferentInputs(t *testing.T) {
-	store := NewStore()
+	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "staging"})
@@ -61,7 +63,7 @@ func TestStore_Record_DifferentInputs(t *testing.T) {
 }
 
 func TestStore_TopForRepo(t *testing.T) {
-	store := NewStore()
+	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", nil)
 	store.Record("owner/repo", "ci.yml", "main", nil)
@@ -79,7 +81,7 @@ func TestStore_TopForRepo(t *testing.T) {
 }
 
 func TestStore_TopForRepo_FilterByWorkflow(t *testing.T) {
-	store := NewStore()
+	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", nil)
 	store.Record("owner/repo", "ci.yml", "main", nil)
@@ -95,7 +97,7 @@ func TestStore_TopForRepo_FilterByWorkflow(t *testing.T) {
 }
 
 func TestStore_TopForRepo_Limit(t *testing.T) {
-	store := NewStore()
+	store := frecency.NewStore()
 
 	for i := range 10 {
 		store.Record("owner/repo", "deploy.yml", "main", map[string]string{"i": string(rune('0' + i))})
@@ -116,14 +118,14 @@ func TestStore_SaveLoad(t *testing.T) {
 
 	path := filepath.Join(tmpDir, "history.json")
 
-	store := NewStore()
+	store := frecency.NewStore()
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
 
 	if err := store.SaveTo(path); err != nil {
 		t.Fatalf("SaveTo failed: %v", err)
 	}
 
-	loaded, err := LoadFrom(path)
+	loaded, err := frecency.LoadFrom(path)
 	if err != nil {
 		t.Fatalf("LoadFrom failed: %v", err)
 	}
@@ -139,7 +141,7 @@ func TestStore_SaveLoad(t *testing.T) {
 }
 
 func TestLoadFrom_NotFound(t *testing.T) {
-	store, err := LoadFrom("/nonexistent/path/history.json")
+	store, err := frecency.LoadFrom("/nonexistent/path/history.json")
 	if err != nil {
 		t.Fatalf("LoadFrom should not error on missing file: %v", err)
 	}
@@ -156,13 +158,13 @@ func TestLoadFrom_NotFound(t *testing.T) {
 func TestScore(t *testing.T) {
 	tests := []struct {
 		name    string
-		entry   HistoryEntry
+		entry   frecency.HistoryEntry
 		wantMin float64
 		wantMax float64
 	}{
 		{
 			name: "recent high frequency",
-			entry: HistoryEntry{
+			entry: frecency.HistoryEntry{
 				RunCount:  10,
 				LastRunAt: time.Now().Add(-30 * time.Minute),
 			},
@@ -171,7 +173,7 @@ func TestScore(t *testing.T) {
 		},
 		{
 			name: "old low frequency",
-			entry: HistoryEntry{
+			entry: frecency.HistoryEntry{
 				RunCount:  1,
 				LastRunAt: time.Now().Add(-30 * 24 * time.Hour),
 			},
@@ -180,7 +182,7 @@ func TestScore(t *testing.T) {
 		},
 		{
 			name: "today medium frequency",
-			entry: HistoryEntry{
+			entry: frecency.HistoryEntry{
 				RunCount:  5,
 				LastRunAt: time.Now().Add(-6 * time.Hour),
 			},
@@ -191,9 +193,9 @@ func TestScore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			score := Score(tt.entry)
+			score := frecency.Score(tt.entry)
 			if score < tt.wantMin || score > tt.wantMax {
-				t.Errorf("Score() = %v, want between %v and %v", score, tt.wantMin, tt.wantMax)
+				t.Errorf("frecency.Score() = %v, want between %v and %v", score, tt.wantMin, tt.wantMax)
 			}
 		})
 	}
@@ -201,13 +203,13 @@ func TestScore(t *testing.T) {
 
 func TestSortByFrecency(t *testing.T) {
 	now := time.Now()
-	entries := []HistoryEntry{
+	entries := []frecency.HistoryEntry{
 		{Workflow: "low", RunCount: 1, LastRunAt: now.Add(-30 * 24 * time.Hour)},
 		{Workflow: "high", RunCount: 10, LastRunAt: now.Add(-1 * time.Hour)},
 		{Workflow: "medium", RunCount: 5, LastRunAt: now.Add(-6 * time.Hour)},
 	}
 
-	SortByFrecency(entries)
+	frecency.SortByFrecency(entries)
 
 	if entries[0].Workflow != "high" {
 		t.Errorf("expected 'high' first, got %q", entries[0].Workflow)

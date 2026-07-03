@@ -16,7 +16,10 @@ func CachePath() string {
 		newPath = filepath.Join(xdg, "lazydispatch", "history.json")
 		oldPath = filepath.Join(xdg, "gh-wfd", "history.json")
 	} else {
-		home, _ := os.UserHomeDir()
+		home, err := os.UserHomeDir()
+		if err != nil {
+			home = ""
+		}
 		newPath = filepath.Join(home, ".cache", "lazydispatch", "history.json")
 		oldPath = filepath.Join(home, ".cache", "gh-wfd", "history.json")
 	}
@@ -28,6 +31,7 @@ func CachePath() string {
 			if err := os.MkdirAll(filepath.Dir(newPath), 0o755); err == nil {
 				// Copy old history to new location
 				if data, err := os.ReadFile(oldPath); err == nil {
+					//nolint:errcheck // best-effort cache migration; CachePath has no error return to propagate a failure to
 					_ = os.WriteFile(newPath, data, 0o644)
 				}
 			}

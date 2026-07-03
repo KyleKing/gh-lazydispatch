@@ -76,6 +76,7 @@ func (m *ChainConfirmModal) resolveSteps() {
 	}
 
 	for i, step := range m.chain.Steps {
+		//nolint:errcheck // preview-only: unresolved templates simply pass through as literal text
 		inputs, _ := chain.InterpolateInputs(step.Inputs, ctx)
 
 		cfg := runner.RunConfig{

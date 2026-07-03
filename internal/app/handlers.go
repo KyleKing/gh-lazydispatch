@@ -385,6 +385,7 @@ func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Mo
 	m.executingChainVariables = variables
 
 	m.history.RecordChain(m.repo, chainName, branch, variables, nil)
+	//nolint:errcheck // best-effort persistence; a failed history write does not block dispatching the chain
 	m.history.Save()
 
 	statusModal := modal.NewChainStatusModalWithCommands(executor.State(), commands, branch)
@@ -406,6 +407,7 @@ func (m Model) buildChainCommands(chainDef *config.Chain, variables map[string]s
 	}
 
 	for i, step := range chainDef.Steps {
+		//nolint:errcheck // preview-only: unresolved templates simply pass through as literal text
 		inputs, _ := chain.InterpolateInputs(step.Inputs, ctx)
 
 		cfg := runner.RunConfig{
@@ -521,14 +523,6 @@ func (m Model) openChainSelectModal() (tea.Model, tea.Cmd) {
 	m.modalStack.Push(modal.NewChainSelectModal(m.wfdConfig))
 
 	return m, nil
-}
-
-func (m Model) openInputModal(index int) (tea.Model, tea.Cmd) {
-	if index >= len(m.inputOrder) {
-		return m, nil
-	}
-
-	return m.openInputModalForName(m.inputOrder[index])
 }
 
 func (m Model) openInputModalForName(name string) (tea.Model, tea.Cmd) {
@@ -735,6 +729,7 @@ func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {
 
 		// Update history with step results
 		m.history.RecordChain(m.repo, m.executingChainName, m.executingChainBranch, m.executingChainVariables, stepResults)
+		//nolint:errcheck // best-effort persistence; a failed history write does not affect the completed chain run
 		m.history.Save()
 
 		// Clear executing chain metadata
@@ -801,6 +796,7 @@ func (m Model) handleValidationErrorResult(msg modal.ValidationErrorResultMsg) (
 
 func (m Model) doExecuteWorkflow(cfg runner.RunConfig) (tea.Model, tea.Cmd) {
 	m.history.Record(m.repo, cfg.Workflow, cfg.Branch, cfg.Inputs)
+	//nolint:errcheck // best-effort persistence; a failed history write does not block dispatching the workflow
 	m.history.Save()
 
 	return m, tea.ExecProcess(exec.Command("gh", runner.BuildArgs(cfg)...), func(err error) tea.Msg {
@@ -839,6 +835,7 @@ func (m Model) copyCommandToClipboard() (tea.Model, tea.Cmd) {
 	}
 
 	cmd := m.buildCLIString()
+	//nolint:errcheck // best-effort clipboard write; no error-surfacing UI hook exists for this action
 	clipboard.WriteAll(cmd)
 
 	return m, nil

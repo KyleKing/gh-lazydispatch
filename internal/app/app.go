@@ -120,9 +120,15 @@ func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string
 		m.watcher = watcher.NewWatcher(ghClient)
 
 		// Initialize log manager
-		cacheDir, _ := os.UserCacheDir()
+		cacheDir, err := os.UserCacheDir()
+		if err != nil {
+			cacheDir = ""
+		}
+
 		logCacheDir := filepath.Join(cacheDir, "lazydispatch", "logs")
 		m.logManager = logs.NewManager(ghClient, logCacheDir)
+
+		//nolint:errcheck // best-effort: New() has no error return; a missing/corrupt cache just starts empty
 		m.logManager.LoadCache()
 	}
 

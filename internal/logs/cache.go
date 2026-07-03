@@ -108,7 +108,8 @@ func (c *Cache) Load() error {
 
 		// Check if expired
 		if time.Since(cacheEntry.CachedAt) > cacheEntry.TTL {
-			os.Remove(path) // Clean up expired entry
+			//nolint:errcheck // best-effort cleanup of an expired entry; a failed remove is harmless
+			os.Remove(path)
 			continue
 		}
 
@@ -131,6 +132,7 @@ func (c *Cache) Clear() error {
 			// Remove from disk
 			filename := c.makeFilename(key)
 			path := filepath.Join(c.cacheDir, filename)
+			//nolint:errcheck // best-effort cleanup of an expired entry; a failed remove is harmless
 			os.Remove(path)
 		}
 	}

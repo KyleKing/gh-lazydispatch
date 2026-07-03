@@ -283,6 +283,7 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 
 	e.watcher.Watch(runID, step.Workflow)
 
+	//nolint:errcheck // best-effort: run URL is optional display info, nil run is handled below
 	run, _ := e.client.GetWorkflowRun(runID)
 	runURL := ""
 

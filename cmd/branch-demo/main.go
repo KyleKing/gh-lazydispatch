@@ -17,7 +17,6 @@ type model struct {
 	height      int
 	result      string
 	done        bool
-	errorMsg    string
 }
 
 func initialModel() model {
@@ -44,7 +43,7 @@ func initialModel() model {
 	}
 }
 
-func (m model) Init() tea.Cmd {
+func (_ model) Init() tea.Cmd {
 	return nil
 }
 
@@ -71,12 +70,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if !m.done {
 		ctx, cmd := m.branchModal.Update(msg)
-		m.branchModal = ctx.(*modal.SimpleBranchModal)
+		if updated, ok := ctx.(*modal.SimpleBranchModal); ok {
+			m.branchModal = updated
+		}
 
 		if m.branchModal.IsDone() {
 			result := m.branchModal.Result()
-			if result != nil {
-				m.result = result.(string)
+			if str, ok := result.(string); ok {
+				m.result = str
 			}
 
 			m.done = true
