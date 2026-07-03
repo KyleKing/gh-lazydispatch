@@ -7,6 +7,8 @@ import (
 )
 
 func TestParse_WithInputs(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`
 name: Deploy
 on:
@@ -67,6 +69,8 @@ on:
 }
 
 func TestParse_SimpleDispatch(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`
 name: Simple
 on: workflow_dispatch
@@ -88,6 +92,8 @@ on: workflow_dispatch
 }
 
 func TestParse_NotDispatchable(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`
 name: CI
 on:
@@ -107,6 +113,8 @@ on:
 }
 
 func TestParse_OnAsList(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`
 name: Multi Trigger
 on: [push, pull_request]
@@ -123,6 +131,8 @@ on: [push, pull_request]
 }
 
 func TestParse_NoName(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`
 on:
   workflow_dispatch:
@@ -146,6 +156,8 @@ on:
 }
 
 func TestWorkflowInput_InputType_Default(t *testing.T) {
+	t.Parallel()
+
 	input := workflow.WorkflowInput{}
 	if input.InputType() != "string" {
 		t.Errorf("expected default type 'string', got %q", input.InputType())
@@ -153,6 +165,8 @@ func TestWorkflowInput_InputType_Default(t *testing.T) {
 }
 
 func TestWorkflowInput_InputType_Explicit(t *testing.T) {
+	t.Parallel()
+
 	input := workflow.WorkflowInput{Type: "boolean"}
 	if input.InputType() != "boolean" {
 		t.Errorf("expected type 'boolean', got %q", input.InputType())

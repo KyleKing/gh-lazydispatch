@@ -10,6 +10,8 @@ import (
 )
 
 func TestDiscover(t *testing.T) {
+	t.Parallel()
+
 	_, currentFile, _, _ := runtime.Caller(0)
 	repoRoot := filepath.Join(filepath.Dir(currentFile), "..", "..", "testdata")
 
@@ -41,6 +43,8 @@ func TestDiscover(t *testing.T) {
 }
 
 func TestDiscover_NonExistentDir(t *testing.T) {
+	t.Parallel()
+
 	workflows, err := workflow.Discover("/nonexistent/path")
 	if err != nil {
 		t.Fatalf("Discover should not error on missing dir: %v", err)
@@ -52,6 +56,8 @@ func TestDiscover_NonExistentDir(t *testing.T) {
 }
 
 func TestDiscover_EmptyDir(t *testing.T) {
+	t.Parallel()
+
 	tmpDir := t.TempDir()
 
 	if err := os.MkdirAll(filepath.Join(tmpDir, ".github", "workflows"), 0o755); err != nil {

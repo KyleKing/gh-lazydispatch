@@ -9,6 +9,8 @@ import (
 )
 
 func TestStore_Record(t *testing.T) {
+	t.Parallel()
+
 	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
@@ -33,6 +35,8 @@ func TestStore_Record(t *testing.T) {
 }
 
 func TestStore_Record_Increment(t *testing.T) {
+	t.Parallel()
+
 	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
@@ -50,6 +54,8 @@ func TestStore_Record_Increment(t *testing.T) {
 }
 
 func TestStore_Record_DifferentInputs(t *testing.T) {
+	t.Parallel()
+
 	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
@@ -62,6 +68,8 @@ func TestStore_Record_DifferentInputs(t *testing.T) {
 }
 
 func TestStore_TopForRepo(t *testing.T) {
+	t.Parallel()
+
 	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", nil)
@@ -80,6 +88,8 @@ func TestStore_TopForRepo(t *testing.T) {
 }
 
 func TestStore_TopForRepo_FilterByWorkflow(t *testing.T) {
+	t.Parallel()
+
 	store := frecency.NewStore()
 
 	store.Record("owner/repo", "deploy.yml", "main", nil)
@@ -96,6 +106,8 @@ func TestStore_TopForRepo_FilterByWorkflow(t *testing.T) {
 }
 
 func TestStore_TopForRepo_Limit(t *testing.T) {
+	t.Parallel()
+
 	store := frecency.NewStore()
 
 	for i := range 10 {
@@ -109,6 +121,8 @@ func TestStore_TopForRepo_Limit(t *testing.T) {
 }
 
 func TestStore_SaveLoad(t *testing.T) {
+	t.Parallel()
+
 	tmpDir := t.TempDir()
 
 	path := filepath.Join(tmpDir, "history.json")
@@ -136,6 +150,8 @@ func TestStore_SaveLoad(t *testing.T) {
 }
 
 func TestLoadFrom_NotFound(t *testing.T) {
+	t.Parallel()
+
 	store, err := frecency.LoadFrom("/nonexistent/path/history.json")
 	if err != nil {
 		t.Fatalf("LoadFrom should not error on missing file: %v", err)
@@ -151,6 +167,8 @@ func TestLoadFrom_NotFound(t *testing.T) {
 }
 
 func TestScore(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		entry   frecency.HistoryEntry
@@ -188,6 +206,8 @@ func TestScore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			score := frecency.Score(tt.entry)
 			if score < tt.wantMin || score > tt.wantMax {
 				t.Errorf("frecency.Score() = %v, want between %v and %v", score, tt.wantMin, tt.wantMax)
@@ -197,6 +217,8 @@ func TestScore(t *testing.T) {
 }
 
 func TestSortByFrecency(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	entries := []frecency.HistoryEntry{
 		{Workflow: "low", RunCount: 1, LastRunAt: now.Add(-30 * 24 * time.Hour)},

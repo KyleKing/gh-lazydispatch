@@ -9,6 +9,8 @@ import (
 )
 
 func TestLogStreamer_detectNewLogs(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		initialState  map[int]int // stepIndex -> lineCount
@@ -86,6 +88,8 @@ func TestLogStreamer_detectNewLogs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			// Make a copy of initial state for verification later
 			initialStateCopy := make(map[int]int)
 			for k, v := range tt.initialState {
@@ -156,6 +160,8 @@ func TestLogStreamer_detectNewLogs(t *testing.T) {
 }
 
 func TestStreamState_NewStreamState(t *testing.T) {
+	t.Parallel()
+
 	state := NewStreamState()
 
 	if state == nil {
@@ -172,6 +178,8 @@ func TestStreamState_NewStreamState(t *testing.T) {
 }
 
 func TestLogStreamer_Creation(t *testing.T) {
+	t.Parallel()
+
 	// Create a simple mock client
 	client := &mockGitHubClient{}
 
@@ -227,6 +235,8 @@ func findStepByIndex(steps []*StepLogs, index int) *StepLogs {
 }
 
 func TestLogStreamer_StartStop(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("skipping streamer test in short mode")
 	}
@@ -255,6 +265,8 @@ func TestLogStreamer_StartStop(t *testing.T) {
 }
 
 func TestLogStreamer_PollingBehavior(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("skipping polling test in short mode")
 	}
@@ -288,6 +300,8 @@ loop:
 }
 
 func TestLogStreamer_RunCompletion(t *testing.T) {
+	t.Parallel()
+
 	client := &completedRunMockClient{}
 	streamer := NewLogStreamer(client, 12345, "test.yml")
 
@@ -319,6 +333,8 @@ func TestLogStreamer_RunCompletion(t *testing.T) {
 }
 
 func TestLogStreamer_ErrorHandling(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		client GitHubClient
@@ -335,6 +351,8 @@ func TestLogStreamer_ErrorHandling(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			streamer := NewLogStreamer(tt.client, 12345, "test.yml")
 			streamer.Start()
 			defer streamer.Stop()
@@ -353,6 +371,8 @@ func TestLogStreamer_ErrorHandling(t *testing.T) {
 }
 
 func TestLogStreamer_ChannelFull(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("skipping channel full test in short mode")
 	}
@@ -381,6 +401,8 @@ func TestLogStreamer_ChannelFull(t *testing.T) {
 }
 
 func TestLogStreamer_ConcurrentStop(t *testing.T) {
+	t.Parallel()
+
 	client := &mockGitHubClient{}
 	streamer := NewLogStreamer(client, 12345, "test.yml")
 

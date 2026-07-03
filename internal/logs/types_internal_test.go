@@ -7,6 +7,8 @@ import (
 )
 
 func TestRunLogs_NewRunLogs(t *testing.T) {
+	t.Parallel()
+
 	rl := NewRunLogs("test-chain", "main")
 
 	if rl == nil {
@@ -31,6 +33,8 @@ func TestRunLogs_NewRunLogs(t *testing.T) {
 }
 
 func TestRunLogs_AddStep(t *testing.T) {
+	t.Parallel()
+
 	rl := NewRunLogs("test", "main")
 
 	step1 := &StepLogs{
@@ -61,6 +65,8 @@ func TestRunLogs_AddStep(t *testing.T) {
 }
 
 func TestRunLogs_GetStep(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		idx     int
@@ -78,6 +84,8 @@ func TestRunLogs_GetStep(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			step := rl.GetStep(tt.idx)
 			if (step == nil) != tt.wantNil {
 				t.Errorf("got nil=%v, want nil=%v", step == nil, tt.wantNil)
@@ -87,6 +95,8 @@ func TestRunLogs_GetStep(t *testing.T) {
 }
 
 func TestRunLogs_AllSteps(t *testing.T) {
+	t.Parallel()
+
 	rl := NewRunLogs("test", "main")
 	step1 := &StepLogs{StepName: "checkout"}
 	step2 := &StepLogs{StepName: "build"}
@@ -112,6 +122,8 @@ func TestRunLogs_AllSteps(t *testing.T) {
 }
 
 func TestRunLogs_ConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
 	rl := NewRunLogs("test", "main")
 
 	// Launch multiple goroutines adding steps concurrently
@@ -160,6 +172,8 @@ func TestRunLogs_ConcurrentAccess(t *testing.T) {
 }
 
 func TestFilterConfig_NewFilterConfig(t *testing.T) {
+	t.Parallel()
+
 	config := NewFilterConfig()
 
 	if config == nil {
@@ -188,6 +202,8 @@ func TestFilterConfig_NewFilterConfig(t *testing.T) {
 }
 
 func TestLogLevel_Constants(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		level LogLevel
@@ -202,6 +218,8 @@ func TestLogLevel_Constants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			if string(tt.level) != tt.want {
 				t.Errorf("got %q, want %q", tt.level, tt.want)
 			}
@@ -210,6 +228,8 @@ func TestLogLevel_Constants(t *testing.T) {
 }
 
 func TestLogEntry_Creation(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	entry := LogEntry{
 		Timestamp: now,
@@ -236,6 +256,8 @@ func TestLogEntry_Creation(t *testing.T) {
 }
 
 func TestStepLogs_Creation(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	entries := []LogEntry{
 		{Content: "line 1", Level: LogLevelInfo},
@@ -273,6 +295,8 @@ func TestStepLogs_Creation(t *testing.T) {
 }
 
 func TestFilterLevel_Constants(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		level FilterLevel
@@ -286,6 +310,8 @@ func TestFilterLevel_Constants(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			if string(tt.level) != tt.want {
 				t.Errorf("got %q, want %q", tt.level, tt.want)
 			}

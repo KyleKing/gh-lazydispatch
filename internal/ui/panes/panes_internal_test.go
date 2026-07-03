@@ -69,6 +69,8 @@ func testManyInputsWorkflow() workflow.WorkflowFile {
 }
 
 func TestWorkflowModel_SelectedWorkflow(t *testing.T) {
+	t.Parallel()
+
 	m := NewWorkflowModel(testWorkflows())
 	m.SetSize(40, 20)
 
@@ -83,6 +85,8 @@ func TestWorkflowModel_SelectedWorkflow(t *testing.T) {
 }
 
 func TestWorkflowItem_FilterValue(t *testing.T) {
+	t.Parallel()
+
 	wf := workflow.WorkflowFile{Name: "Deploy", Filename: "deploy.yml"}
 	item := WorkflowItem{workflow: wf}
 
@@ -93,6 +97,8 @@ func TestWorkflowItem_FilterValue(t *testing.T) {
 }
 
 func TestHistoryModel_SetEntries(t *testing.T) {
+	t.Parallel()
+
 	m := NewHistoryModel()
 	m.SetSize(60, 20)
 
@@ -114,6 +120,8 @@ func TestHistoryModel_SetEntries(t *testing.T) {
 }
 
 func TestConfigModel_SetWorkflow(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 	m.SetSize(80, 20)
 
@@ -132,6 +140,8 @@ func TestConfigModel_SetWorkflow(t *testing.T) {
 }
 
 func TestConfigModel_BuildCommand(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 	wfs := testWorkflows()
 	m.SetWorkflow(&wfs[0])
@@ -170,6 +180,8 @@ func TestConfigModel_BuildCommand(t *testing.T) {
 }
 
 func TestConfigModel_ToggleWatchRun(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 
 	if m.WatchRun() {
@@ -190,6 +202,8 @@ func TestConfigModel_ToggleWatchRun(t *testing.T) {
 }
 
 func TestConfigModel_SelectUpDown_Boundaries(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 	m.SetSize(80, 30)
 
@@ -229,6 +243,8 @@ func TestConfigModel_SelectUpDown_Boundaries(t *testing.T) {
 }
 
 func TestConfigModel_SetFilter_FuzzyMatching(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		filter         string
@@ -263,6 +279,8 @@ func TestConfigModel_SetFilter_FuzzyMatching(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			m := NewConfigModel()
 			m.SetSize(80, 30)
 
@@ -290,6 +308,8 @@ func TestConfigModel_SetFilter_FuzzyMatching(t *testing.T) {
 }
 
 func TestConfigModel_GetModifiedInputs(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 	wfs := testWorkflows()
 	m.SetWorkflow(&wfs[0])
@@ -319,6 +339,8 @@ func TestConfigModel_GetModifiedInputs(t *testing.T) {
 }
 
 func TestConfigModel_BuildCommand_EdgeCases(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		setupFunc    func(*ConfigModel)
@@ -357,6 +379,8 @@ func TestConfigModel_BuildCommand_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			m := NewConfigModel()
 			wfs := testWorkflows()
 			m.SetWorkflow(&wfs[0])
@@ -397,6 +421,8 @@ func TestConfigModel_BuildCommand_EdgeCases(t *testing.T) {
 }
 
 func TestConfigModel_SetInputs_Nil(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 	wfs := testWorkflows()
 	m.SetWorkflow(&wfs[0])
@@ -410,6 +436,8 @@ func TestConfigModel_SetInputs_Nil(t *testing.T) {
 }
 
 func TestConfigModel_SelectedInput_EdgeCases(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 	m.SetSize(80, 30)
 
@@ -435,11 +463,15 @@ func TestConfigModel_SelectedInput_EdgeCases(t *testing.T) {
 }
 
 func TestConfigModel_ResetAllInputs_NoWorkflow(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 	m.ResetAllInputs()
 }
 
 func TestConfigModel_View_NoWorkflow(t *testing.T) {
+	t.Parallel()
+
 	m := NewConfigModel()
 	m.SetSize(80, 30)
 	m.SetFocused(true)
@@ -451,6 +483,8 @@ func TestConfigModel_View_NoWorkflow(t *testing.T) {
 }
 
 func TestFormatTimeAgo(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	tests := []struct {
 		name     string
@@ -501,6 +535,8 @@ func TestFormatTimeAgo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			testTime := now.Add(-tt.timeAgo)
 
 			result := formatTimeAgo(testTime)
@@ -512,6 +548,8 @@ func TestFormatTimeAgo(t *testing.T) {
 }
 
 func TestHistoryModel_SetEntries_Empty(t *testing.T) {
+	t.Parallel()
+
 	m := NewHistoryModel()
 	m.SetSize(60, 20)
 
@@ -523,6 +561,8 @@ func TestHistoryModel_SetEntries_Empty(t *testing.T) {
 }
 
 func TestWorkflowItem_Title_NoName(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		wf          workflow.WorkflowFile
@@ -551,6 +591,8 @@ func TestWorkflowItem_Title_NoName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			item := WorkflowItem{workflow: tt.wf}
 
 			title := item.Title()
@@ -567,6 +609,8 @@ func TestWorkflowItem_Title_NoName(t *testing.T) {
 }
 
 func TestWorkflowModel_SelectedWorkflow_EmptyList(t *testing.T) {
+	t.Parallel()
+
 	m := NewWorkflowModel([]workflow.WorkflowFile{})
 	m.SetSize(40, 20)
 
@@ -589,6 +633,8 @@ func findSubstring(s, substr string) bool {
 // --- TabbedRightModel Tests ---
 
 func TestTabbedRightModel_Creation(t *testing.T) {
+	t.Parallel()
+
 	m := NewTabbedRight()
 
 	if m.ActiveTab() != TabHistory {
@@ -597,6 +643,8 @@ func TestTabbedRightModel_Creation(t *testing.T) {
 }
 
 func TestTabbedRightModel_TabSwitching(t *testing.T) {
+	t.Parallel()
+
 	m := NewTabbedRight()
 	m.SetSize(80, 24)
 	m.SetFocused(true)
@@ -631,6 +679,8 @@ func TestTabbedRightModel_TabSwitching(t *testing.T) {
 }
 
 func TestTabbedRightModel_SetSize(t *testing.T) {
+	t.Parallel()
+
 	m := NewTabbedRight()
 	m.SetSize(100, 30)
 
@@ -641,6 +691,8 @@ func TestTabbedRightModel_SetSize(t *testing.T) {
 }
 
 func TestTabbedRightModel_SetHistoryEntries(t *testing.T) {
+	t.Parallel()
+
 	m := NewTabbedRight()
 	m.SetSize(80, 24)
 
@@ -661,6 +713,8 @@ func TestTabbedRightModel_SetHistoryEntries(t *testing.T) {
 }
 
 func TestTabbedRightModel_SetChains(t *testing.T) {
+	t.Parallel()
+
 	m := NewTabbedRight()
 	m.SetSize(80, 24)
 
@@ -689,6 +743,8 @@ func TestTabbedRightModel_SetChains(t *testing.T) {
 }
 
 func TestTabbedRightModel_ViewRendering(t *testing.T) {
+	t.Parallel()
+
 	m := NewTabbedRight()
 	m.SetSize(80, 24)
 	m.SetFocused(true)
@@ -710,6 +766,8 @@ func TestTabbedRightModel_ViewRendering(t *testing.T) {
 // --- LiveRunsModel Tests ---
 
 func TestLiveRunsModel_Creation(t *testing.T) {
+	t.Parallel()
+
 	m := NewLiveRunsModel()
 
 	if m.RunCount() != 0 {
@@ -723,6 +781,8 @@ func TestLiveRunsModel_Creation(t *testing.T) {
 }
 
 func TestLiveRunsModel_SetRuns(t *testing.T) {
+	t.Parallel()
+
 	m := NewLiveRunsModel()
 	m.SetSize(80, 24)
 
@@ -748,6 +808,8 @@ func TestLiveRunsModel_SetRuns(t *testing.T) {
 }
 
 func TestLiveRunsModel_Navigation(t *testing.T) {
+	t.Parallel()
+
 	m := NewLiveRunsModel()
 	m.SetSize(80, 24)
 
@@ -795,6 +857,8 @@ func TestLiveRunsModel_Navigation(t *testing.T) {
 }
 
 func TestLiveRunsModel_SetRunsAdjustsSelection(t *testing.T) {
+	t.Parallel()
+
 	m := NewLiveRunsModel()
 
 	runs := []watcher.WatchedRun{
@@ -812,6 +876,8 @@ func TestLiveRunsModel_SetRunsAdjustsSelection(t *testing.T) {
 }
 
 func TestLiveRunsModel_ActiveCount(t *testing.T) {
+	t.Parallel()
+
 	m := NewLiveRunsModel()
 
 	runs := []watcher.WatchedRun{
@@ -827,6 +893,8 @@ func TestLiveRunsModel_ActiveCount(t *testing.T) {
 }
 
 func TestLiveRunsModel_ViewEmpty(t *testing.T) {
+	t.Parallel()
+
 	m := NewLiveRunsModel()
 	m.SetSize(80, 24)
 
@@ -837,6 +905,8 @@ func TestLiveRunsModel_ViewEmpty(t *testing.T) {
 }
 
 func TestLiveRunsModel_ViewWithRuns(t *testing.T) {
+	t.Parallel()
+
 	m := NewLiveRunsModel()
 	m.SetSize(80, 24)
 
@@ -852,6 +922,8 @@ func TestLiveRunsModel_ViewWithRuns(t *testing.T) {
 }
 
 func TestRunStatusIcon(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		status     string
 		conclusion string
@@ -868,6 +940,8 @@ func TestRunStatusIcon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.status+"_"+tt.conclusion, func(t *testing.T) {
+			t.Parallel()
+
 			got := runStatusIcon(tt.status, tt.conclusion)
 			if got != tt.expected {
 				t.Errorf("runStatusIcon(%q, %q) = %q, want %q", tt.status, tt.conclusion, got, tt.expected)
@@ -879,6 +953,8 @@ func TestRunStatusIcon(t *testing.T) {
 // --- ChainListModel Tests ---
 
 func TestChainListModel_Creation(t *testing.T) {
+	t.Parallel()
+
 	m := NewChainListModel()
 
 	_, _, ok := m.SelectedChain()
@@ -888,6 +964,8 @@ func TestChainListModel_Creation(t *testing.T) {
 }
 
 func TestChainListModel_SetChains(t *testing.T) {
+	t.Parallel()
+
 	m := NewChainListModel()
 	m.SetSize(80, 24)
 
@@ -910,6 +988,8 @@ func TestChainListModel_SetChains(t *testing.T) {
 }
 
 func TestChainListModel_Navigation(t *testing.T) {
+	t.Parallel()
+
 	m := NewChainListModel()
 	m.SetSize(80, 24)
 
@@ -963,6 +1043,8 @@ func TestChainListModel_Navigation(t *testing.T) {
 }
 
 func TestChainListModel_ViewEmpty(t *testing.T) {
+	t.Parallel()
+
 	m := NewChainListModel()
 	m.SetSize(80, 24)
 
@@ -973,6 +1055,8 @@ func TestChainListModel_ViewEmpty(t *testing.T) {
 }
 
 func TestChainListModel_ViewWithChains(t *testing.T) {
+	t.Parallel()
+
 	m := NewChainListModel()
 	m.SetSize(80, 24)
 
@@ -996,6 +1080,8 @@ func TestChainListModel_ViewWithChains(t *testing.T) {
 }
 
 func TestChainListModel_FocusState(t *testing.T) {
+	t.Parallel()
+
 	m := NewChainListModel()
 	m.SetFocused(true)
 

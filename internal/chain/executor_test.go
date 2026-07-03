@@ -12,6 +12,8 @@ import (
 )
 
 func TestNewExecutor(t *testing.T) {
+	t.Parallel()
+
 	client := testutil.NewMockGitHubClient()
 	w := testutil.NewMockRunWatcher()
 	chainDef := &config.Chain{
@@ -43,6 +45,10 @@ func TestNewExecutor(t *testing.T) {
 	}
 }
 
+// TestChainExecutor_Stop mutates the package-level runner.SetExecutor mock,
+// so it cannot run concurrently with other tests that do the same.
+//
+//nolint:paralleltest
 func TestChainExecutor_Stop(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 	runner.SetExecutor(mockExec)
@@ -68,6 +74,8 @@ func TestChainExecutor_Stop(t *testing.T) {
 }
 
 func TestChainExecutor_DoubleStop(t *testing.T) {
+	t.Parallel()
+
 	client := testutil.NewMockGitHubClient()
 	w := testutil.NewMockRunWatcher()
 	chainDef := &config.Chain{
@@ -83,6 +91,8 @@ func TestChainExecutor_DoubleStop(t *testing.T) {
 // Kept here: unit tests for specific initialization and state functionality.
 
 func TestNewExecutorFromHistory(t *testing.T) {
+	t.Parallel()
+
 	client := testutil.NewMockGitHubClient()
 	w := testutil.NewMockRunWatcher()
 	chainDef := &config.Chain{

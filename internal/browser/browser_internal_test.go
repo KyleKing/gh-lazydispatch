@@ -16,6 +16,7 @@ func (m *mockCmd) Start() error {
 	return m.err
 }
 
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
 func TestOpen(t *testing.T) {
 	// Save original and restore after test
 	originalExecCommand := execCommand
@@ -65,6 +66,7 @@ func TestOpen(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
 func TestOpen_InvalidURL(t *testing.T) {
 	originalExecCommand := execCommand
 	defer func() { execCommand = originalExecCommand }()
@@ -99,6 +101,7 @@ func TestOpen_InvalidURL(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
 func TestOpen_Darwin(t *testing.T) {
 	if runtime.GOOS != "darwin" {
 		t.Skip("skipping macOS-specific test")
@@ -133,6 +136,7 @@ func TestOpen_Darwin(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
 func TestOpen_Linux(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("skipping Linux-specific test")
@@ -167,6 +171,7 @@ func TestOpen_Linux(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
 func TestOpen_Windows(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("skipping Windows-specific test")
@@ -208,6 +213,7 @@ func TestOpen_Windows(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
 func TestOpen_EmptyURL(t *testing.T) {
 	originalExecCommand := execCommand
 	defer func() { execCommand = originalExecCommand }()

@@ -7,6 +7,8 @@ import (
 )
 
 func TestInterpolate_VarInputs(t *testing.T) {
+	t.Parallel()
+
 	ctx := &chain.InterpolationContext{
 		Var: map[string]string{
 			"version": "1.0.0",
@@ -27,6 +29,8 @@ func TestInterpolate_VarInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result, err := chain.Interpolate(tt.template, ctx)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -40,6 +44,8 @@ func TestInterpolate_VarInputs(t *testing.T) {
 }
 
 func TestInterpolate_PreviousStep(t *testing.T) {
+	t.Parallel()
+
 	ctx := &chain.InterpolationContext{
 		Previous: &chain.StepResult{
 			Workflow: "build.yml",
@@ -62,6 +68,8 @@ func TestInterpolate_PreviousStep(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result, err := chain.Interpolate(tt.template, ctx)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -75,6 +83,8 @@ func TestInterpolate_PreviousStep(t *testing.T) {
 }
 
 func TestInterpolate_StepsByIndex(t *testing.T) {
+	t.Parallel()
+
 	ctx := &chain.InterpolationContext{
 		Steps: map[int]*chain.StepResult{
 			0: {
@@ -101,6 +111,8 @@ func TestInterpolate_StepsByIndex(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result, err := chain.Interpolate(tt.template, ctx)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -114,6 +126,8 @@ func TestInterpolate_StepsByIndex(t *testing.T) {
 }
 
 func TestInterpolate_MissingKey(t *testing.T) {
+	t.Parallel()
+
 	ctx := &chain.InterpolationContext{
 		Var: map[string]string{"key": "value"},
 	}
@@ -131,6 +145,8 @@ func TestInterpolate_MissingKey(t *testing.T) {
 }
 
 func TestInterpolate_NilContext(t *testing.T) {
+	t.Parallel()
+
 	template := "{{ var.key }}"
 
 	result, err := chain.Interpolate(template, nil)
@@ -144,6 +160,8 @@ func TestInterpolate_NilContext(t *testing.T) {
 }
 
 func TestInterpolateInputs(t *testing.T) {
+	t.Parallel()
+
 	ctx := &chain.InterpolationContext{
 		Var: map[string]string{
 			"version": "1.0.0",

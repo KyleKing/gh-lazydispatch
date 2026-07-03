@@ -5,6 +5,8 @@ import (
 )
 
 func TestPadRight(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		input  string
@@ -20,6 +22,8 @@ func TestPadRight(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := _padRight(tt.input, tt.length)
 			if got != tt.want {
 				t.Errorf("_padRight(%q, %d) = %q, want %q", tt.input, tt.length, got, tt.want)
@@ -29,6 +33,8 @@ func TestPadRight(t *testing.T) {
 }
 
 func TestFormatRowNumber(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		index int
 		want  string
@@ -50,6 +56,8 @@ func TestFormatRowNumber(t *testing.T) {
 }
 
 func TestContains(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		slice []string
@@ -65,6 +73,8 @@ func TestContains(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := _contains(tt.slice, tt.item)
 			if got != tt.want {
 				t.Errorf("_contains(%v, %q) = %v, want %v", tt.slice, tt.item, got, tt.want)
@@ -74,6 +84,8 @@ func TestContains(t *testing.T) {
 }
 
 func TestWordWrap(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		text  string
@@ -126,6 +138,8 @@ func TestWordWrap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := _wordWrap(tt.text, tt.width)
 			if got != tt.want {
 				t.Errorf("_wordWrap(%q, %d) = %q, want %q", tt.text, tt.width, got, tt.want)

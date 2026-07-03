@@ -9,6 +9,8 @@ import (
 )
 
 func TestStack_PushPop(t *testing.T) {
+	t.Parallel()
+
 	stack := NewStack()
 
 	if stack.HasActive() {
@@ -33,6 +35,8 @@ func TestStack_PushPop(t *testing.T) {
 }
 
 func TestStack_Current(t *testing.T) {
+	t.Parallel()
+
 	stack := NewStack()
 
 	if stack.Current() != nil {
@@ -58,6 +62,8 @@ func TestStack_Current(t *testing.T) {
 }
 
 func TestSelectModal_Navigation(t *testing.T) {
+	t.Parallel()
+
 	modal := NewSelectModal("Test", []string{"a", "b", "c"}, "a", "a")
 
 	if modal.selected != 0 {
@@ -80,6 +86,8 @@ func TestSelectModal_Navigation(t *testing.T) {
 }
 
 func TestSelectModal_Select(t *testing.T) {
+	t.Parallel()
+
 	modal := NewSelectModal("Test", []string{"a", "b", "c"}, "b", "a")
 
 	if modal.selected != 1 {
@@ -99,6 +107,8 @@ func TestSelectModal_Select(t *testing.T) {
 }
 
 func TestSelectModal_Escape(t *testing.T) {
+	t.Parallel()
+
 	modal := NewSelectModal("Test", []string{"a", "b"}, "a", "a")
 
 	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
@@ -114,6 +124,8 @@ func TestSelectModal_Escape(t *testing.T) {
 }
 
 func TestInputModal_Enter(t *testing.T) {
+	t.Parallel()
+
 	modal := NewInputModal("Title", "Description", "default", "string", "initial", nil, nil)
 
 	if modal.input.Value() != "initial" {
@@ -133,6 +145,8 @@ func TestInputModal_Enter(t *testing.T) {
 }
 
 func TestInputModal_Escape(t *testing.T) {
+	t.Parallel()
+
 	modal := NewInputModal("Title", "", "", "", "value", nil, nil)
 
 	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
@@ -144,6 +158,8 @@ func TestInputModal_Escape(t *testing.T) {
 }
 
 func TestConfirmModal_Navigation(t *testing.T) {
+	t.Parallel()
+
 	modal := NewConfirmModal("Confirm?", "", true, true)
 
 	if !modal.selected {
@@ -166,6 +182,8 @@ func TestConfirmModal_Navigation(t *testing.T) {
 }
 
 func TestConfirmModal_QuickKeys(t *testing.T) {
+	t.Parallel()
+
 	modal := NewConfirmModal("Confirm?", "", false, false)
 
 	y := tea.KeyPressMsg{Code: 'y', Text: "y"}
@@ -181,6 +199,8 @@ func TestConfirmModal_QuickKeys(t *testing.T) {
 }
 
 func TestConfirmModal_QuickNo(t *testing.T) {
+	t.Parallel()
+
 	modal := NewConfirmModal("Confirm?", "", true, true)
 
 	n := tea.KeyPressMsg{Code: 'n', Text: "n"}
@@ -196,6 +216,8 @@ func TestConfirmModal_QuickNo(t *testing.T) {
 }
 
 func TestConfirmModal_View(t *testing.T) {
+	t.Parallel()
+
 	modal := NewConfirmModal("Delete file?", "This cannot be undone", true, true)
 
 	view := modal.View()
@@ -205,6 +227,8 @@ func TestConfirmModal_View(t *testing.T) {
 }
 
 func TestRunConfirmModal_Confirm(t *testing.T) {
+	t.Parallel()
+
 	cfg := runner.RunConfig{
 		Workflow: "test.yml",
 		Branch:   "main",
@@ -236,6 +260,8 @@ func TestRunConfirmModal_Confirm(t *testing.T) {
 }
 
 func TestRunConfirmModal_Cancel(t *testing.T) {
+	t.Parallel()
+
 	cfg := runner.RunConfig{Workflow: "test.yml"}
 	modal := NewRunConfirmModal(cfg)
 
@@ -257,6 +283,8 @@ func TestRunConfirmModal_Cancel(t *testing.T) {
 }
 
 func TestFilterModal_ApplyFilter(t *testing.T) {
+	t.Parallel()
+
 	items := []string{"environment", "debug", "verbose"}
 	modal := NewFilterModal("Filter", items, "")
 
@@ -294,6 +322,8 @@ func TestFilterModal_ApplyFilter(t *testing.T) {
 }
 
 func TestFilterModal_Cancel(t *testing.T) {
+	t.Parallel()
+
 	items := []string{"a", "b"}
 	modal := NewFilterModal("Filter", items, "initial")
 
@@ -321,6 +351,8 @@ func TestFilterModal_Cancel(t *testing.T) {
 }
 
 func TestResetModal_Confirm(t *testing.T) {
+	t.Parallel()
+
 	diffs := []ResetDiff{
 		{Name: "env", Current: "prod", Default: "staging"},
 		{Name: "debug", Current: "true", Default: "false"},
@@ -351,6 +383,8 @@ func TestResetModal_Confirm(t *testing.T) {
 }
 
 func TestResetModal_Cancel(t *testing.T) {
+	t.Parallel()
+
 	diffs := []ResetDiff{{Name: "a", Current: "b", Default: "c"}}
 	modal := NewResetModal(diffs)
 
@@ -378,6 +412,8 @@ func TestResetModal_Cancel(t *testing.T) {
 }
 
 func TestHelpModal(t *testing.T) {
+	t.Parallel()
+
 	modal := NewHelpModal()
 
 	if modal.IsDone() {
@@ -393,6 +429,8 @@ func TestHelpModal(t *testing.T) {
 }
 
 func TestValidationErrorModal_Override(t *testing.T) {
+	t.Parallel()
+
 	errors := map[string][]string{
 		"env": {"must not be empty"},
 	}
@@ -422,6 +460,8 @@ func TestValidationErrorModal_Override(t *testing.T) {
 }
 
 func TestValidationErrorModal_Cancel(t *testing.T) {
+	t.Parallel()
+
 	errors := map[string][]string{"a": {"error"}}
 	modal := NewValidationErrorModal(errors)
 

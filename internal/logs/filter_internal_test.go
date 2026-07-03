@@ -5,6 +5,8 @@ import (
 )
 
 func TestFilter_NewFilter(t *testing.T) {
+	t.Parallel()
+
 	config := &FilterConfig{
 		Level:         FilterAll,
 		SearchTerm:    "",
@@ -28,6 +30,8 @@ func TestFilter_NewFilter(t *testing.T) {
 }
 
 func TestFilter_NewFilterWithRegex(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		pattern       string
@@ -42,6 +46,8 @@ func TestFilter_NewFilterWithRegex(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			config := &FilterConfig{
 				Level:         FilterAll,
 				SearchTerm:    tt.pattern,
@@ -66,6 +72,8 @@ func TestFilter_NewFilterWithRegex(t *testing.T) {
 }
 
 func TestFilter_ApplyByLevel(t *testing.T) {
+	t.Parallel()
+
 	runLogs := NewRunLogs("test", "main")
 	runLogs.AddStep(&StepLogs{
 		StepIndex: 0,
@@ -90,6 +98,8 @@ func TestFilter_ApplyByLevel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			config := &FilterConfig{
 				Level:      tt.level,
 				SearchTerm: "",
@@ -110,6 +120,8 @@ func TestFilter_ApplyByLevel(t *testing.T) {
 }
 
 func TestFilter_SearchTerm(t *testing.T) {
+	t.Parallel()
+
 	runLogs := NewRunLogs("test", "main")
 	runLogs.AddStep(&StepLogs{
 		StepIndex: 0,
@@ -136,6 +148,8 @@ func TestFilter_SearchTerm(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			config := &FilterConfig{
 				Level:         FilterAll,
 				SearchTerm:    tt.searchTerm,
@@ -158,6 +172,8 @@ func TestFilter_SearchTerm(t *testing.T) {
 }
 
 func TestFilter_RegexMatching(t *testing.T) {
+	t.Parallel()
+
 	runLogs := NewRunLogs("test", "main")
 	runLogs.AddStep(&StepLogs{
 		StepIndex: 0,
@@ -185,6 +201,8 @@ func TestFilter_RegexMatching(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			config := &FilterConfig{
 				Level:         FilterAll,
 				SearchTerm:    tt.pattern,
@@ -212,6 +230,8 @@ func TestFilter_RegexMatching(t *testing.T) {
 }
 
 func TestFilter_StepIndexFilter(t *testing.T) {
+	t.Parallel()
+
 	runLogs := NewRunLogs("test", "main")
 	runLogs.AddStep(&StepLogs{
 		StepIndex: 0,
@@ -243,6 +263,8 @@ func TestFilter_StepIndexFilter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			config := &FilterConfig{
 				Level:     FilterAll,
 				StepIndex: tt.stepIndex,
@@ -262,6 +284,8 @@ func TestFilter_StepIndexFilter(t *testing.T) {
 }
 
 func TestFilter_FindMatches(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		searchTerm    string
@@ -281,6 +305,8 @@ func TestFilter_FindMatches(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			config := &FilterConfig{
 				SearchTerm:    tt.searchTerm,
 				Regex:         tt.regex,
@@ -309,6 +335,8 @@ func TestFilter_FindMatches(t *testing.T) {
 }
 
 func TestFilter_EmptyResults(t *testing.T) {
+	t.Parallel()
+
 	runLogs := NewRunLogs("test", "main")
 	runLogs.AddStep(&StepLogs{
 		StepIndex: 0,
@@ -342,6 +370,8 @@ func TestFilter_EmptyResults(t *testing.T) {
 }
 
 func TestFilteredResult_TotalEntries(t *testing.T) {
+	t.Parallel()
+
 	result := &FilteredResult{
 		Steps: []*FilteredStepLogs{
 			{Entries: make([]FilteredLogEntry, 5)},
@@ -359,6 +389,8 @@ func TestFilteredResult_TotalEntries(t *testing.T) {
 }
 
 func TestQuickFilters(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		filterName string
@@ -371,6 +403,8 @@ func TestQuickFilters(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			config, ok := QuickFilters[tt.filterName]
 			if !ok {
 				t.Fatalf("quick filter %q not found", tt.filterName)
@@ -392,6 +426,8 @@ func TestQuickFilters(t *testing.T) {
 }
 
 func TestFilter_MatchPosition(t *testing.T) {
+	t.Parallel()
+
 	config := &FilterConfig{
 		SearchTerm:    "error",
 		CaseSensitive: false,
@@ -424,6 +460,8 @@ func TestFilter_MatchPosition(t *testing.T) {
 }
 
 func TestFilteredLogEntry_Fields(t *testing.T) {
+	t.Parallel()
+
 	original := LogEntry{
 		Content: "test log line",
 		Level:   LogLevelInfo,
@@ -453,6 +491,8 @@ func TestFilteredLogEntry_Fields(t *testing.T) {
 }
 
 func TestFilter_CombinedFilters(t *testing.T) {
+	t.Parallel()
+
 	runLogs := NewRunLogs("test", "main")
 	runLogs.AddStep(&StepLogs{
 		StepIndex: 0,

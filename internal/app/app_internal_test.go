@@ -47,6 +47,8 @@ func testHistory() *frecency.Store {
 }
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	workflows := testWorkflows()
 	history := testHistory()
 
@@ -66,6 +68,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestUpdate_Tab(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	msg := tea.KeyPressMsg{Code: tea.KeyTab}
@@ -92,6 +96,8 @@ func TestUpdate_Tab(t *testing.T) {
 }
 
 func TestUpdate_ShiftTab(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	msg := tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
@@ -104,6 +110,8 @@ func TestUpdate_ShiftTab(t *testing.T) {
 }
 
 func TestUpdate_UpDown_Workflows(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	down := tea.KeyPressMsg{Code: tea.KeyDown}
@@ -124,6 +132,8 @@ func TestUpdate_UpDown_Workflows(t *testing.T) {
 }
 
 func TestUpdate_Watch(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	msg := tea.KeyPressMsg{Code: 'w', Text: "w"}
@@ -143,6 +153,8 @@ func TestUpdate_Watch(t *testing.T) {
 }
 
 func TestUpdate_WindowSize(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	msg := tea.WindowSizeMsg{Width: 120, Height: 40}
@@ -159,6 +171,8 @@ func TestUpdate_WindowSize(t *testing.T) {
 }
 
 func TestView_NotEmpty(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.width = 120
 	m.height = 40
@@ -174,6 +188,8 @@ func TestView_NotEmpty(t *testing.T) {
 }
 
 func TestSelectedWorkflow(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	wf := m.SelectedWorkflow()
@@ -187,6 +203,8 @@ func TestSelectedWorkflow(t *testing.T) {
 }
 
 func TestUpdate_UpDown_History(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.focused = PaneHistory
 
@@ -215,6 +233,8 @@ func TestUpdate_UpDown_History(t *testing.T) {
 }
 
 func TestUpdate_UpDown_Config(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.focused = PaneConfig
 
@@ -240,6 +260,8 @@ func TestUpdate_UpDown_Config(t *testing.T) {
 }
 
 func TestUpdate_Space(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.focused = PaneWorkflows
 
@@ -253,6 +275,8 @@ func TestUpdate_Space(t *testing.T) {
 }
 
 func TestHandleSelectResult(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.pendingInputName = "environment"
 
@@ -269,6 +293,8 @@ func TestHandleSelectResult(t *testing.T) {
 }
 
 func TestHandleBranchResult(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	result, _ := m.handleBranchResult(modal.BranchResultMsg{Value: "feature/test"})
@@ -280,6 +306,8 @@ func TestHandleBranchResult(t *testing.T) {
 }
 
 func TestHandleInputResult(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.pendingInputName = "environment"
 
@@ -296,6 +324,8 @@ func TestHandleInputResult(t *testing.T) {
 }
 
 func TestHandleConfirmResult(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		value bool
@@ -307,6 +337,8 @@ func TestHandleConfirmResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			m := New(testWorkflows(), testHistory(), "owner/repo")
 			m.pendingInputName = "debug"
 
@@ -325,6 +357,8 @@ func TestHandleConfirmResult(t *testing.T) {
 }
 
 func TestHandleFilterResult(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	result, _ := m.handleFilterResult(modal.FilterResultMsg{Value: "env", Cancelled: false})
@@ -340,6 +374,8 @@ func TestHandleFilterResult(t *testing.T) {
 }
 
 func TestHandleFilterResult_Cancelled(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.filterText = "existing"
 
@@ -352,6 +388,8 @@ func TestHandleFilterResult_Cancelled(t *testing.T) {
 }
 
 func TestHandleResetResult(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.inputs["environment"] = "custom"
 
@@ -364,6 +402,8 @@ func TestHandleResetResult(t *testing.T) {
 }
 
 func TestHandleResetResult_Cancelled(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.inputs["environment"] = "custom"
 
@@ -376,6 +416,8 @@ func TestHandleResetResult_Cancelled(t *testing.T) {
 }
 
 func TestBuildCLIString(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		workflow     int
@@ -412,6 +454,8 @@ func TestBuildCLIString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			m := New(testWorkflows(), testHistory(), "owner/repo")
 			m.selectedWorkflow = tt.workflow
 			m.branch = tt.branch
@@ -429,6 +473,8 @@ func TestBuildCLIString(t *testing.T) {
 }
 
 func TestHandleWorkflowKey(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name            string
 		keyNum          int
@@ -468,6 +514,8 @@ func TestHandleWorkflowKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			m := New(testWorkflows(), testHistory(), "owner/repo")
 			m.focused = PaneWorkflows
 
@@ -492,6 +540,8 @@ func TestHandleWorkflowKey(t *testing.T) {
 }
 
 func TestCurrentHistoryEntries(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	entries := m.currentHistoryEntries()
@@ -508,6 +558,8 @@ func TestCurrentHistoryEntries(t *testing.T) {
 }
 
 func TestGetSelectedInputName(t *testing.T) {
+	t.Parallel()
+
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	m.selectedInput = -1

@@ -18,6 +18,8 @@ func waitForOutput(t *testing.T, tm *teatest.TestModel, want string) {
 }
 
 func TestAppBootAndQuit(t *testing.T) {
+	t.Parallel()
+
 	tm := teatest.NewTestModel(t, newRenderModel(), teatest.WithInitialTermSize(120, 40))
 
 	waitForOutput(t, tm, "Deploy")
@@ -27,6 +29,8 @@ func TestAppBootAndQuit(t *testing.T) {
 }
 
 func TestAppTinyTerminalFallback(t *testing.T) {
+	t.Parallel()
+
 	tm := teatest.NewTestModel(t, newRenderModel(), teatest.WithInitialTermSize(40, 10))
 
 	waitForOutput(t, tm, "Terminal too small")
@@ -36,6 +40,8 @@ func TestAppTinyTerminalFallback(t *testing.T) {
 }
 
 func TestAppHelpModalLifecycle(t *testing.T) {
+	t.Parallel()
+
 	tm := teatest.NewTestModel(t, newRenderModel(), teatest.WithInitialTermSize(120, 40))
 
 	waitForOutput(t, tm, "Deploy")

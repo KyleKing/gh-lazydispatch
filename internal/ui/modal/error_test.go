@@ -10,6 +10,8 @@ import (
 )
 
 func TestErrorModal_Display(t *testing.T) {
+	t.Parallel()
+
 	em := modal.NewErrorModal("Test Error", "Something went wrong")
 
 	if em.IsDone() {
@@ -27,6 +29,8 @@ func TestErrorModal_Display(t *testing.T) {
 }
 
 func TestErrorModal_Dismiss(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		key  string
@@ -38,6 +42,8 @@ func TestErrorModal_Dismiss(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			em := modal.NewErrorModal("Error", "Message")
 
 			switch tt.key {
@@ -57,6 +63,8 @@ func TestErrorModal_Dismiss(t *testing.T) {
 }
 
 func TestErrorModal_Result(t *testing.T) {
+	t.Parallel()
+
 	em := modal.NewErrorModal("Error", "Message")
 
 	result := em.Result()
@@ -66,6 +74,8 @@ func TestErrorModal_Result(t *testing.T) {
 }
 
 func TestErrorModal_MultilineMessage(t *testing.T) {
+	t.Parallel()
+
 	em := modal.NewErrorModal("Error", "Line 1\nLine 2\nLine 3")
 
 	view := em.View()

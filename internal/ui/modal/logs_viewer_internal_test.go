@@ -45,6 +45,8 @@ func createTestRunLogs() *logs.RunLogs {
 }
 
 func TestLogsViewerModal_Creation(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -62,6 +64,8 @@ func TestLogsViewerModal_Creation(t *testing.T) {
 }
 
 func TestLogsViewerModal_CreationWithError(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModalWithError(runLogs, 80, 24)
 
@@ -76,6 +80,8 @@ func TestLogsViewerModal_CreationWithError(t *testing.T) {
 }
 
 func TestLogsViewerModal_View(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -92,6 +98,8 @@ func TestLogsViewerModal_View(t *testing.T) {
 }
 
 func TestLogsViewerModal_Close(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -104,6 +112,8 @@ func TestLogsViewerModal_Close(t *testing.T) {
 }
 
 func TestLogsViewerModal_CloseEscape(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -116,6 +126,8 @@ func TestLogsViewerModal_CloseEscape(t *testing.T) {
 }
 
 func TestLogsViewerModal_ToggleFilter(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -130,6 +142,8 @@ func TestLogsViewerModal_ToggleFilter(t *testing.T) {
 }
 
 func TestLogsViewerModal_QuickFilters(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -156,6 +170,8 @@ func TestLogsViewerModal_QuickFilters(t *testing.T) {
 }
 
 func TestLogsViewerModal_SearchMode(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -176,6 +192,8 @@ func TestLogsViewerModal_SearchMode(t *testing.T) {
 }
 
 func TestLogsViewerModal_ToggleCaseSensitivity(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -190,6 +208,8 @@ func TestLogsViewerModal_ToggleCaseSensitivity(t *testing.T) {
 }
 
 func TestLogsViewerModal_Resize(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -206,6 +226,8 @@ func TestLogsViewerModal_Resize(t *testing.T) {
 }
 
 func TestLogsViewerModal_Result(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -217,6 +239,8 @@ func TestLogsViewerModal_Result(t *testing.T) {
 }
 
 func TestLogsViewerModal_CollapseExpand(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 
@@ -240,6 +264,8 @@ func TestLogsViewerModal_CollapseExpand(t *testing.T) {
 }
 
 func TestLogsViewerModal_Streaming(t *testing.T) {
+	t.Parallel()
+
 	runLogs := createTestRunLogs()
 	modal := NewLogsViewerModal(runLogs, 80, 24)
 

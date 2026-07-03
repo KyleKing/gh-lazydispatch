@@ -9,6 +9,8 @@ import (
 )
 
 func TestBuildArgs(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		cfg          RunConfig
@@ -71,6 +73,8 @@ func TestBuildArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			args := BuildArgs(tt.cfg)
 
 			if tt.wantLen > 0 && len(args) != tt.wantLen {
@@ -94,6 +98,8 @@ func TestBuildArgs(t *testing.T) {
 }
 
 func TestFormatCommand(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		args         []string
@@ -128,6 +134,8 @@ func TestFormatCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			cmd := FormatCommand(tt.args)
 
 			if !strings.HasPrefix(cmd, tt.wantPrefix) {
@@ -144,6 +152,8 @@ func TestFormatCommand(t *testing.T) {
 }
 
 func TestDryRun(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		cfg          RunConfig
@@ -181,6 +191,8 @@ func TestDryRun(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			cmd := DryRun(tt.cfg)
 
 			if cmd == "" {
@@ -255,6 +267,8 @@ func (m *mockRepositoryDetector) Current() (Repository, error) {
 }
 
 func TestExecuteWithExecutor(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		cfg            RunConfig
@@ -323,6 +337,8 @@ func TestExecuteWithExecutor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mock := &mockCommandExecutor{
 				errorOnCommand: tt.errorOnCommand,
 				errToReturn:    tt.errToReturn,
@@ -356,6 +372,8 @@ func TestExecuteWithExecutor(t *testing.T) {
 }
 
 func TestExecuteAndGetRunIDWithExecutor(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		cfg            RunConfig
@@ -435,6 +453,8 @@ func TestExecuteAndGetRunIDWithExecutor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mockExec := &mockCommandExecutor{
 				errorOnCommand: tt.errorOnCommand,
 				errToReturn:    errors.New("command failed"),
@@ -458,6 +478,8 @@ func TestExecuteAndGetRunIDWithExecutor(t *testing.T) {
 }
 
 func TestWatchLatestRunWithExecutor(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		workflow    string
@@ -480,6 +502,8 @@ func TestWatchLatestRunWithExecutor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mockExec := &mockCommandExecutor{
 				errorOnCommand: -1,
 			}
@@ -513,6 +537,8 @@ func TestWatchLatestRunWithExecutor(t *testing.T) {
 }
 
 func TestDetectRepoWithDetector(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		mockRepo    Repository
@@ -561,6 +587,8 @@ func TestDetectRepoWithDetector(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mock := &mockRepositoryDetector{
 				repo: tt.mockRepo,
 				err:  tt.mockErr,

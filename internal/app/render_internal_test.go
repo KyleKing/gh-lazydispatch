@@ -118,8 +118,12 @@ var renderSizes = []struct {
 }
 
 func TestViewAtSizes(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range renderSizes {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			m := resize(t, newRenderModel(), tt.width, tt.height)
 
 			content := m.View().Content
@@ -130,6 +134,8 @@ func TestViewAtSizes(t *testing.T) {
 }
 
 func TestModalViewsAtStandardSize(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		open func(t *testing.T, m Model) Model
@@ -164,6 +170,8 @@ func TestModalViewsAtStandardSize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			m := tt.open(t, resize(t, newRenderModel(), 120, 40))
 
 			if !m.modalStack.HasActive() {
@@ -178,6 +186,8 @@ func TestModalViewsAtStandardSize(t *testing.T) {
 }
 
 func TestHelpModalTinyTerminal(t *testing.T) {
+	t.Parallel()
+
 	m := pressRune(t, resize(t, newRenderModel(), 40, 10), '?')
 
 	content := m.View().Content

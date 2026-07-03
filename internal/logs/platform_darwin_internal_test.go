@@ -9,6 +9,8 @@ import (
 )
 
 func TestDarwin_CachePath(t *testing.T) {
+	t.Parallel()
+
 	// Test macOS-specific cache path handling
 	cache := NewCache(t.TempDir())
 
@@ -23,6 +25,8 @@ func TestDarwin_CachePath(t *testing.T) {
 }
 
 func TestDarwin_LogParsing(t *testing.T) {
+	t.Parallel()
+
 	// Test log parsing on macOS
 	rawLogs := "##[group]Test\nINFO: macOS test\n##[endgroup]"
 	entries := ParseLogOutput(rawLogs, "test")
@@ -33,6 +37,8 @@ func TestDarwin_LogParsing(t *testing.T) {
 }
 
 func TestDarwin_FileOperations(t *testing.T) {
+	t.Parallel()
+
 	// Test file operations work correctly on macOS
 	cacheDir := t.TempDir()
 	cache := NewCache(cacheDir)

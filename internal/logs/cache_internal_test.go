@@ -10,6 +10,8 @@ import (
 )
 
 func TestCache_NewCache(t *testing.T) {
+	t.Parallel()
+
 	cacheDir := t.TempDir()
 	cache := NewCache(cacheDir)
 
@@ -27,6 +29,8 @@ func TestCache_NewCache(t *testing.T) {
 }
 
 func TestCache_GetPut(t *testing.T) {
+	t.Parallel()
+
 	cache := NewCache(t.TempDir())
 	runLogs := NewRunLogs("test", "main")
 	runLogs.AddStep(&StepLogs{StepName: "build"})
@@ -57,6 +61,8 @@ func TestCache_GetPut(t *testing.T) {
 }
 
 func TestCache_Expiration(t *testing.T) {
+	t.Parallel()
+
 	cache := NewCache(t.TempDir())
 	runLogs := NewRunLogs("test", "main")
 
@@ -77,6 +83,8 @@ func TestCache_Expiration(t *testing.T) {
 }
 
 func TestCache_Load(t *testing.T) {
+	t.Parallel()
+
 	cacheDir := t.TempDir()
 	cache1 := NewCache(cacheDir)
 
@@ -123,6 +131,8 @@ func TestCache_Load(t *testing.T) {
 }
 
 func TestCache_LoadWithExpiredEntries(t *testing.T) {
+	t.Parallel()
+
 	cacheDir := t.TempDir()
 	cache1 := NewCache(cacheDir)
 
@@ -163,6 +173,8 @@ func TestCache_LoadWithExpiredEntries(t *testing.T) {
 }
 
 func TestCache_Clear(t *testing.T) {
+	t.Parallel()
+
 	cacheDir := t.TempDir()
 	cache := NewCache(cacheDir)
 
@@ -213,6 +225,8 @@ func TestCache_Clear(t *testing.T) {
 }
 
 func TestCache_Stats(t *testing.T) {
+	t.Parallel()
+
 	cache := NewCache(t.TempDir())
 
 	// Initially empty
@@ -261,6 +275,8 @@ func TestCache_Stats(t *testing.T) {
 }
 
 func TestCache_ConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
 	cache := NewCache(t.TempDir())
 
 	const numGoroutines = 10
@@ -306,6 +322,8 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 }
 
 func TestCache_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
 	cacheDir := t.TempDir()
 
 	// Write invalid JSON to cache file
@@ -333,6 +351,8 @@ func TestCache_InvalidJSON(t *testing.T) {
 }
 
 func TestCache_MakeKey(t *testing.T) {
+	t.Parallel()
+
 	cache := NewCache(t.TempDir())
 
 	tests := []struct {
@@ -348,6 +368,8 @@ func TestCache_MakeKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := cache.makeKey(tt.chainName, tt.runID)
 			if got != tt.want {
 				t.Errorf("makeKey: got %q, want %q", got, tt.want)
@@ -357,6 +379,8 @@ func TestCache_MakeKey(t *testing.T) {
 }
 
 func TestCache_GetNonExistent(t *testing.T) {
+	t.Parallel()
+
 	cache := NewCache(t.TempDir())
 
 	// Try to get non-existent entry
@@ -367,6 +391,8 @@ func TestCache_GetNonExistent(t *testing.T) {
 }
 
 func TestCache_PersistEntry(t *testing.T) {
+	t.Parallel()
+
 	cacheDir := t.TempDir()
 	cache := NewCache(cacheDir)
 
@@ -413,6 +439,8 @@ func TestCache_PersistEntry(t *testing.T) {
 }
 
 func TestCacheEntry_Fields(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	runLogs := NewRunLogs("test", "main")
 

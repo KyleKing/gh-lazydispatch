@@ -8,6 +8,8 @@ import (
 )
 
 func TestBranchModalCreation(t *testing.T) {
+	t.Parallel()
+
 	branches := []string{"main", "develop", "feature-1"}
 	current := "develop"
 	defaultBranch := "main"
@@ -28,6 +30,8 @@ func TestBranchModalCreation(t *testing.T) {
 }
 
 func TestBranchModalSetSize(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		terminalWidth  int
@@ -60,6 +64,8 @@ func TestBranchModalSetSize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			modal := NewBranchModal("Test", []string{"main"}, "main")
 			modal.SetSize(tt.terminalWidth, tt.terminalHeight)
 
@@ -80,6 +86,8 @@ func TestBranchModalSetSize(t *testing.T) {
 }
 
 func TestBranchPinning(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		branches      []string
@@ -124,6 +132,8 @@ func TestBranchPinning(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := _pinBranches(tt.branches, tt.current, tt.defaultBranch)
 
 			if len(result) != len(tt.branches) {
@@ -142,6 +152,8 @@ func TestBranchPinning(t *testing.T) {
 }
 
 func TestBranchModalFilterReset(t *testing.T) {
+	t.Parallel()
+
 	branches := []string{"main", "develop", "feature-1", "feature-2"}
 	modal := NewBranchModalWithDefault("Test", branches, "develop", "main")
 
@@ -167,6 +179,8 @@ func TestBranchModalFilterReset(t *testing.T) {
 }
 
 func TestBranchModalView(t *testing.T) {
+	t.Parallel()
+
 	branches := []string{"main", "develop", "feature"}
 	modal := NewBranchModal("Select Branch", branches, "main")
 	modal.SetSize(80, 30)
@@ -184,6 +198,8 @@ func TestBranchModalView(t *testing.T) {
 }
 
 func TestBranchModalKeyHandling(t *testing.T) {
+	t.Parallel()
+
 	branches := []string{"main", "develop", "feature"}
 	modal := NewBranchModal("Test", branches, "main")
 
@@ -214,6 +230,8 @@ func TestBranchModalKeyHandling(t *testing.T) {
 }
 
 func TestBranchModalStylesHaveNoBackground(t *testing.T) {
+	t.Parallel()
+
 	branches := []string{"main", "develop"}
 	modal := NewBranchModalWithDefault("Test", branches, "main", "main")
 

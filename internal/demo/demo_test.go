@@ -9,6 +9,8 @@ import (
 )
 
 func TestNewMockConfig(t *testing.T) {
+	t.Parallel()
+
 	cfg := demo.NewMockConfig()
 
 	if cfg.Owner != "demo-org" {
@@ -25,6 +27,8 @@ func TestNewMockConfig(t *testing.T) {
 }
 
 func TestSetupMockExecutor(t *testing.T) {
+	t.Parallel()
+
 	cfg := demo.NewMockConfig()
 	cfg.SetupMockExecutor()
 
@@ -34,6 +38,8 @@ func TestSetupMockExecutor(t *testing.T) {
 }
 
 func TestMockExecutor_WorkflowRun(t *testing.T) {
+	t.Parallel()
+
 	cfg := demo.NewMockConfig()
 	cfg.SetupMockExecutor()
 
@@ -57,6 +63,8 @@ func TestMockExecutor_WorkflowRun(t *testing.T) {
 }
 
 func TestMockExecutor_RunJobs(t *testing.T) {
+	t.Parallel()
+
 	cfg := demo.NewMockConfig()
 	cfg.SetupMockExecutor()
 
@@ -84,6 +92,8 @@ func TestMockExecutor_RunJobs(t *testing.T) {
 }
 
 func TestDemoWorkflows(t *testing.T) {
+	t.Parallel()
+
 	workflows := demo.DemoWorkflows()
 
 	if len(workflows) != 4 {
@@ -125,6 +135,8 @@ func TestDemoWorkflows(t *testing.T) {
 }
 
 func TestInstallUninstall(t *testing.T) {
+	t.Parallel()
+
 	cfg := demo.NewMockConfig()
 	cfg.SetupMockExecutor()
 

@@ -8,6 +8,8 @@ import (
 )
 
 func TestValidateHistoryConfig(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		entry      *frecency.HistoryEntry
@@ -158,6 +160,8 @@ func TestValidateHistoryConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			errs := ValidateHistoryConfig(tt.entry, tt.wf)
 
 			if len(errs) != tt.wantErrors {
@@ -172,6 +176,8 @@ func TestValidateHistoryConfig(t *testing.T) {
 }
 
 func TestFindBestMatch(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		historicalName string
@@ -214,6 +220,8 @@ func TestFindBestMatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := findBestMatch(tt.historicalName, tt.currentInputs)
 
 			if got != tt.wantSuggestion {
@@ -224,6 +232,8 @@ func TestFindBestMatch(t *testing.T) {
 }
 
 func TestValidateInputValue(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		inputName  string
@@ -282,6 +292,8 @@ func TestValidateInputValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			err := validateInputValue(tt.inputName, tt.value, tt.input)
 
 			if (err != nil) != tt.wantError {

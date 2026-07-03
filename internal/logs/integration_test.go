@@ -16,6 +16,8 @@ import (
 
 // TestIntegration_SuccessfulWorkflowRun tests fetching logs for a successful workflow run.
 func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
+	t.Parallel()
+
 	// Setup: Mock data
 	runID := int64(12345)
 	jobID := int64(67890)
@@ -126,6 +128,8 @@ func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 
 // TestIntegration_FailedWorkflowRun tests fetching logs for a failed workflow run.
 func TestIntegration_FailedWorkflowRun(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(12346)
 	jobID := int64(67891)
 
@@ -211,6 +215,8 @@ func TestIntegration_FailedWorkflowRun(t *testing.T) {
 
 // TestIntegration_WorkflowWithWarnings tests log parsing with warning detection.
 func TestIntegration_WorkflowWithWarnings(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(12347)
 	jobID := int64(67892)
 
@@ -274,6 +280,8 @@ func TestIntegration_WorkflowWithWarnings(t *testing.T) {
 
 // TestIntegration_GHCLIError tests handling of gh CLI command failures.
 func TestIntegration_GHCLIError(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(12348)
 	jobID := int64(67893)
 
@@ -329,6 +337,8 @@ func TestIntegration_GHCLIError(t *testing.T) {
 
 // TestIntegration_GitHubAPIError tests handling of GitHub API failures.
 func TestIntegration_GitHubAPIError(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(12349)
 
 	// Setup: Create mock executor
@@ -360,6 +370,8 @@ func TestIntegration_GitHubAPIError(t *testing.T) {
 
 // TestIntegration_CheckGHCLIAvailable tests gh CLI availability checking.
 func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		setupMock   func(*exec.MockExecutor)
@@ -392,6 +404,8 @@ func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			mockExec := exec.NewMockExecutor()
 			tt.setupMock(mockExec)
 
@@ -410,6 +424,8 @@ func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
 
 // TestIntegration_MultiJobWorkflowRun tests fetching logs for a workflow with multiple jobs and steps.
 func TestIntegration_MultiJobWorkflowRun(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(12350)
 	jobID := int64(67894)
 
@@ -490,6 +506,8 @@ func TestIntegration_MultiJobWorkflowRun(t *testing.T) {
 
 // TestIntegration_LogStreaming tests incremental log streaming for active runs.
 func TestIntegration_LogStreaming(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(99999)
 	jobID := int64(88888)
 
@@ -657,6 +675,8 @@ func TestIntegration_LogStreaming(t *testing.T) {
 
 // TestIntegration_LogStreamer_IncrementalDetection tests the LogStreamer's ability to detect incremental updates.
 func TestIntegration_LogStreamer_IncrementalDetection(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(77777)
 	jobID := int64(66666)
 
@@ -720,6 +740,8 @@ func TestIntegration_LogStreamer_IncrementalDetection(t *testing.T) {
 
 // TestIntegration_LargeLogFile tests fetching and parsing a large log file (10k lines).
 func TestIntegration_LargeLogFile(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("skipping large log test in short mode")
 	}
@@ -791,6 +813,8 @@ func TestIntegration_LargeLogFile(t *testing.T) {
 
 // TestIntegration_UnicodeCharacters tests proper handling of unicode characters in logs.
 func TestIntegration_UnicodeCharacters(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(99998)
 	jobID := int64(88887)
 
@@ -852,6 +876,8 @@ func TestIntegration_UnicodeCharacters(t *testing.T) {
 
 // TestIntegration_ANSIColorCodes tests proper handling of ANSI color codes in logs.
 func TestIntegration_ANSIColorCodes(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("skipping ANSI test in short mode")
 	}
@@ -927,6 +953,8 @@ func TestIntegration_ANSIColorCodes(t *testing.T) {
 
 // TestIntegration_NetworkTimeout tests handling of network timeout scenarios.
 func TestIntegration_NetworkTimeout(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("skipping timeout test in short mode")
 	}
@@ -964,6 +992,8 @@ func TestIntegration_NetworkTimeout(t *testing.T) {
 
 // TestIntegration_VeryLargeLogFile tests fetching an extremely large log file (50k lines).
 func TestIntegration_VeryLargeLogFile(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("skipping very large log test in short mode")
 	}
@@ -1030,6 +1060,8 @@ func TestIntegration_VeryLargeLogFile(t *testing.T) {
 
 // TestIntegration_MixedLogContent tests logs with various patterns.
 func TestIntegration_MixedLogContent(t *testing.T) {
+	t.Parallel()
+
 	runID := int64(99994)
 	jobID := int64(88884)
 

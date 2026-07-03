@@ -5,6 +5,8 @@ import (
 )
 
 func TestParseValidationComment(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		comment   string
@@ -90,6 +92,8 @@ func TestParseValidationComment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rule, err := ParseValidationComment(tt.comment)
 
 			if tt.wantError {
@@ -138,6 +142,8 @@ func TestParseValidationComment(t *testing.T) {
 }
 
 func TestParseValidationComments(t *testing.T) {
+	t.Parallel()
+
 	comments := []string{
 		"# lazydispatch:validate:required",
 		"# Some other comment",
@@ -163,6 +169,8 @@ func TestParseValidationComments(t *testing.T) {
 }
 
 func TestValidateValue(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		value      string
@@ -307,6 +315,8 @@ func TestValidateValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			errors := ValidateValue(tt.value, tt.rules)
 
 			if len(errors) != tt.wantErrors {
@@ -317,6 +327,8 @@ func TestValidateValue(t *testing.T) {
 }
 
 func TestParseRange(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		input     string
@@ -360,6 +372,8 @@ func TestParseRange(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			minVal, maxVal, err := parseRange(tt.input)
 
 			if tt.wantError {
