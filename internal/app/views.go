@@ -19,6 +19,13 @@ func (m Model) View() tea.View {
 		return tea.NewView("Loading...")
 	}
 
+	if m.width < MinTerminalWidth || m.height < MinTerminalHeight {
+		v := tea.NewView(m.viewTooSmall())
+		v.AltScreen = true
+
+		return v
+	}
+
 	statusBar := m.viewTopStatusBar()
 	footerBar := m.viewFooterBar()
 	fixedHeight := 2
@@ -61,6 +68,15 @@ func (m Model) View() tea.View {
 	v.AltScreen = true
 
 	return v
+}
+
+func (m Model) viewTooSmall() string {
+	msg := fmt.Sprintf(
+		"Terminal too small: %dx%d\nMinimum: %dx%d",
+		m.width, m.height, MinTerminalWidth, MinTerminalHeight,
+	)
+
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, msg)
 }
 
 func (m Model) viewTopStatusBar() string {

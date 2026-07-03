@@ -36,12 +36,13 @@ repos:
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
-        exclude: \.copier-answers\.yml
+        exclude: \.copier-answers\.yml|\.golden$
       - id: fix-byte-order-marker
       - id: forbid-new-submodules
       - id: mixed-line-ending
         args: [--fix=auto]
       - id: trailing-whitespace
+        exclude: \.golden$
 
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.11.6

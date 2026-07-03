@@ -1,0 +1,40 @@
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                        ╔══════════════════════════════════════════════════════════════════════╗                        
+                        ║                                                                      ║                        
+                        ║                                                                      ║                        
+                        ║   Confirm Workflow Execution                                         ║                        
+                        ║                                                                      ║                        
+                        ║   Workflow Details:                                                  ║                        
+                        ║                                                                      ║                        
+                        ║     Workflow: deploy.yml                                             ║                        
+                        ║     Branch:   main                                                   ║                        
+                        ║     Inputs:   1 value(s) provided                                    ║                        
+                        ║                                                                      ║                        
+                        ║   Command:                                                           ║                        
+                        ║     gh workflow run deploy.yml --ref main -f "environment=staging"   ║                        
+                        ║                                                                      ║                        
+                        ║   [enter/y] confirm  [esc/n] cancel                                  ║                        
+                        ║                                                                      ║                        
+                        ║                                                                      ║                        
+                        ╚══════════════════════════════════════════════════════════════════════╝                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
