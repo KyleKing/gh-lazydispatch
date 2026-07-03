@@ -80,7 +80,7 @@ func (c *Cache) Load() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if err := os.MkdirAll(c.cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(c.cacheDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create cache dir: %w", err)
 	}
 
@@ -140,7 +140,7 @@ func (c *Cache) Clear() error {
 
 // persistEntry writes a cache entry to disk.
 func (c *Cache) persistEntry(key string, entry *CacheEntry) error {
-	if err := os.MkdirAll(c.cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(c.cacheDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create cache dir: %w", err)
 	}
 
@@ -152,7 +152,7 @@ func (c *Cache) persistEntry(key string, entry *CacheEntry) error {
 	filename := c.makeFilename(key)
 	path := filepath.Join(c.cacheDir, filename)
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
 

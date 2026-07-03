@@ -3,6 +3,7 @@ package panes
 import (
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )

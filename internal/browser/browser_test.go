@@ -50,7 +50,6 @@ func TestOpen(t *testing.T) {
 
 	url := "https://example.com"
 	err := Open(url)
-
 	if err != nil {
 		t.Errorf("Open failed: %v", err)
 	}
@@ -99,7 +98,6 @@ func TestOpen_InvalidURL(t *testing.T) {
 
 	url := "not a valid url"
 	err := Open(url)
-
 	if err != nil {
 		t.Errorf("Open failed: %v", err)
 	}
@@ -138,7 +136,6 @@ func TestOpen_Darwin(t *testing.T) {
 
 	url := "https://example.com"
 	err := Open(url)
-
 	if err != nil {
 		t.Errorf("Open on macOS failed: %v", err)
 	}
@@ -173,7 +170,6 @@ func TestOpen_Linux(t *testing.T) {
 
 	url := "https://example.com"
 	err := Open(url)
-
 	if err != nil {
 		t.Errorf("Open on Linux failed: %v", err)
 	}
@@ -208,7 +204,6 @@ func TestOpen_Windows(t *testing.T) {
 
 	url := "https://example.com"
 	err := Open(url)
-
 	if err != nil {
 		t.Errorf("Open on Windows failed: %v", err)
 	}
@@ -245,7 +240,6 @@ func TestOpen_EmptyURL(t *testing.T) {
 	}
 
 	err := Open("")
-
 	if err != nil {
 		t.Errorf("Open failed: %v", err)
 	}

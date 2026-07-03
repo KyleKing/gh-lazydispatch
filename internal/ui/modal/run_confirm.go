@@ -6,6 +6,7 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )

@@ -34,8 +34,10 @@ func TestEndToEnd_ChainExecutionWithLogs(t *testing.T) {
 		Description: "CI and Deploy pipeline",
 		Steps: []config.ChainStep{
 			{Workflow: "ci.yml", WaitFor: config.WaitNone, OnFailure: config.FailureAbort},
-			{Workflow: "deploy.yml", WaitFor: config.WaitNone, OnFailure: config.FailureAbort,
-				Inputs: map[string]string{"environment": "{{ var.env }}"}},
+			{
+				Workflow: "deploy.yml", WaitFor: config.WaitNone, OnFailure: config.FailureAbort,
+				Inputs: map[string]string{"environment": "{{ var.env }}"},
+			},
 		},
 	}
 

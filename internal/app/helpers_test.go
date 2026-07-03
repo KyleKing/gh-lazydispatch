@@ -51,10 +51,10 @@ func TestFormatRowNumber(t *testing.T) {
 
 func TestContains(t *testing.T) {
 	tests := []struct {
-		name   string
-		slice  []string
-		item   string
-		want   bool
+		name  string
+		slice []string
+		item  string
+		want  bool
 	}{
 		{"item exists", []string{"a", "b", "c"}, "b", true},
 		{"item not exists", []string{"a", "b", "c"}, "d", false},

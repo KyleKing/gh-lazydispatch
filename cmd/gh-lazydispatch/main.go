@@ -6,6 +6,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/app"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"

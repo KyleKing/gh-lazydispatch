@@ -165,7 +165,7 @@ func GenerateLogWithTimestamps(lines int) string {
 
 // GenerateMultiStepLog creates a log output with multiple GitHub Actions steps.
 // Simulates a real workflow run with step grouping.
-func GenerateMultiStepLog(numSteps int, linesPerStep int) string {
+func GenerateMultiStepLog(numSteps, linesPerStep int) string {
 	var sb strings.Builder
 
 	for i := range numSteps {

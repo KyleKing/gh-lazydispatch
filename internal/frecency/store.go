@@ -25,10 +25,10 @@ func CachePath() string {
 	if _, err := os.Stat(oldPath); err == nil {
 		if _, err := os.Stat(newPath); os.IsNotExist(err) {
 			// Create new directory
-			if err := os.MkdirAll(filepath.Dir(newPath), 0755); err == nil {
+			if err := os.MkdirAll(filepath.Dir(newPath), 0o755); err == nil {
 				// Copy old history to new location
 				if data, err := os.ReadFile(oldPath); err == nil {
-					_ = os.WriteFile(newPath, data, 0644)
+					_ = os.WriteFile(newPath, data, 0o644)
 				}
 			}
 		}
@@ -72,7 +72,7 @@ func (s *Store) Save() error {
 
 // SaveTo writes the store to a specific path.
 func (s *Store) SaveTo(path string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
 
@@ -81,11 +81,11 @@ func (s *Store) SaveTo(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o644)
 }
 
 // Record adds or updates a workflow history entry for the given repo.
-func (s *Store) Record(repo string, workflow, branch string, inputs map[string]string) {
+func (s *Store) Record(repo, workflow, branch string, inputs map[string]string) {
 	entries := s.Entries[repo]
 
 	for i, e := range entries {
@@ -110,7 +110,7 @@ func (s *Store) Record(repo string, workflow, branch string, inputs map[string]s
 }
 
 // RecordChain adds or updates a chain history entry for the given repo.
-func (s *Store) RecordChain(repo string, chainName, branch string, inputs map[string]string, stepResults []ChainStepResult) {
+func (s *Store) RecordChain(repo, chainName, branch string, inputs map[string]string, stepResults []ChainStepResult) {
 	entries := s.Entries[repo]
 
 	for i, e := range entries {

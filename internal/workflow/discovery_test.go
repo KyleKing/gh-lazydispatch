@@ -56,7 +56,7 @@ func TestDiscover_EmptyDir(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	if err := os.MkdirAll(filepath.Join(tmpDir, ".github", "workflows"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".github", "workflows"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 

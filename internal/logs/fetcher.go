@@ -105,7 +105,7 @@ func (f *Fetcher) generateSyntheticLogs(jobName string, step github.Step) []LogE
 
 // ParseLogOutput parses raw log text into LogEntry structs.
 // Detects log levels based on common patterns.
-func ParseLogOutput(rawLogs string, stepName string) []LogEntry {
+func ParseLogOutput(rawLogs, stepName string) []LogEntry {
 	var entries []LogEntry
 
 	scanner := bufio.NewScanner(strings.NewReader(rawLogs))

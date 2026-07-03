@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"

@@ -85,7 +85,6 @@ func (f *GHFetcher) fetchJobLogs(runID, jobID int64) (string, error) {
 		strconv.FormatInt(runID, 10),
 		"--log",
 		"--job", strconv.FormatInt(jobID, 10))
-
 	if err != nil {
 		return "", fmt.Errorf("gh command failed: %w (stderr: %s)", err, stderr)
 	}
@@ -176,7 +175,6 @@ func (f *GHFetcher) FetchWorkflowLogs(runID int64) (string, error) {
 	stdout, stderr, err := f.executor.Execute("gh", "run", "view",
 		strconv.FormatInt(runID, 10),
 		"--log")
-
 	if err != nil {
 		return "", fmt.Errorf("gh command failed: %w (stderr: %s)", err, stderr)
 	}

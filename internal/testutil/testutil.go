@@ -67,7 +67,8 @@ func NewTestHistory(repo string, records []struct {
 	Workflow string
 	Branch   string
 	Inputs   map[string]string
-}) *frecency.Store {
+},
+) *frecency.Store {
 	store := frecency.NewStore()
 	for _, record := range records {
 		store.Record(repo, record.Workflow, record.Branch, record.Inputs)

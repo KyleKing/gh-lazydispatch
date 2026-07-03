@@ -4,6 +4,7 @@ package modal
 import (
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -44,7 +45,7 @@ func NewBranchModal(title string, branches []string, current string) *BranchModa
 }
 
 // NewBranchModalWithDefault creates a new branch selection modal with default branch pinning.
-func NewBranchModalWithDefault(title string, branches []string, current string, defaultBranch string) *BranchModal {
+func NewBranchModalWithDefault(title string, branches []string, current, defaultBranch string) *BranchModal {
 	pinnedBranches := _pinBranches(branches, current, defaultBranch)
 
 	items := make([]list.Item, len(pinnedBranches))
@@ -116,7 +117,7 @@ func (m *BranchModal) SetSize(width, height int) {
 	m.list.SetSize(listWidth, listHeight)
 }
 
-func _pinBranches(branches []string, current string, defaultBranch string) []string {
+func _pinBranches(branches []string, current, defaultBranch string) []string {
 	if current == "" && defaultBranch == "" {
 		return branches
 	}

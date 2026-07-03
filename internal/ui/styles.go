@@ -7,8 +7,9 @@ import (
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/lipgloss/v2"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/theme"
 	"github.com/sahilm/fuzzy"
+
+	"github.com/kyleking/gh-lazydispatch/internal/ui/theme"
 )
 
 var currentTheme theme.Theme

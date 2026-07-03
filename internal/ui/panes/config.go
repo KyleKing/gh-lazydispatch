@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
@@ -329,7 +330,7 @@ func (m ConfigModel) renderTableRows() string {
 		row := fmt.Sprintf("%s%-2s  %-3s  %-15s  %-18s  %-15s",
 			indicator, numStr, reqStr, displayName, valueDisplay, defaultDisplay)
 
-		var rowStyle = ui.TableRowStyle
+		rowStyle := ui.TableRowStyle
 		if isSelected {
 			rowStyle = ui.TableSelectedStyle
 		} else if isDimmed {

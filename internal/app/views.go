@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"charm.land/lipgloss/v2"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
@@ -496,7 +497,7 @@ func (m Model) renderTableRows(height int) string {
 			_padRight(valueDisplay, 17) + "  " +
 			defaultDisplay
 
-		var rowStyle = ui.TableRowStyle
+		rowStyle := ui.TableRowStyle
 		if isSelected {
 			rowStyle = ui.TableSelectedStyle
 		} else if isDimmed {

@@ -3,6 +3,7 @@ package modal
 import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -40,7 +41,7 @@ func defaultConfirmKeyMap() confirmKeyMap {
 }
 
 // NewConfirmModal creates a new confirmation modal.
-func NewConfirmModal(title, description string, current bool, defaultVal bool) *ConfirmModal {
+func NewConfirmModal(title, description string, current, defaultVal bool) *ConfirmModal {
 	return &ConfirmModal{
 		title:       title,
 		description: description,

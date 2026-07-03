@@ -312,7 +312,7 @@ func TestCache_InvalidJSON(t *testing.T) {
 	invalidJSON := []byte("{invalid json}")
 	filename := filepath.Join(cacheDir, "test_123.json")
 
-	err := os.WriteFile(filename, invalidJSON, 0644)
+	err := os.WriteFile(filename, invalidJSON, 0o644)
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}

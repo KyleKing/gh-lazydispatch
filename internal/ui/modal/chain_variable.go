@@ -7,6 +7,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -325,7 +326,7 @@ func (m *ChainVariableModal) View() string {
 			value = `("")`
 		}
 
-		var rowStyle = ui.TableRowStyle
+		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {
 			rowStyle = ui.TableSelectedStyle
 		}

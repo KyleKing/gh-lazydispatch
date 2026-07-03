@@ -6,9 +6,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/atotto/clipboard"
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"github.com/atotto/clipboard"
+
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"

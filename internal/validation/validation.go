@@ -4,9 +4,10 @@ package validation
 import (
 	"sort"
 
+	"github.com/sahilm/fuzzy"
+
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
-	"github.com/sahilm/fuzzy"
 )
 
 // ValidationStatus represents the validation state of a historical input.

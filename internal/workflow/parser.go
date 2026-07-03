@@ -3,8 +3,9 @@ package workflow
 import (
 	"strings"
 
-	"github.com/kyleking/gh-lazydispatch/internal/rule"
 	"gopkg.in/yaml.v3"
+
+	"github.com/kyleking/gh-lazydispatch/internal/rule"
 )
 
 // Parse parses workflow YAML content into a WorkflowFile struct.

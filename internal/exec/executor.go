@@ -14,7 +14,7 @@ import (
 type CommandExecutor interface {
 	// Execute runs a command with the given name and arguments.
 	// Returns stdout, stderr, and any error.
-	Execute(name string, args ...string) (stdout string, stderr string, err error)
+	Execute(name string, args ...string) (stdout, stderr string, err error)
 }
 
 // RealExecutor executes actual system commands.

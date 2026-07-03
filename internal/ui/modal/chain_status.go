@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/atotto/clipboard"
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"github.com/atotto/clipboard"
+
 	"github.com/kyleking/gh-lazydispatch/internal/browser"
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	chainerr "github.com/kyleking/gh-lazydispatch/internal/errors"

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -132,7 +133,7 @@ func (m ChainListModel) ViewContent() string {
 
 		row := indicator + ui.PadRight(displayName, 15) + "  " + ui.PadRight(steps, 5) + "  " + ui.PadRight(vars, 4) + "  " + desc
 
-		var rowStyle = ui.TableRowStyle
+		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {
 			rowStyle = ui.TableSelectedStyle
 		}

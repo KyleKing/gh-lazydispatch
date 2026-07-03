@@ -5,6 +5,7 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -38,7 +39,7 @@ func defaultSelectKeyMap() selectKeyMap {
 }
 
 // NewSelectModal creates a new selection modal.
-func NewSelectModal(title string, options []string, current string, defaultVal string) *SelectModal {
+func NewSelectModal(title string, options []string, current, defaultVal string) *SelectModal {
 	selected := 0
 	defaultIdx := 0
 

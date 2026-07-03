@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
@@ -122,7 +123,7 @@ func (m LiveRunsModel) ViewContent() string {
 
 		row := indicator + icon + "  " + ui.PadRight(workflow, 20) + "  " + status
 
-		var rowStyle = ui.TableRowStyle
+		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {
 			rowStyle = ui.TableSelectedStyle
 		}

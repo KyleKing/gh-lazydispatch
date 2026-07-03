@@ -6,6 +6,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -144,7 +145,7 @@ func (m HistoryModel) ViewContent() string {
 			timeAgo,
 		)
 
-		var rowStyle = ui.TableRowStyle
+		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {
 			rowStyle = ui.TableSelectedStyle
 		}

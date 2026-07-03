@@ -6,6 +6,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -46,7 +47,7 @@ func defaultSimpleBranchKeyMap() simpleBranchKeyMap {
 }
 
 // NewSimpleBranchModal creates a simple branch modal with filtering.
-func NewSimpleBranchModal(title string, branches []string, current string, defaultBranch string) *SimpleBranchModal {
+func NewSimpleBranchModal(title string, branches []string, current, defaultBranch string) *SimpleBranchModal {
 	pinnedBranches := _pinBranches(branches, current, defaultBranch)
 
 	ti := textinput.New()

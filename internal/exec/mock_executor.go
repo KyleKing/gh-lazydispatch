@@ -84,7 +84,7 @@ func (m *MockExecutor) AddCommand(name string, args []string, stdout, stderr str
 }
 
 // AddGHRunView is a convenience method for adding gh run view commands.
-func (m *MockExecutor) AddGHRunView(runID int64, jobID int64, logOutput string) {
+func (m *MockExecutor) AddGHRunView(runID, jobID int64, logOutput string) {
 	args := []string{"run", "view", strconv.FormatInt(runID, 10), "--log"}
 	if jobID > 0 {
 		args = append(args, "--job", strconv.FormatInt(jobID, 10))
@@ -94,7 +94,7 @@ func (m *MockExecutor) AddGHRunView(runID int64, jobID int64, logOutput string) 
 }
 
 // AddGHRunViewError is a convenience method for adding failing gh run view commands.
-func (m *MockExecutor) AddGHRunViewError(runID int64, jobID int64, stderr string, err error) {
+func (m *MockExecutor) AddGHRunViewError(runID, jobID int64, stderr string, err error) {
 	args := []string{"run", "view", strconv.FormatInt(runID, 10), "--log"}
 	if jobID > 0 {
 		args = append(args, "--job", strconv.FormatInt(jobID, 10))
@@ -127,7 +127,7 @@ func (m *MockExecutor) AddGHWorkflowRun(workflow, branch string, inputs map[stri
 }
 
 // AddGHWorkflowRunError mocks a failing gh workflow run command.
-func (m *MockExecutor) AddGHWorkflowRunError(workflow, branch string, stderr string, err error) {
+func (m *MockExecutor) AddGHWorkflowRunError(workflow, branch, stderr string, err error) {
 	args := []string{"workflow", "run", workflow}
 	if branch != "" {
 		args = append(args, "--ref", branch)

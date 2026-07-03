@@ -221,11 +221,11 @@ func TestFindBestMatch(t *testing.T) {
 
 func TestValidateInputValue(t *testing.T) {
 	tests := []struct {
-		name      string
-		inputName string
-		value     string
-		input     workflow.WorkflowInput
-		wantError bool
+		name       string
+		inputName  string
+		value      string
+		input      workflow.WorkflowInput
+		wantError  bool
 		wantStatus ValidationStatus
 	}{
 		{
