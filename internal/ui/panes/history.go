@@ -11,6 +11,13 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
+const (
+	hoursPerDay           = 24
+	daysPerWeek           = 7
+	historyNameColWidth   = 18
+	historyBranchColWidth = 13
+)
+
 func formatTimeAgo(t time.Time) string {
 	d := time.Since(t)
 
@@ -19,10 +26,10 @@ func formatTimeAgo(t time.Time) string {
 		return "just now"
 	case d < time.Hour:
 		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
+	case d < hoursPerDay*time.Hour:
 		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	case d < 7*24*time.Hour:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	case d < daysPerWeek*hoursPerDay*time.Hour:
+		return fmt.Sprintf("%dd ago", int(d.Hours()/hoursPerDay))
 	default:
 		return t.Format("Jan 2")
 	}
@@ -133,15 +140,15 @@ func (m HistoryModel) ViewContent() string {
 			}
 		}
 
-		name = ui.TruncateWithEllipsis(name, 18)
-		branch := ui.TruncateWithEllipsis(entry.Branch, 13)
+		name = ui.TruncateWithEllipsis(name, historyNameColWidth)
+		branch := ui.TruncateWithEllipsis(entry.Branch, historyBranchColWidth)
 		timeAgo := formatTimeAgo(entry.LastRunAt)
 
 		row := fmt.Sprintf("%s%s %s  %s  %s",
 			indicator,
 			typeIcon,
-			ui.PadRight(name, 18),
-			ui.PadRight(branch, 13),
+			ui.PadRight(name, historyNameColWidth),
+			ui.PadRight(branch, historyBranchColWidth),
 			timeAgo,
 		)
 

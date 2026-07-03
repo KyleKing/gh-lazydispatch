@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+const (
+	fetchBranchesTimeout = 5 * time.Second
+	gitCommandTimeout    = 2 * time.Second
+)
+
 // CommandRunner executes git commands and returns their output.
 type CommandRunner interface {
 	RunCommand(ctx context.Context, args ...string) ([]byte, error)
@@ -31,7 +36,7 @@ func FetchBranches(ctx context.Context) ([]string, error) {
 }
 
 func fetchBranchesWithRunner(ctx context.Context, r CommandRunner) ([]string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, fetchBranchesTimeout)
 	defer cancel()
 
 	output, err := r.RunCommand(ctx, "branch", "-r", "--list")
@@ -57,7 +62,7 @@ func GetCurrentBranch(ctx context.Context) string {
 }
 
 func getCurrentBranchWithRunner(ctx context.Context, r CommandRunner) string {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, gitCommandTimeout)
 	defer cancel()
 
 	output, err := r.RunCommand(ctx, "rev-parse", "--abbrev-ref", "HEAD")
@@ -80,7 +85,7 @@ func GetDefaultBranch(ctx context.Context) string {
 }
 
 func getDefaultBranchWithRunner(ctx context.Context, r CommandRunner) string {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, gitCommandTimeout)
 	defer cancel()
 
 	output, err := r.RunCommand(ctx, "symbolic-ref", "refs/remotes/origin/HEAD")

@@ -14,6 +14,22 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
+const (
+	// viewsFixedChromeHeight is the vertical space reserved for the status and footer bars.
+	viewsFixedChromeHeight = 2
+
+	// footerBarMargin is the space reserved between the left/right footer segments and the pane edges.
+	footerBarMargin = 2
+
+	// paneContentMargin and cliPreviewMargin/tableColumn widths reserve space for borders and padding.
+	paneContentMargin = 8
+	cliPreviewMargin  = 10
+
+	inputNameColWidth    = 15
+	inputValueColWidth   = 17
+	inputDefaultColWidth = 15
+)
+
 // View implements tea.Model.
 func (m Model) View() tea.View {
 	if m.width == 0 || m.height == 0 {
@@ -29,12 +45,12 @@ func (m Model) View() tea.View {
 
 	statusBar := m.viewTopStatusBar()
 	footerBar := m.viewFooterBar()
-	fixedHeight := 2
+	fixedHeight := viewsFixedChromeHeight
 
-	topHeight := (m.height - fixedHeight) / 2
+	topHeight := (m.height - fixedHeight) / panesHeightDivisor
 	bottomHeight := m.height - fixedHeight - topHeight
 
-	leftWidth := (m.width * 11) / 30
+	leftWidth := (m.width * leftPaneWidthNumerator) / leftPaneWidthDenominator
 
 	var leftPane string
 
@@ -112,7 +128,7 @@ func (m Model) viewTopStatusBar() string {
 	left := strings.Join(parts, "  ")
 	right := "lazydispatch"
 
-	padding := m.width - len(left) - len(right) - 2
+	padding := m.width - len(left) - len(right) - footerBarMargin
 	if padding < 1 {
 		padding = 1
 	}
@@ -221,7 +237,7 @@ func _renderInputDescription(content *strings.Builder, description string, width
 	content.WriteString(ui.SubtitleStyle.Render("Description:"))
 	content.WriteString("\n")
 
-	wrapped := _wordWrap(description, width-8)
+	wrapped := _wordWrap(description, width-paneContentMargin)
 	content.WriteString(ui.NormalStyle.Render(wrapped))
 	content.WriteString("\n")
 }
@@ -251,7 +267,7 @@ func (m Model) viewWorkflowPane(width, height int) string {
 	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
 
 	title := ui.TitleStyle.Render(m.leftPaneTitle())
-	maxLineWidth := width - 8
+	maxLineWidth := width - paneContentMargin
 
 	var content string
 
@@ -421,7 +437,7 @@ func (m Model) viewConfigPane(width, height int) string {
 	content.WriteString("\n")
 
 	cliCmd := m.buildCLIString()
-	maxCmdWidth := width - 10
+	maxCmdWidth := width - cliPreviewMargin
 
 	if maxCmdWidth > 0 && len(cliCmd) > maxCmdWidth {
 		cliCmd = "..." + cliCmd[len(cliCmd)-maxCmdWidth+3:]
@@ -483,9 +499,9 @@ func (m Model) renderTableRows(height int) string {
 		isSelected := i == m.selectedInput
 		isDimmed := val == input.Default
 
-		displayName := ui.TruncateWithEllipsis(name, 15)
-		valueDisplay = ui.TruncateWithEllipsis(valueDisplay, 17)
-		defaultDisplay = ui.TruncateWithEllipsis(defaultDisplay, 15)
+		displayName := ui.TruncateWithEllipsis(name, inputNameColWidth)
+		valueDisplay = ui.TruncateWithEllipsis(valueDisplay, inputValueColWidth)
+		defaultDisplay = ui.TruncateWithEllipsis(defaultDisplay, inputDefaultColWidth)
 
 		indicator := "  "
 		if isSelected {
@@ -493,8 +509,8 @@ func (m Model) renderTableRows(height int) string {
 		}
 
 		row := indicator + numStr + "   " + reqStr + "    " +
-			_padRight(displayName, 15) + "  " +
-			_padRight(valueDisplay, 17) + "  " +
+			_padRight(displayName, inputNameColWidth) + "  " +
+			_padRight(valueDisplay, inputValueColWidth) + "  " +
 			defaultDisplay
 
 		rowStyle := ui.TableRowStyle

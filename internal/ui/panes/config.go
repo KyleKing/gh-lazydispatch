@@ -12,6 +12,17 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
+const (
+	configNameColWidth    = 15
+	configValueColWidth   = 18
+	configDefaultColWidth = 15
+
+	// configPaneChrome is the vertical space reserved for the pane's title, header, and footer.
+	configPaneChrome       = 14
+	configCLIPreviewMargin = 10
+	configMaxSingleDigit   = 9
+)
+
 // ConfigModel manages the configuration pane.
 type ConfigModel struct {
 	workflow      *workflow.WorkflowFile
@@ -184,7 +195,7 @@ func (m *ConfigModel) adjustScroll() {
 }
 
 func (m ConfigModel) visibleRowCount() int {
-	return (m.height - 14)
+	return (m.height - configPaneChrome)
 }
 
 // Update handles messages for the config pane.
@@ -250,7 +261,7 @@ func (m ConfigModel) View() string {
 	content.WriteString("\n")
 
 	cliCmd := m.BuildCLIString()
-	maxCmdWidth := m.width - 10
+	maxCmdWidth := m.width - configCLIPreviewMargin
 
 	if maxCmdWidth > 0 && len(cliCmd) > maxCmdWidth {
 		cliCmd = "..." + cliCmd[len(cliCmd)-maxCmdWidth+3:]
@@ -301,7 +312,7 @@ func (m ConfigModel) renderTableRows() string {
 		numStr := " "
 		displayIdx := i
 
-		if displayIdx <= 9 {
+		if displayIdx <= configMaxSingleDigit {
 			numStr = strconv.Itoa(displayIdx)
 		}
 
@@ -318,9 +329,9 @@ func (m ConfigModel) renderTableRows() string {
 		isSelected := i == m.selectedRow
 		isDimmed := val == input.Default
 
-		displayName := ui.TruncateWithEllipsis(name, 15)
-		valueDisplay = ui.TruncateWithEllipsis(valueDisplay, 18)
-		defaultDisplay = ui.TruncateWithEllipsis(defaultDisplay, 15)
+		displayName := ui.TruncateWithEllipsis(name, configNameColWidth)
+		valueDisplay = ui.TruncateWithEllipsis(valueDisplay, configValueColWidth)
+		defaultDisplay = ui.TruncateWithEllipsis(defaultDisplay, configDefaultColWidth)
 
 		indicator := "  "
 		if isSelected {

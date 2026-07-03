@@ -16,13 +16,16 @@ type MockGitHubClient struct {
 	repo             string
 }
 
+// defaultMockLatestID is an arbitrary starting run ID for mock-generated runs.
+const defaultMockLatestID = 1000
+
 // NewMockGitHubClient creates a MockGitHubClient with sensible defaults.
 func NewMockGitHubClient() *MockGitHubClient {
 	return &MockGitHubClient{
 		Runs:             make(map[int64]*github.WorkflowRun),
 		Jobs:             make(map[int64][]github.Job),
 		LatestByWorkflow: make(map[string]int64),
-		LatestID:         1000,
+		LatestID:         defaultMockLatestID,
 		owner:            "owner",
 		repo:             "repo",
 	}

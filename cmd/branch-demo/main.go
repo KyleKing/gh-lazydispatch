@@ -11,6 +11,12 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 )
 
+// defaultDemoWidth and defaultDemoHeight size the modal before the first WindowSizeMsg arrives.
+const (
+	defaultDemoWidth  = 80
+	defaultDemoHeight = 30
+)
+
 type model struct {
 	branchModal *modal.SimpleBranchModal
 	width       int
@@ -36,7 +42,7 @@ func initialModel() model {
 
 	branchModal := modal.NewSimpleBranchModal("Select Branch (Demo)", branches, current, defaultBranch)
 	// Set a reasonable default size - will update on WindowSizeMsg
-	branchModal.SetSize(80, 30)
+	branchModal.SetSize(defaultDemoWidth, defaultDemoHeight)
 
 	return model{
 		branchModal: branchModal,

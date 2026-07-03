@@ -12,6 +12,11 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
+const (
+	chainNameColWidth = 15
+	chainDescColWidth = 20
+)
+
 // ChainListModel manages the chain list display.
 type ChainListModel struct {
 	chains        map[string]config.Chain
@@ -117,11 +122,11 @@ func (m ChainListModel) ViewContent() string {
 		stepCount := len(chain.Steps)
 		varCount := len(chain.Variables)
 
-		displayName := ui.TruncateWithEllipsis(name, 15)
+		displayName := ui.TruncateWithEllipsis(name, chainNameColWidth)
 		steps := strconv.Itoa(stepCount)
 		vars := strconv.Itoa(varCount)
 
-		desc := ui.TruncateWithEllipsis(chain.Description, 20)
+		desc := ui.TruncateWithEllipsis(chain.Description, chainDescColWidth)
 		if desc == "" {
 			desc = "(no description)"
 		}

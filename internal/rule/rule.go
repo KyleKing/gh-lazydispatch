@@ -31,6 +31,12 @@ type ValidationRule struct {
 
 const validationPrefix = "lazydispatch:validate:"
 
+// ruleSpecMaxParts caps splitting "type:value" into at most a type and a value.
+const ruleSpecMaxParts = 2
+
+// rangeParts is the expected number of "min-max" segments in a range spec.
+const rangeParts = 2
+
 // ParseValidationComment parses a single comment line for validation rules.
 // Returns nil if the comment doesn't contain a validation rule.
 func ParseValidationComment(comment string) (*ValidationRule, error) {
@@ -44,7 +50,7 @@ func ParseValidationComment(comment string) (*ValidationRule, error) {
 
 	ruleSpec := strings.TrimPrefix(comment, validationPrefix)
 
-	parts := strings.SplitN(ruleSpec, ":", 2)
+	parts := strings.SplitN(ruleSpec, ":", ruleSpecMaxParts)
 	if len(parts) == 0 {
 		return nil, nil
 	}
@@ -191,7 +197,7 @@ func validateRule(value string, r ValidationRule) string {
 
 func parseRange(s string) (int, int, error) {
 	parts := strings.Split(s, "-")
-	if len(parts) != 2 {
+	if len(parts) != rangeParts {
 		return 0, 0, errors.New("expected format: min-max")
 	}
 

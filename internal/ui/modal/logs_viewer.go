@@ -15,6 +15,23 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
+const (
+	// logsViewportWidthMargin and logsViewportHeightMargin reserve space around the
+	// viewport for the modal's border, title, and footer chrome.
+	logsViewportWidthMargin  = 4
+	logsViewportHeightMargin = 10
+
+	// nearBottomThreshold is how many lines from the end still count as "at the bottom"
+	// for auto-scroll purposes.
+	nearBottomThreshold = 3
+
+	minutesPerHour   = 60
+	secondsPerMinute = 60
+
+	// panesHeightDivisor centers a match by offsetting half the visible viewport height.
+	panesHeightDivisor = 2
+)
+
 // MatchLocation tracks the position of a search match in the rendered viewport.
 type MatchLocation struct {
 	StepIndex  int // index in filtered.Steps
@@ -89,7 +106,7 @@ func NewLogsViewerModal(runLogs *logs.RunLogs, width, height int) *LogsViewerMod
 	filter, _ := logs.NewFilter(filterCfg)
 	filtered := filter.Apply(runLogs)
 
-	vp := viewport.New(viewport.WithWidth(width-4), viewport.WithHeight(height-10))
+	vp := viewport.New(viewport.WithWidth(width-logsViewportWidthMargin), viewport.WithHeight(height-logsViewportHeightMargin))
 	vp.SetContent("")
 
 	searchInput := textinput.New()
@@ -144,8 +161,8 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.viewport.SetWidth(msg.Width - 4)
-		m.viewport.SetHeight(msg.Height - 10)
+		m.viewport.SetWidth(msg.Width - logsViewportWidthMargin)
+		m.viewport.SetHeight(msg.Height - logsViewportHeightMargin)
 		m.updateViewportContent()
 
 	case tea.KeyPressMsg:
@@ -373,7 +390,7 @@ func (m *LogsViewerModal) scrollToMatch(matchIdx int) {
 	// Center the match in the viewport if possible
 	targetLine := match.LineNumber
 	visibleLines := m.viewport.Height()
-	centerOffset := targetLine - visibleLines/2
+	centerOffset := targetLine - visibleLines/panesHeightDivisor
 
 	// Ensure we don't scroll past the beginning
 	if centerOffset < 0 {
@@ -491,8 +508,8 @@ func (m *LogsViewerModal) renderLogEntry(entry *logs.FilteredLogEntry, stepIdx, 
 // formatDuration formats a duration as HH:MM:SS.
 func formatDuration(d time.Duration) string {
 	hours := int(d.Hours())
-	minutes := int(d.Minutes()) % 60
-	seconds := int(d.Seconds()) % 60
+	minutes := int(d.Minutes()) % minutesPerHour
+	seconds := int(d.Seconds()) % secondsPerMinute
 
 	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
 }
@@ -790,7 +807,7 @@ func (m *LogsViewerModal) shouldAutoScroll() bool {
 	visibleLines := m.viewport.Height()
 	bottomLine := currentOffset + visibleLines
 
-	return totalLines-bottomLine <= 3
+	return totalLines-bottomLine <= nearBottomThreshold
 }
 
 // scrollToBottom scrolls the viewport to the bottom.

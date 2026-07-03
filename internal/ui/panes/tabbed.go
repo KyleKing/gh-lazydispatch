@@ -42,14 +42,20 @@ func NewTabbedRight() TabbedRightModel {
 	}
 }
 
+// tabbedChromeHeight and tabbedChromeWidth reserve space for the tab bar, borders, and title.
+const (
+	tabbedChromeHeight = 4
+	tabbedChromeWidth  = 2
+)
+
 // SetSize updates the panel dimensions.
 func (m *TabbedRightModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	contentHeight := height - 4
-	m.history.SetSize(width-2, contentHeight)
-	m.chains.SetSize(width-2, contentHeight)
-	m.live.SetSize(width-2, contentHeight)
+	contentHeight := height - tabbedChromeHeight
+	m.history.SetSize(width-tabbedChromeWidth, contentHeight)
+	m.chains.SetSize(width-tabbedChromeWidth, contentHeight)
+	m.live.SetSize(width-tabbedChromeWidth, contentHeight)
 }
 
 // SetFocused updates the focus state.
@@ -65,15 +71,18 @@ func (m TabbedRightModel) ActiveTab() RightTab {
 	return m.activeTab
 }
 
+// tabCount is the number of tabs in the right panel.
+const tabCount = 3
+
 // NextTab switches to the next tab.
 func (m *TabbedRightModel) NextTab() {
-	m.activeTab = (m.activeTab + 1) % 3
+	m.activeTab = (m.activeTab + 1) % tabCount
 	m.updateTabFocus()
 }
 
 // PrevTab switches to the previous tab.
 func (m *TabbedRightModel) PrevTab() {
-	m.activeTab = (m.activeTab + 2) % 3
+	m.activeTab = (m.activeTab + tabCount - 1) % tabCount
 	m.updateTabFocus()
 }
 

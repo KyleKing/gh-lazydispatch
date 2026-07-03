@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+const (
+	hoursPerDay  = 24
+	hoursPerWeek = 7 * hoursPerDay
+)
+
 // Score calculates the frecency score for an entry.
 // Higher scores indicate more frequently and recently used entries.
 func Score(entry HistoryEntry) float64 {
@@ -16,9 +21,9 @@ func Score(entry HistoryEntry) float64 {
 	switch {
 	case hoursSince < 1:
 		recency = 4.0
-	case hoursSince < 24:
+	case hoursSince < hoursPerDay:
 		recency = 2.0
-	case hoursSince < 168: // 1 week
+	case hoursSince < hoursPerWeek:
 		recency = 1.0
 	default:
 		recency = 0.5

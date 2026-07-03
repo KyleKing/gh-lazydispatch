@@ -24,6 +24,9 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
+// paneCount is the number of focusable panes cycled through by Tab/Shift+Tab.
+const paneCount = 3
+
 func (m Model) handleKeyMsg(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
@@ -45,11 +48,11 @@ func (m Model) handleKeyMsg(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case key.Matches(msg, m.keys.Tab):
-		m.focused = (m.focused + 1) % 3
+		m.focused = (m.focused + 1) % paneCount
 		return m, nil
 
 	case key.Matches(msg, m.keys.ShiftTab):
-		m.focused = (m.focused + 2) % 3
+		m.focused = (m.focused + paneCount - 1) % paneCount
 		return m, nil
 
 	case key.Matches(msg, m.keys.Up):

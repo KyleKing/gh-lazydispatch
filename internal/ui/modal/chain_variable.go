@@ -57,7 +57,7 @@ func NewChainVariableModal(chainName string, chainDef *config.Chain) *ChainVaria
 
 	ti := textinput.New()
 	ti.CharLimit = 256
-	ti.SetWidth(40)
+	ti.SetWidth(defaultTextInputWidth)
 	s := ti.Styles()
 	s.Focused.Prompt = s.Focused.Prompt.UnsetBackground()
 	s.Focused.Text = s.Focused.Text.UnsetBackground()

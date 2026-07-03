@@ -14,6 +14,13 @@ type InterpolationContext struct {
 
 var templatePattern = regexp.MustCompile(`\{\{\s*([^}]+)\s*\}\}`)
 
+// minExprParts is the fewest dot-separated segments a template expression can have
+// (e.g. "var.key"); anything shorter is left unresolved.
+const minExprParts = 2
+
+// decimalBase is used to accumulate digit characters into an integer.
+const decimalBase = 10
+
 // Interpolate replaces template expressions in a string.
 // Supported expressions:
 //   - {{ var.key }} - Value from chain-level variables
@@ -28,7 +35,7 @@ func Interpolate(template string, ctx *InterpolationContext) (string, error) {
 		expr := strings.TrimSpace(match[2 : len(match)-2])
 		parts := strings.Split(expr, ".")
 
-		if len(parts) < 2 {
+		if len(parts) < minExprParts {
 			return match
 		}
 
@@ -79,7 +86,7 @@ func parseStepIndex(s string, n *int) bool {
 			return false
 		}
 
-		num = num*10 + int(c-'0')
+		num = num*decimalBase + int(c-'0')
 	}
 
 	*n = num

@@ -23,11 +23,14 @@ func NewClient(repoFullName string) (*Client, error) {
 	return NewClientWithExecutor(repoFullName, exec.NewRealExecutor())
 }
 
+// repoFullNameParts is the number of segments an "owner/repo" string splits into.
+const repoFullNameParts = 2
+
 // NewClientWithExecutor creates a new GitHub API client with a custom executor.
 // This allows injecting a mock executor for testing.
 func NewClientWithExecutor(repoFullName string, executor exec.CommandExecutor) (*Client, error) {
-	parts := strings.SplitN(repoFullName, "/", 2)
-	if len(parts) != 2 {
+	parts := strings.SplitN(repoFullName, "/", repoFullNameParts)
+	if len(parts) != repoFullNameParts {
 		return nil, fmt.Errorf("invalid repository format: %s (expected owner/repo)", repoFullName)
 	}
 

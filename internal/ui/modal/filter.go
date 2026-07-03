@@ -40,7 +40,7 @@ func NewFilterModal(title string, items []string, currentFilter string) *FilterM
 	ti.SetValue(currentFilter)
 	ti.Focus()
 	ti.CharLimit = 64
-	ti.SetWidth(40)
+	ti.SetWidth(defaultTextInputWidth)
 
 	// Remove backgrounds from textinput styles to prevent visual artifacts in modal
 	s := ti.Styles()
@@ -109,7 +109,9 @@ func (m *FilterModal) View() string {
 	matchText := "Matches: " + strconv.Itoa(len(m.matches)) + "/" + strconv.Itoa(len(m.items))
 	s += ui.SubtitleStyle.Render(matchText) + "\n\n"
 
-	maxPreview := 5
+	const previewLimit = 5
+
+	maxPreview := previewLimit
 	if len(m.matches) < maxPreview {
 		maxPreview = len(m.matches)
 	}
@@ -118,8 +120,8 @@ func (m *FilterModal) View() string {
 		s += ui.NormalStyle.Render("  "+m.matches[i]) + "\n"
 	}
 
-	if len(m.matches) > 5 {
-		s += ui.SubtitleStyle.Render("  ...and " + strconv.Itoa(len(m.matches)-5) + " more")
+	if len(m.matches) > previewLimit {
+		s += ui.SubtitleStyle.Render("  ...and " + strconv.Itoa(len(m.matches)-previewLimit) + " more")
 	}
 
 	s += "\n" + ui.HelpStyle.Render("[enter] apply  [esc] cancel")

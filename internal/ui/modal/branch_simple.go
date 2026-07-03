@@ -85,22 +85,25 @@ func NewSimpleBranchModal(title string, branches []string, current, defaultBranc
 		selected:         selected,
 		filterInput:      ti,
 		keys:             defaultSimpleBranchKeyMap(),
-		maxHeight:        20,
+		maxHeight:        branchModalInitialHeight,
 	}
 }
 
+// simpleBranchModalChrome is the vertical space reserved for the title, filter input, and help text.
+const simpleBranchModalChrome = 6
+
 // SetSize updates the modal dimensions.
 func (m *SimpleBranchModal) SetSize(width, height int) {
-	maxHeight := int(float64(height) * 0.8)
-	if maxHeight > 30 {
-		maxHeight = 30
+	maxHeight := int(float64(height) * branchModalHeightRatio)
+	if maxHeight > branchModalMaxHeight {
+		maxHeight = branchModalMaxHeight
 	}
 
-	if maxHeight < 10 {
-		maxHeight = 10
+	if maxHeight < branchModalMinHeight {
+		maxHeight = branchModalMinHeight
 	}
 
-	m.maxHeight = maxHeight - 6 // Account for title, filter, help text
+	m.maxHeight = maxHeight - simpleBranchModalChrome
 }
 
 // Update handles input for the simple branch modal.

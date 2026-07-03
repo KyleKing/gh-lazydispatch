@@ -10,6 +10,22 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
+// Demo run and job IDs used to populate mock GitHub API responses.
+const (
+	demoRunIDCI      = 1001
+	demoRunIDDeploy  = 1002
+	demoRunIDRelease = 1003
+
+	demoJobIDCIBuild          = 2001
+	demoJobIDCITest           = 2002
+	demoJobIDDeployStaging    = 2003
+	demoJobIDDeployProduction = 2004
+
+	demoLatestRunIDCI      = 1004
+	demoLatestRunIDDeploy  = 1005
+	demoLatestRunIDRelease = 1006
+)
+
 // MockConfig holds configuration for demo mode.
 type MockConfig struct {
 	Owner    string
@@ -50,24 +66,24 @@ func (c *MockConfig) setupGHCLI() {
 
 func (c *MockConfig) setupWorkflowRuns() {
 	// Mock API responses for workflow runs
-	c.addWorkflowRun(1001, "CI", github.StatusCompleted, github.ConclusionSuccess)
-	c.addWorkflowRun(1002, "Deploy", github.StatusInProgress, "")
-	c.addWorkflowRun(1003, "Release", github.StatusQueued, "")
+	c.addWorkflowRun(demoRunIDCI, "CI", github.StatusCompleted, github.ConclusionSuccess)
+	c.addWorkflowRun(demoRunIDDeploy, "Deploy", github.StatusInProgress, "")
+	c.addWorkflowRun(demoRunIDRelease, "Release", github.StatusQueued, "")
 
 	// Mock jobs for each run
-	c.addRunJobs(1001, []github.Job{
-		{ID: 2001, Name: "build", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
-		{ID: 2002, Name: "test", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
+	c.addRunJobs(demoRunIDCI, []github.Job{
+		{ID: demoJobIDCIBuild, Name: "build", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
+		{ID: demoJobIDCITest, Name: "test", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
 	})
 
-	c.addRunJobs(1002, []github.Job{
-		{ID: 2003, Name: "deploy-staging", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
-		{ID: 2004, Name: "deploy-production", Status: github.StatusInProgress, Conclusion: ""},
+	c.addRunJobs(demoRunIDDeploy, []github.Job{
+		{ID: demoJobIDDeployStaging, Name: "deploy-staging", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
+		{ID: demoJobIDDeployProduction, Name: "deploy-production", Status: github.StatusInProgress, Conclusion: ""},
 	})
 
 	// Mock logs for runs
-	c.addRunLogs(1001, 2001, buildJobLogs())
-	c.addRunLogs(1001, 2002, testJobLogs())
+	c.addRunLogs(demoRunIDCI, demoJobIDCIBuild, buildJobLogs())
+	c.addRunLogs(demoRunIDCI, demoJobIDCITest, testJobLogs())
 }
 
 func (c *MockConfig) setupWorkflowDispatch() {
@@ -79,9 +95,9 @@ func (c *MockConfig) setupWorkflowDispatch() {
 	c.Executor.AddGHWorkflowRun("release.yml", "main", map[string]string{"version": "1.0.0"})
 
 	// Mock latest run lookup after dispatch
-	c.Executor.AddGHAPILatestRun(c.Owner, c.Repo, "ci.yml", 1004, github.StatusQueued)
-	c.Executor.AddGHAPILatestRun(c.Owner, c.Repo, "deploy.yml", 1005, github.StatusQueued)
-	c.Executor.AddGHAPILatestRun(c.Owner, c.Repo, "release.yml", 1006, github.StatusQueued)
+	c.Executor.AddGHAPILatestRun(c.Owner, c.Repo, "ci.yml", demoLatestRunIDCI, github.StatusQueued)
+	c.Executor.AddGHAPILatestRun(c.Owner, c.Repo, "deploy.yml", demoLatestRunIDDeploy, github.StatusQueued)
+	c.Executor.AddGHAPILatestRun(c.Owner, c.Repo, "release.yml", demoLatestRunIDRelease, github.StatusQueued)
 }
 
 func (c *MockConfig) addWorkflowRun(runID int64, name, status, conclusion string) {

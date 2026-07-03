@@ -11,6 +11,9 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
+// defaultTextInputWidth is the standard character width for single-line text inputs across modals.
+const defaultTextInputWidth = 40
+
 // InputModal presents a text input field.
 type InputModal struct {
 	title           string
@@ -47,7 +50,7 @@ func NewInputModal(title, description, defaultVal, inputType, current string, op
 	ti.SetValue(current)
 	ti.Focus()
 	ti.CharLimit = 256
-	ti.SetWidth(40)
+	ti.SetWidth(defaultTextInputWidth)
 
 	// Remove backgrounds from textinput styles to prevent visual artifacts in modal
 	s := ti.Styles()

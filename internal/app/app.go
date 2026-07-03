@@ -38,6 +38,13 @@ const (
 	InputDetailMode
 )
 
+// leftPaneWidthNumerator/Denominator sizes the left pane as a fraction of terminal width.
+const (
+	leftPaneWidthNumerator   = 11
+	leftPaneWidthDenominator = 30
+	panesHeightDivisor       = 2
+)
+
 // Model is the root bubbletea model for the application.
 type Model struct {
 	focused   FocusedPane
@@ -163,9 +170,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.modalStack.SetSize(msg.Width, msg.Height)
-		leftWidth := (m.width * 11) / 30
+		leftWidth := (m.width * leftPaneWidthNumerator) / leftPaneWidthDenominator
 		rightWidth := m.width - leftWidth
-		topHeight := (m.height - 1) / 2
+		topHeight := (m.height - 1) / panesHeightDivisor
 		m.rightPanel.SetSize(rightWidth, topHeight)
 
 		return m, nil

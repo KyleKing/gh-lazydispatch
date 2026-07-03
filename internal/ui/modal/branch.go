@@ -8,6 +8,16 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
+const (
+	branchModalInitialWidth  = 60
+	branchModalInitialHeight = 20
+	branchModalHeightRatio   = 0.8
+	branchModalMaxHeight     = 30
+	branchModalMinHeight     = 10
+	branchModalWidthBreak    = 70
+	branchModalWidthMargin   = 10
+)
+
 // BranchItem represents a branch in the list.
 type BranchItem struct {
 	name string
@@ -82,7 +92,7 @@ func NewBranchModalWithDefault(title string, branches []string, current, default
 	}
 
 	// Initial size - will be set properly by SetSize() call from app
-	l.SetSize(60, 20)
+	l.SetSize(branchModalInitialWidth, branchModalInitialHeight)
 
 	return &BranchModal{
 		list:          l,
@@ -98,20 +108,20 @@ func (m *BranchModal) SetSize(width, height int) {
 	m.terminalWidth = width
 	m.terminalHeight = height
 
-	maxHeight := int(float64(height) * 0.8)
+	maxHeight := int(float64(height) * branchModalHeightRatio)
 
 	listHeight := maxHeight
-	if listHeight > 30 {
-		listHeight = 30
+	if listHeight > branchModalMaxHeight {
+		listHeight = branchModalMaxHeight
 	}
 
-	if listHeight < 10 {
-		listHeight = 10
+	if listHeight < branchModalMinHeight {
+		listHeight = branchModalMinHeight
 	}
 
-	listWidth := 60
-	if width < 70 {
-		listWidth = width - 10
+	listWidth := branchModalInitialWidth
+	if width < branchModalWidthBreak {
+		listWidth = width - branchModalWidthMargin
 	}
 
 	m.list.SetSize(listWidth, listHeight)

@@ -10,6 +10,8 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
+const liveWorkflowColWidth = 20
+
 // LiveRunsModel manages the live runs display.
 type LiveRunsModel struct {
 	runs          []watcher.WatchedRun
@@ -105,7 +107,7 @@ func (m LiveRunsModel) ViewContent() string {
 
 	for i, run := range m.runs {
 		icon := runStatusIcon(run.Status, run.Conclusion)
-		workflow := ui.TruncateWithEllipsis(run.Workflow, 20)
+		workflow := ui.TruncateWithEllipsis(run.Workflow, liveWorkflowColWidth)
 
 		var status string
 		if run.Status != "" && run.Status != github.StatusCompleted {
@@ -121,7 +123,7 @@ func (m LiveRunsModel) ViewContent() string {
 			indicator = "> "
 		}
 
-		row := indicator + icon + "  " + ui.PadRight(workflow, 20) + "  " + status
+		row := indicator + icon + "  " + ui.PadRight(workflow, liveWorkflowColWidth) + "  " + status
 
 		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {

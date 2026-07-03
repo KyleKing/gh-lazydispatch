@@ -67,11 +67,14 @@ func NewWorkflowModel(workflows []workflow.WorkflowFile) WorkflowModel {
 	return WorkflowModel{list: l}
 }
 
+// workflowListChrome is the space reserved for the pane's border and title on each axis.
+const workflowListChrome = 6
+
 // SetSize updates the pane dimensions.
 func (m *WorkflowModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	m.list.SetSize(width-6, height-6)
+	m.list.SetSize(width-workflowListChrome, height-workflowListChrome)
 }
 
 // SetFocused updates the focus state.

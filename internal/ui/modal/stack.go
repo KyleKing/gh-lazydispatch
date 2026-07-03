@@ -99,11 +99,16 @@ func (s *Stack) Render(background string) string {
 	return placeCenter(background, modalView, s.width, s.height)
 }
 
+const (
+	modalPaddingVertical   = 2
+	modalPaddingHorizontal = 3
+)
+
 func placeCenter(background, modal string, width, height int) string {
 	modalStyle := lipgloss.NewStyle().
 		BorderStyle(lipgloss.DoubleBorder()).
 		BorderForeground(ui.PrimaryColor).
-		Padding(2, 3).
+		Padding(modalPaddingVertical, modalPaddingHorizontal).
 		Background(ui.ModalBgColor)
 
 	styledModal := modalStyle.Render(modal)

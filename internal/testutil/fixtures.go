@@ -8,6 +8,12 @@ import (
 	"testing"
 )
 
+const (
+	percentScale      = 100
+	secondsPerMinute  = 60
+	warningRateOffset = 0.1
+)
+
 // GenerateLargeLogFixture creates a realistic log file with N lines.
 // Uses GitHub Actions log format patterns for authenticity.
 func GenerateLargeLogFixture(lines int) string {
@@ -50,9 +56,9 @@ func GenerateLargeLogWithErrors(lines int, errorRate float64) string {
 	var sb strings.Builder
 
 	for i := range lines {
-		if float64(i%100) < errorRate*100 {
+		if float64(i%percentScale) < errorRate*percentScale {
 			sb.WriteString(fmt.Sprintf("##[error]Error on line %d: operation failed\n", i))
-		} else if float64(i%100) < (errorRate+0.1)*100 {
+		} else if float64(i%percentScale) < (errorRate+warningRateOffset)*percentScale {
 			sb.WriteString(fmt.Sprintf("##[warning]Warning on line %d: deprecated usage\n", i))
 		} else {
 			sb.WriteString(fmt.Sprintf("INFO: Processing line %d\n", i))
@@ -168,7 +174,7 @@ func GenerateLogWithTimestamps(lines int) string {
 	var sb strings.Builder
 
 	for i := range lines {
-		timestamp := fmt.Sprintf("2024-01-01T12:%02d:%02d.000Z", i/60%60, i%60)
+		timestamp := fmt.Sprintf("2024-01-01T12:%02d:%02d.000Z", i/secondsPerMinute%secondsPerMinute, i%secondsPerMinute)
 		sb.WriteString(fmt.Sprintf("%s INFO: Log line %d\n", timestamp, i))
 	}
 

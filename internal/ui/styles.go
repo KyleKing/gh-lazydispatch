@@ -129,6 +129,9 @@ func ApplyTheme() {
 		Foreground(PrimaryColor)
 }
 
+// paneBorderSize is the space the border occupies on each axis.
+const paneBorderSize = 2
+
 // PaneStyle returns a style for a pane with optional focus.
 func PaneStyle(width, height int, focused bool) lipgloss.Style {
 	style := BorderStyle
@@ -136,7 +139,7 @@ func PaneStyle(width, height int, focused bool) lipgloss.Style {
 		style = FocusedBorderStyle
 	}
 
-	return style.Width(width - 2).Height(height - 2)
+	return style.Width(width - paneBorderSize).Height(height - paneBorderSize)
 }
 
 // FormatEmptyValue returns the display string for a value, showing ("") for empty strings.
@@ -197,17 +200,20 @@ func RemoveListBackgrounds(l list.Model) list.Model {
 	return l
 }
 
+// ellipsisLen is the length of the "..." suffix used when truncating.
+const ellipsisLen = len("...")
+
 // TruncateWithEllipsis truncates a string to maxLen, adding "..." if truncated.
 func TruncateWithEllipsis(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
 	}
 
-	if maxLen <= 3 {
+	if maxLen <= ellipsisLen {
 		return s[:maxLen]
 	}
 
-	return s[:maxLen-3] + "..."
+	return s[:maxLen-ellipsisLen] + "..."
 }
 
 // PadRight pads a string to a specific length with spaces.

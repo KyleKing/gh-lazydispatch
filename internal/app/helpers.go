@@ -78,9 +78,11 @@ func _padRight(s string, length int) string {
 	return s + strings.Repeat(" ", length-len(s))
 }
 
+const maxSingleDigitIndex = 9
+
 func _formatRowNumber(index int) string {
 	displayIdx := index
-	if displayIdx <= 9 {
+	if displayIdx <= maxSingleDigitIndex {
 		return string(rune('0' + displayIdx))
 	}
 
