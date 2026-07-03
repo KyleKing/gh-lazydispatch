@@ -162,25 +162,25 @@ func (m *ChainVariableModal) updateNavigating(msg tea.Msg) (Context, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, m.keys.Toggle):
-			if v != nil && v.Type == "boolean" {
-				if m.variables[name] == "true" {
+			if v != nil && v.Type == inputTypeBoolean {
+				if m.variables[name] == boolTrueValue {
 					m.variables[name] = "false"
 				} else {
-					m.variables[name] = "true"
+					m.variables[name] = boolTrueValue
 				}
 			}
 
 			return m, nil
 
 		case key.Matches(msg, m.keys.NextOption):
-			if v != nil && v.Type == "choice" && len(v.Options) > 0 {
+			if v != nil && v.Type == inputTypeChoice && len(v.Options) > 0 {
 				m.cycleOption(name, v.Options, 1)
 			}
 
 			return m, nil
 
 		case key.Matches(msg, m.keys.PrevOption):
-			if v != nil && v.Type == "choice" && len(v.Options) > 0 {
+			if v != nil && v.Type == inputTypeChoice && len(v.Options) > 0 {
 				m.cycleOption(name, v.Options, -1)
 			}
 
@@ -199,16 +199,16 @@ func (m *ChainVariableModal) updateNavigating(msg tea.Msg) (Context, tea.Cmd) {
 
 				return m, nil
 
-			case "boolean":
-				if m.variables[name] == "true" {
+			case inputTypeBoolean:
+				if m.variables[name] == boolTrueValue {
 					m.variables[name] = "false"
 				} else {
-					m.variables[name] = "true"
+					m.variables[name] = boolTrueValue
 				}
 
 				return m.advanceOrConfirm()
 
-			case "choice":
+			case inputTypeChoice:
 				if len(v.Options) > 0 {
 					m.cycleOption(name, v.Options, 1)
 				}
@@ -334,9 +334,9 @@ func (m *ChainVariableModal) View() string {
 		typeHint := ""
 
 		switch v.Type {
-		case "boolean":
+		case inputTypeBoolean:
 			typeHint = " [space: toggle]"
-		case "choice":
+		case inputTypeChoice:
 			typeHint = " [←→: cycle]"
 		}
 
@@ -354,7 +354,7 @@ func (m *ChainVariableModal) View() string {
 			s.WriteString("\n")
 		}
 
-		if v.Type == "choice" && len(v.Options) > 0 && i == m.selectedIndex {
+		if v.Type == inputTypeChoice && len(v.Options) > 0 && i == m.selectedIndex {
 			s.WriteString(ui.TableDimmedStyle.Render("   Options: " + strings.Join(v.Options, ", ")))
 			s.WriteString("\n")
 		}

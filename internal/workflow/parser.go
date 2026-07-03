@@ -8,6 +8,9 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/rule"
 )
 
+// workflowDispatchTrigger is the GitHub Actions trigger name that makes a workflow dispatchable.
+const workflowDispatchTrigger = "workflow_dispatch"
+
 // Parse parses workflow YAML content into a WorkflowFile struct.
 func Parse(data []byte) (WorkflowFile, error) {
 	var raw rawWorkflow
@@ -59,14 +62,14 @@ type rawOnTrigger struct {
 func (t *rawOnTrigger) UnmarshalYAML(node *yaml.Node) error {
 	switch node.Kind {
 	case yaml.ScalarNode:
-		if node.Value == "workflow_dispatch" {
+		if node.Value == workflowDispatchTrigger {
 			t.WorkflowDispatch = &WorkflowDispatch{}
 		}
 	case yaml.SequenceNode:
 		var triggers []string
 		if err := node.Decode(&triggers); err == nil {
 			for _, trigger := range triggers {
-				if trigger == "workflow_dispatch" {
+				if trigger == workflowDispatchTrigger {
 					t.WorkflowDispatch = &WorkflowDispatch{}
 					break
 				}
@@ -173,7 +176,7 @@ func findInputsInOnNode(node *yaml.Node) *yaml.Node {
 		key := node.Content[i]
 		value := node.Content[i+1]
 
-		if key.Value == "workflow_dispatch" && value.Kind == yaml.MappingNode {
+		if key.Value == workflowDispatchTrigger && value.Kind == yaml.MappingNode {
 			for j := 0; j < len(value.Content)-1; j += 2 {
 				dispatchKey := value.Content[j]
 				dispatchValue := value.Content[j+1]

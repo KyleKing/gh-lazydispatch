@@ -27,6 +27,9 @@ import (
 // paneCount is the number of focusable panes cycled through by Tab/Shift+Tab.
 const paneCount = 3
 
+// boolTrueValue is the string representation of a "true" boolean workflow input.
+const boolTrueValue = "true"
+
 func (m Model) handleKeyMsg(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
@@ -546,8 +549,8 @@ func (m Model) openInputModalForName(name string) (tea.Model, tea.Cmd) {
 
 	switch input.InputType() {
 	case "boolean":
-		current := currentVal == "true"
-		defaultVal := input.Default == "true"
+		current := currentVal == boolTrueValue
+		defaultVal := input.Default == boolTrueValue
 		m.modalStack.Push(modal.NewConfirmModal(name, input.Description, current, defaultVal))
 	case "choice":
 		m.modalStack.Push(modal.NewSelectModal(name, input.Options, currentVal, input.Default))
@@ -651,7 +654,7 @@ func (m Model) handleInputResult(msg modal.InputResultMsg) (tea.Model, tea.Cmd) 
 func (m Model) handleConfirmResult(msg modal.ConfirmResultMsg) (tea.Model, tea.Cmd) {
 	if m.pendingInputName != "" {
 		if msg.Value {
-			m.inputs[m.pendingInputName] = "true"
+			m.inputs[m.pendingInputName] = boolTrueValue
 		} else {
 			m.inputs[m.pendingInputName] = "false"
 		}

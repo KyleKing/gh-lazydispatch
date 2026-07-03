@@ -14,6 +14,13 @@ import (
 // defaultTextInputWidth is the standard character width for single-line text inputs across modals.
 const defaultTextInputWidth = 40
 
+// Workflow input type names, shared across the modal package.
+const (
+	inputTypeChoice  = "choice"
+	inputTypeBoolean = "boolean"
+	boolTrueValue    = "true"
+)
+
 // InputModal presents a text input field.
 type InputModal struct {
 	title           string
@@ -79,7 +86,7 @@ func NewInputModal(title, description, defaultVal, inputType, current string, op
 func (m *InputModal) validate() string {
 	value := m.input.Value()
 
-	if m.inputType == "choice" && len(m.options) > 0 && value != "" {
+	if m.inputType == inputTypeChoice && len(m.options) > 0 && value != "" {
 		validOption := false
 
 		for _, opt := range m.options {
@@ -168,7 +175,7 @@ func (m *InputModal) View() string {
 		s.WriteString("\n")
 	}
 
-	if m.inputType == "choice" && len(m.options) > 0 {
+	if m.inputType == inputTypeChoice && len(m.options) > 0 {
 		s.WriteString("\n")
 		s.WriteString(ui.SubtitleStyle.Render("Options: " + strings.Join(m.options, " / ")))
 		s.WriteString("\n")
