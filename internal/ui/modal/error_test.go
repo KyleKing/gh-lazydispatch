@@ -1,20 +1,22 @@
-package modal
+package modal_test
 
 import (
 	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 )
 
 func TestErrorModal_Display(t *testing.T) {
-	modal := NewErrorModal("Test Error", "Something went wrong")
+	em := modal.NewErrorModal("Test Error", "Something went wrong")
 
-	if modal.IsDone() {
+	if em.IsDone() {
 		t.Error("modal should not be done initially")
 	}
 
-	view := modal.View()
+	view := em.View()
 	if !strings.Contains(view, "Test Error") {
 		t.Error("view should contain title")
 	}
@@ -36,18 +38,18 @@ func TestErrorModal_Dismiss(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modal := NewErrorModal("Error", "Message")
+			em := modal.NewErrorModal("Error", "Message")
 
 			switch tt.key {
 			case "esc":
-				_, _ = modal.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
+				_, _ = em.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 			case "q":
-				_, _ = modal.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
+				_, _ = em.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
 			case "enter":
-				_, _ = modal.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+				_, _ = em.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 			}
 
-			if !modal.IsDone() {
+			if !em.IsDone() {
 				t.Errorf("modal should be done after %s key", tt.key)
 			}
 		})
@@ -55,18 +57,18 @@ func TestErrorModal_Dismiss(t *testing.T) {
 }
 
 func TestErrorModal_Result(t *testing.T) {
-	modal := NewErrorModal("Error", "Message")
+	em := modal.NewErrorModal("Error", "Message")
 
-	result := modal.Result()
+	result := em.Result()
 	if result != nil {
 		t.Error("result should be nil for error modal")
 	}
 }
 
 func TestErrorModal_MultilineMessage(t *testing.T) {
-	modal := NewErrorModal("Error", "Line 1\nLine 2\nLine 3")
+	em := modal.NewErrorModal("Error", "Line 1\nLine 2\nLine 3")
 
-	view := modal.View()
+	view := em.View()
 	if !strings.Contains(view, "Line 1") {
 		t.Error("view should contain first line")
 	}

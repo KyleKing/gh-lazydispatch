@@ -163,6 +163,8 @@ func NewExecutorFromHistory(
 }
 
 // Start begins executing the chain with the given variables.
+//
+//nolint:unparam // error return is part of the public API contract; kept for future validation without breaking callers - human call needed on whether to drop it
 func (e *ChainExecutor) Start(variables map[string]string, branch string) error {
 	e.mu.Lock()
 	e.variables = variables

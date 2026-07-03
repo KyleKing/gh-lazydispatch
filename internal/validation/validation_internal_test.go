@@ -63,6 +63,8 @@ func TestValidateHistoryConfig(t *testing.T) {
 			},
 			wantErrors: 1,
 			checkError: func(t *testing.T, errs []ConfigValidationError) {
+				t.Helper()
+
 				if errs[0].Status != StatusMissing {
 					t.Errorf("expected StatusMissing, got %v", errs[0].Status)
 				}
@@ -93,6 +95,8 @@ func TestValidateHistoryConfig(t *testing.T) {
 			},
 			wantErrors: 1,
 			checkError: func(t *testing.T, errs []ConfigValidationError) {
+				t.Helper()
+
 				if errs[0].Status != StatusOptionsChanged {
 					t.Errorf("expected StatusOptionsChanged, got %v", errs[0].Status)
 				}

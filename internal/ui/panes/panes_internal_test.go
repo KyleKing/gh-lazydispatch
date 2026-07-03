@@ -68,20 +68,6 @@ func testManyInputsWorkflow() workflow.WorkflowFile {
 	return testWorkflowWithInputs("Many Inputs", "many.yml", inputs)
 }
 
-func testRequiredInputsWorkflow() workflow.WorkflowFile {
-	return testWorkflowWithInputs("Required", "required.yml", map[string]workflow.WorkflowInput{
-		"api_key": {
-			Type:     "string",
-			Required: true,
-			Default:  "",
-		},
-		"optional": {
-			Type:    "string",
-			Default: "default-val",
-		},
-	})
-}
-
 func TestWorkflowModel_SelectedWorkflow(t *testing.T) {
 	m := NewWorkflowModel(testWorkflows())
 	m.SetSize(40, 20)
@@ -588,10 +574,6 @@ func TestWorkflowModel_SelectedWorkflow_EmptyList(t *testing.T) {
 	if wf != nil {
 		t.Error("expected nil workflow for empty list")
 	}
-}
-
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && findSubstring(s, substr))
 }
 
 func findSubstring(s, substr string) bool {

@@ -1,17 +1,19 @@
-package workflow
+package workflow_test
 
 import (
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 func TestDiscover(t *testing.T) {
 	_, currentFile, _, _ := runtime.Caller(0)
 	repoRoot := filepath.Join(filepath.Dir(currentFile), "..", "..", "testdata")
 
-	workflows, err := Discover(repoRoot)
+	workflows, err := workflow.Discover(repoRoot)
 	if err != nil {
 		t.Fatalf("Discover failed: %v", err)
 	}
@@ -39,7 +41,7 @@ func TestDiscover(t *testing.T) {
 }
 
 func TestDiscover_NonExistentDir(t *testing.T) {
-	workflows, err := Discover("/nonexistent/path")
+	workflows, err := workflow.Discover("/nonexistent/path")
 	if err != nil {
 		t.Fatalf("Discover should not error on missing dir: %v", err)
 	}
@@ -50,17 +52,13 @@ func TestDiscover_NonExistentDir(t *testing.T) {
 }
 
 func TestDiscover_EmptyDir(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "workflow-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	if err := os.MkdirAll(filepath.Join(tmpDir, ".github", "workflows"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	workflows, err := Discover(tmpDir)
+	workflows, err := workflow.Discover(tmpDir)
 	if err != nil {
 		t.Fatalf("Discover failed: %v", err)
 	}

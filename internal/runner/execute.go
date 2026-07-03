@@ -110,10 +110,6 @@ func ExecuteWithExecutor(cfg RunConfig, exec CommandExecutor) error {
 	return nil
 }
 
-func watchLatestRun(workflow string) error {
-	return watchLatestRunWithExecutor(workflow, executor)
-}
-
 func watchLatestRunWithExecutor(_ string, exec CommandExecutor) error {
 	fmt.Println()
 	fmt.Println("Watching run...")

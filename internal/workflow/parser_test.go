@@ -1,7 +1,9 @@
-package workflow
+package workflow_test
 
 import (
 	"testing"
+
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 func TestParse_WithInputs(t *testing.T) {
@@ -24,7 +26,7 @@ on:
         default: 'false'
 `)
 
-	wf, err := Parse(data)
+	wf, err := workflow.Parse(data)
 	if err != nil {
 		t.Fatalf("Parse failed: %v", err)
 	}
@@ -70,7 +72,7 @@ name: Simple
 on: workflow_dispatch
 `)
 
-	wf, err := Parse(data)
+	wf, err := workflow.Parse(data)
 	if err != nil {
 		t.Fatalf("Parse failed: %v", err)
 	}
@@ -94,7 +96,7 @@ on:
   pull_request:
 `)
 
-	wf, err := Parse(data)
+	wf, err := workflow.Parse(data)
 	if err != nil {
 		t.Fatalf("Parse failed: %v", err)
 	}
@@ -110,7 +112,7 @@ name: Multi Trigger
 on: [push, pull_request]
 `)
 
-	wf, err := Parse(data)
+	wf, err := workflow.Parse(data)
 	if err != nil {
 		t.Fatalf("Parse failed: %v", err)
 	}
@@ -129,7 +131,7 @@ on:
         type: string
 `)
 
-	wf, err := Parse(data)
+	wf, err := workflow.Parse(data)
 	if err != nil {
 		t.Fatalf("Parse failed: %v", err)
 	}
@@ -144,14 +146,14 @@ on:
 }
 
 func TestWorkflowInput_InputType_Default(t *testing.T) {
-	input := WorkflowInput{}
+	input := workflow.WorkflowInput{}
 	if input.InputType() != "string" {
 		t.Errorf("expected default type 'string', got %q", input.InputType())
 	}
 }
 
 func TestWorkflowInput_InputType_Explicit(t *testing.T) {
-	input := WorkflowInput{Type: "boolean"}
+	input := workflow.WorkflowInput{Type: "boolean"}
 	if input.InputType() != "boolean" {
 		t.Errorf("expected type 'boolean', got %q", input.InputType())
 	}

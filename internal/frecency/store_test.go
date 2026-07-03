@@ -1,7 +1,6 @@
 package frecency_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -110,11 +109,7 @@ func TestStore_TopForRepo_Limit(t *testing.T) {
 }
 
 func TestStore_SaveLoad(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "frecency-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	path := filepath.Join(tmpDir, "history.json")
 

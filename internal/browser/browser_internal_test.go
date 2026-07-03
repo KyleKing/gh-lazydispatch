@@ -16,26 +16,6 @@ func (m *mockCmd) Start() error {
 	return m.err
 }
 
-// mockExecCommand creates a mock command runner for testing.
-func mockExecCommand(name string, args ...string) cmdRunner {
-	return &mockCmd{
-		name: name,
-		args: args,
-		err:  nil,
-	}
-}
-
-// mockExecCommandWithError creates a mock command runner that returns an error.
-func mockExecCommandWithError(err error) func(string, ...string) cmdRunner {
-	return func(name string, args ...string) cmdRunner {
-		return &mockCmd{
-			name: name,
-			args: args,
-			err:  err,
-		}
-	}
-}
-
 func TestOpen(t *testing.T) {
 	// Save original and restore after test
 	originalExecCommand := execCommand
