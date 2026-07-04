@@ -37,7 +37,7 @@ type RemapModal struct {
 	selected        int
 	options         []remapOption
 	done            bool
-	cancelled       bool
+	canceled       bool
 	keys            remapKeyMap
 }
 
@@ -168,7 +168,7 @@ func (m *RemapModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 
 			return m, nil
 		case key.Matches(msg, m.keys.Escape):
-			m.cancelled = true
+			m.canceled = true
 			m.done = true
 
 			return m, nil
@@ -271,7 +271,7 @@ func (m *RemapModal) IsDone() bool {
 
 // Result returns the remapping decisions.
 func (m *RemapModal) Result() any {
-	if m.cancelled {
+	if m.canceled {
 		return nil
 	}
 

@@ -17,7 +17,7 @@ const (
 	configValueColWidth   = 18
 	configDefaultColWidth = 15
 
-	// configPaneChrome is the vertical space reserved for the pane's title, header, and footer.
+	// ConfigPaneChrome is the vertical space reserved for the pane's title, header, and footer.
 	configPaneChrome       = 14
 	configCLIPreviewMargin = 10
 	configMaxSingleDigit   = 9

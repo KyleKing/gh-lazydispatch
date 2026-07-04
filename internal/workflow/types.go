@@ -11,7 +11,7 @@ type WorkflowFile struct {
 
 // OnTrigger represents the "on" field which can trigger workflows.
 type OnTrigger struct {
-	WorkflowDispatch *WorkflowDispatch `yaml:"workflow_dispatch"`
+	WorkflowDispatch *WorkflowDispatch `yaml:"workflow_dispatch"` //nolint:tagliatelle // matches GitHub Actions workflow YAML schema
 }
 
 // WorkflowDispatch represents the workflow_dispatch trigger configuration.

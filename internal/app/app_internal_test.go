@@ -361,7 +361,7 @@ func TestHandleFilterResult(t *testing.T) {
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
-	result, _ := m.handleFilterResult(modal.FilterResultMsg{Value: "env", Cancelled: false})
+	result, _ := m.handleFilterResult(modal.FilterResultMsg{Value: "env", Canceled: false})
 	m = result.(Model)
 
 	if m.filterText != "env" {
@@ -373,13 +373,13 @@ func TestHandleFilterResult(t *testing.T) {
 	}
 }
 
-func TestHandleFilterResult_Cancelled(t *testing.T) {
+func TestHandleFilterResult_Canceled(t *testing.T) {
 	t.Parallel()
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 	m.filterText = "existing"
 
-	result, _ := m.handleFilterResult(modal.FilterResultMsg{Value: "new", Cancelled: true})
+	result, _ := m.handleFilterResult(modal.FilterResultMsg{Value: "new", Canceled: true})
 	m = result.(Model)
 
 	if m.filterText != "existing" {
@@ -401,7 +401,7 @@ func TestHandleResetResult(t *testing.T) {
 	}
 }
 
-func TestHandleResetResult_Cancelled(t *testing.T) {
+func TestHandleResetResult_Canceled(t *testing.T) {
 	t.Parallel()
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")

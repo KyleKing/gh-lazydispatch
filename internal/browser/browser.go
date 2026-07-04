@@ -38,5 +38,6 @@ func Open(url string) error {
 	}
 
 	cmd := execCommand(name, args...)
+
 	return cmd.Start()
 }

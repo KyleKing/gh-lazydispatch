@@ -432,7 +432,7 @@ func TestLogStreamer_ConcurrentStop(t *testing.T) {
 	}
 }
 
-// mockGitHubClient is a minimal mock for testing
+// mockGitHubClient is a minimal mock for testing.
 type mockGitHubClient struct{}
 
 func (m *mockGitHubClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
@@ -446,7 +446,7 @@ func (m *mockGitHubClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error)
 	return []github.Job{}, nil
 }
 
-// completedRunMockClient returns a completed run status
+// completedRunMockClient returns a completed run status.
 type completedRunMockClient struct{}
 
 func (c *completedRunMockClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
@@ -461,7 +461,7 @@ func (c *completedRunMockClient) GetWorkflowRunJobs(runID int64) ([]github.Job, 
 	return []github.Job{}, nil
 }
 
-// errorMockClient returns errors based on configuration
+// errorMockClient returns errors based on configuration.
 type errorMockClient struct {
 	errorOnGetRun  bool
 	errorOnGetJobs bool

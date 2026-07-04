@@ -2,6 +2,7 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,7 +27,7 @@ type defaultCommandExecutor struct {
 func (e defaultCommandExecutor) Execute(name string, args ...string) error {
 	// For interactive execution, we want stdout/stderr to go directly to the terminal
 	if e.executor == nil {
-		cmd := exec.Command(name, args...)
+		cmd := exec.CommandContext(context.Background(), name, args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin

@@ -11,7 +11,7 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
-// RunConfirmResultMsg is sent when workflow execution is confirmed or cancelled.
+// RunConfirmResultMsg is sent when workflow execution is confirmed or canceled.
 type RunConfirmResultMsg struct {
 	Confirmed bool
 	Config    runner.RunConfig

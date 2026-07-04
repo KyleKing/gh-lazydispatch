@@ -16,19 +16,19 @@ import (
 )
 
 const (
-	// logsViewportWidthMargin and logsViewportHeightMargin reserve space around the
+	// LogsViewportWidthMargin and logsViewportHeightMargin reserve space around the
 	// viewport for the modal's border, title, and footer chrome.
 	logsViewportWidthMargin  = 4
 	logsViewportHeightMargin = 10
 
-	// nearBottomThreshold is how many lines from the end still count as "at the bottom"
+	// NearBottomThreshold is how many lines from the end still count as "at the bottom"
 	// for auto-scroll purposes.
 	nearBottomThreshold = 3
 
 	minutesPerHour   = 60
 	secondsPerMinute = 60
 
-	// panesHeightDivisor centers a match by offsetting half the visible viewport height.
+	// PanesHeightDivisor centers a match by offsetting half the visible viewport height.
 	panesHeightDivisor = 2
 )
 

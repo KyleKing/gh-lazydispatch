@@ -19,15 +19,15 @@ type Cache struct {
 
 // CacheEntry represents cached log data.
 type CacheEntry struct {
-	ChainName string
-	RunID     int64
-	Logs      *RunLogs
-	CachedAt  time.Time
-	TTL       time.Duration
+	ChainName string        `json:"chain_name"`
+	RunID     int64         `json:"run_id"`
+	Logs      *RunLogs      `json:"logs"`
+	CachedAt  time.Time     `json:"cached_at"`
+	TTL       time.Duration `json:"ttl"`
 }
 
 // NewCache creates a new log cache.
-// cacheDir should be something like ~/.cache/lazydispatch/logs/
+// The cacheDir should be something like ~/.cache/lazydispatch/logs/.
 func NewCache(cacheDir string) *Cache {
 	return &Cache{
 		cacheDir: cacheDir,

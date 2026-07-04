@@ -106,7 +106,7 @@ func (m model) View() tea.View {
 		if m.result != "" {
 			content = fmt.Sprintf("Selected branch: %s\n\nPress 'q' to quit.", m.result)
 		} else {
-			content = "Cancelled.\n\nPress 'q' to quit."
+			content = "Canceled.\n\nPress 'q' to quit."
 		}
 	} else {
 		// Show debug info

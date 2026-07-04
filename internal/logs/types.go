@@ -7,10 +7,10 @@ import (
 
 // LogEntry represents a single log line with metadata.
 type LogEntry struct {
-	Timestamp time.Time
-	Content   string
-	Level     LogLevel // error, warning, info, debug
-	StepName  string   // for grouping
+	Timestamp time.Time `json:"timestamp"`
+	Content   string    `json:"content"`
+	Level     LogLevel  `json:"level"`     // error, warning, info, debug
+	StepName  string    `json:"step_name"` // for grouping
 }
 
 // LogLevel indicates the severity of a log line.
@@ -26,23 +26,23 @@ const (
 
 // StepLogs contains all log entries for a single workflow step.
 type StepLogs struct {
-	StepIndex  int
-	Workflow   string
-	RunID      int64
-	JobName    string
-	StepName   string
-	Status     string
-	Conclusion string
-	Entries    []LogEntry
-	FetchedAt  time.Time
-	Error      error
+	StepIndex  int        `json:"step_index"`
+	Workflow   string     `json:"workflow"`
+	RunID      int64      `json:"run_id"`
+	JobName    string     `json:"job_name"`
+	StepName   string     `json:"step_name"`
+	Status     string     `json:"status"`
+	Conclusion string     `json:"conclusion"`
+	Entries    []LogEntry `json:"entries"`
+	FetchedAt  time.Time  `json:"fetched_at"`
+	Error      error      `json:"-"`
 }
 
 // RunLogs contains logs for all steps in a workflow run or chain.
 type RunLogs struct {
-	ChainName string
-	Branch    string
-	Steps     []*StepLogs
+	ChainName string      `json:"chain_name"`
+	Branch    string      `json:"branch"`
+	Steps     []*StepLogs `json:"steps"`
 	mu        sync.RWMutex
 }
 

@@ -16,7 +16,7 @@ import (
 type ChainVariableResultMsg struct {
 	Variables map[string]string
 	ChainName string
-	Cancelled bool
+	Canceled bool
 }
 
 type chainVariableKeyMap struct {
@@ -136,7 +136,7 @@ func (m *ChainVariableModal) updateNavigating(msg tea.Msg) (Context, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keys.Cancel):
 			m.done = true
-			m.result = ChainVariableResultMsg{Cancelled: true}
+			m.result = ChainVariableResultMsg{Canceled: true}
 
 			return m, func() tea.Msg { return m.result }
 
@@ -261,7 +261,7 @@ func (m *ChainVariableModal) tryConfirm() (Context, tea.Cmd) {
 	m.result = ChainVariableResultMsg{
 		Variables: m.variables,
 		ChainName: m.chainName,
-		Cancelled: false,
+		Canceled: false,
 	}
 
 	return m, func() tea.Msg { return m.result }

@@ -338,7 +338,7 @@ func (m Model) startChainFlow(name string, chainDef config.Chain) (tea.Model, te
 }
 
 func (m Model) handleChainVariableResult(msg modal.ChainVariableResultMsg) (tea.Model, tea.Cmd) {
-	if msg.Cancelled || m.pendingChain == nil {
+	if msg.Canceled || m.pendingChain == nil {
 		m.pendingChainName = ""
 		m.pendingChain = nil
 
@@ -666,7 +666,7 @@ func (m Model) handleConfirmResult(msg modal.ConfirmResultMsg) (tea.Model, tea.C
 }
 
 func (m Model) handleFilterResult(msg modal.FilterResultMsg) (tea.Model, tea.Cmd) {
-	if !msg.Cancelled {
+	if !msg.Canceled {
 		m.filterText = msg.Value
 		m.applyFilter()
 	}
@@ -750,7 +750,7 @@ func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {
 	return m, m.chainSubscription()
 }
 
-// convertToFrecencyStepResults converts chain.StepResult to frecency.ChainStepResult
+// convertToFrecencyStepResults converts chain.StepResult to frecency.ChainStepResult.
 func convertToFrecencyStepResults(stepResults map[int]*chain.StepResult) []frecency.ChainStepResult {
 	if len(stepResults) == 0 {
 		return nil

@@ -3,6 +3,7 @@ package exec
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -38,7 +39,7 @@ func (e *RealExecutor) Execute(name string, args ...string) (string, string, err
 		))
 	}
 
-	cmd := exec.Command(name, args...)
+	cmd := exec.CommandContext(context.Background(), name, args...)
 
 	var stdout bytes.Buffer
 

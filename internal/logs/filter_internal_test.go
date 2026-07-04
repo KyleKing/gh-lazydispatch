@@ -295,7 +295,7 @@ func TestFilter_FindMatches(t *testing.T) {
 		expectedCount int
 	}{
 		{"single match", "test", "this is a test", false, false, 1},
-		{"multiple matches", "test", "test test test", false, false, 3},
+		{"multiple matches", "test", "test test test", false, false, 3}, //nolint:dupword // intentional repeated fixture data
 		{"case insensitive", "TEST", "test Test TEST", false, false, 3},
 		{"case sensitive", "TEST", "test Test TEST", false, true, 1},
 		{"no match", "missing", "this is a test", false, false, 0},

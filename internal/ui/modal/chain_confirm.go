@@ -14,7 +14,7 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
-// ChainConfirmResultMsg is sent when chain execution is confirmed or cancelled.
+// ChainConfirmResultMsg is sent when chain execution is confirmed or canceled.
 type ChainConfirmResultMsg struct {
 	Confirmed bool
 	ChainName string

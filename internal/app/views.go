@@ -15,13 +15,13 @@ import (
 )
 
 const (
-	// viewsFixedChromeHeight is the vertical space reserved for the status and footer bars.
+	// ViewsFixedChromeHeight is the vertical space reserved for the status and footer bars.
 	viewsFixedChromeHeight = 2
 
-	// footerBarMargin is the space reserved between the left/right footer segments and the pane edges.
+	// FooterBarMargin is the space reserved between the left/right footer segments and the pane edges.
 	footerBarMargin = 2
 
-	// paneContentMargin and cliPreviewMargin/tableColumn widths reserve space for borders and padding.
+	// PaneContentMargin and cliPreviewMargin/tableColumn widths reserve space for borders and padding.
 	paneContentMargin = 8
 	cliPreviewMargin  = 10
 
@@ -269,17 +269,17 @@ func (m Model) viewWorkflowPane(width, height int) string {
 	title := ui.TitleStyle.Render(m.leftPaneTitle())
 	maxLineWidth := width - paneContentMargin
 
-	var content string
+	var content strings.Builder
 
 	allLine := "all"
 	if m.selectedWorkflow == -1 {
-		content += ui.SelectedStyle.Render("> " + allLine)
+		content.WriteString(ui.SelectedStyle.Render("> " + allLine))
 	} else {
-		content += ui.TableDefaultStyle.Render("  " + allLine)
+		content.WriteString(ui.TableDefaultStyle.Render("  " + allLine))
 	}
 
 	if len(m.workflows) > 0 {
-		content += "\n"
+		content.WriteString("\n")
 	}
 
 	for i, wf := range m.workflows {
@@ -294,17 +294,17 @@ func (m Model) viewWorkflowPane(width, height int) string {
 		}
 
 		if i == m.selectedWorkflow {
-			content += ui.SelectedStyle.Render("> " + line)
+			content.WriteString(ui.SelectedStyle.Render("> " + line))
 		} else {
-			content += ui.NormalStyle.Render("  " + line)
+			content.WriteString(ui.NormalStyle.Render("  " + line))
 		}
 
 		if i < len(m.workflows)-1 {
-			content += "\n"
+			content.WriteString("\n")
 		}
 	}
 
-	return style.Render(title + "\n" + content)
+	return style.Render(title + "\n" + content.String())
 }
 
 func (m Model) viewHistoryConfigPane(width, height int) string {

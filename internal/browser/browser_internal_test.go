@@ -26,6 +26,7 @@ func TestOpen(t *testing.T) {
 	execCommand = func(name string, args ...string) cmdRunner {
 		cmd := &mockCmd{name: name, args: args}
 		capturedCmd = cmd
+
 		return cmd
 	}
 
@@ -75,6 +76,7 @@ func TestOpen_InvalidURL(t *testing.T) {
 	execCommand = func(name string, args ...string) cmdRunner {
 		cmd := &mockCmd{name: name, args: args}
 		capturedCmd = cmd
+
 		return cmd
 	}
 
@@ -114,6 +116,7 @@ func TestOpen_Darwin(t *testing.T) {
 	execCommand = func(name string, args ...string) cmdRunner {
 		cmd := &mockCmd{name: name, args: args}
 		capturedCmd = cmd
+
 		return cmd
 	}
 
@@ -149,6 +152,7 @@ func TestOpen_Linux(t *testing.T) {
 	execCommand = func(name string, args ...string) cmdRunner {
 		cmd := &mockCmd{name: name, args: args}
 		capturedCmd = cmd
+
 		return cmd
 	}
 
@@ -184,6 +188,7 @@ func TestOpen_Windows(t *testing.T) {
 	execCommand = func(name string, args ...string) cmdRunner {
 		cmd := &mockCmd{name: name, args: args}
 		capturedCmd = cmd
+
 		return cmd
 	}
 
@@ -222,6 +227,7 @@ func TestOpen_EmptyURL(t *testing.T) {
 	execCommand = func(name string, args ...string) cmdRunner {
 		cmd := &mockCmd{name: name, args: args}
 		capturedCmd = cmd
+
 		return cmd
 	}
 

@@ -35,6 +35,7 @@ func TestParseBranches(t *testing.T) {
 		},
 		{
 			name: "with HEAD reference",
+			//nolint:dupword // intentional repeated fixture data across raw-string lines
 			output: `  origin/HEAD -> origin/main
   origin/main
   origin/develop`,
@@ -164,6 +165,7 @@ func TestFetchBranches(t *testing.T) {
 		},
 		{
 			name: "HEAD reference filtered",
+			//nolint:dupword // intentional repeated fixture data across raw-string lines
 			output: `  origin/HEAD -> origin/main
   origin/main
   origin/develop`,
@@ -198,6 +200,7 @@ func TestFetchBranches(t *testing.T) {
 		},
 		{
 			name: "deduplication",
+			//nolint:dupword // intentional repeated fixture data across raw-string lines
 			output: `  origin/main
   origin/main
   origin/develop`,

@@ -139,7 +139,7 @@ func (f *GHFetcher) parseJobLogsIntoSteps(
 
 			// Start new step
 			currentStepIdx++
-			currentLines = make([]string, 0)
+			currentLines = make([]string, 0, 1)
 			currentLines = append(currentLines, line)
 		} else if strings.HasPrefix(line, "##[endgroup]") {
 			currentLines = append(currentLines, line)

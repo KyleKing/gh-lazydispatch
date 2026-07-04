@@ -933,7 +933,7 @@ func TestRunStatusIcon(t *testing.T) {
 		{"in_progress", "", "*"},
 		{"completed", "success", "+"},
 		{"completed", "failure", "x"},
-		{"completed", "cancelled", "-"},
+		{"completed", "cancelled", "-"}, //nolint:misspell // matches GitHub Actions API's actual conclusion value
 		{"completed", "unknown", "?"},
 		{"unknown", "", "?"},
 	}

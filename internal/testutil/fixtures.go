@@ -51,7 +51,7 @@ func GenerateLargeLogFixture(lines int) string {
 }
 
 // GenerateLargeLogWithErrors creates a log with error patterns.
-// errorRate is a float between 0 and 1 indicating percentage of lines that should be errors.
+// The errorRate is a float between 0 and 1 indicating percentage of lines that should be errors.
 func GenerateLargeLogWithErrors(lines int, errorRate float64) string {
 	var sb strings.Builder
 

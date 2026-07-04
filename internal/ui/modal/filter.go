@@ -2,6 +2,7 @@ package modal
 
 import (
 	"strconv"
+	"strings"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
@@ -10,10 +11,10 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
-// FilterResultMsg is sent when filter is applied or cancelled.
+// FilterResultMsg is sent when filter is applied or canceled.
 type FilterResultMsg struct {
 	Value     string
-	Cancelled bool
+	Canceled bool
 }
 
 type filterKeyMap struct {
@@ -28,7 +29,7 @@ type FilterModal struct {
 	items     []string
 	matches   []string
 	done      bool
-	cancelled bool
+	canceled bool
 	keys      filterKeyMap
 }
 
@@ -86,10 +87,10 @@ func (m *FilterModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 			}
 		case key.Matches(msg, m.keys.Escape):
 			m.done = true
-			m.cancelled = true
+			m.canceled = true
 
 			return m, func() tea.Msg {
-				return FilterResultMsg{Cancelled: true}
+				return FilterResultMsg{Canceled: true}
 			}
 		}
 	}
@@ -103,11 +104,13 @@ func (m *FilterModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 
 // View renders the filter modal.
 func (m *FilterModal) View() string {
-	s := ui.TitleStyle.Render(m.title) + "\n\n"
-	s += m.input.View() + "\n\n"
+	var s strings.Builder
+
+	s.WriteString(ui.TitleStyle.Render(m.title) + "\n\n")
+	s.WriteString(m.input.View() + "\n\n")
 
 	matchText := "Matches: " + strconv.Itoa(len(m.matches)) + "/" + strconv.Itoa(len(m.items))
-	s += ui.SubtitleStyle.Render(matchText) + "\n\n"
+	s.WriteString(ui.SubtitleStyle.Render(matchText) + "\n\n")
 
 	const previewLimit = 5
 
@@ -117,16 +120,16 @@ func (m *FilterModal) View() string {
 	}
 
 	for i := range maxPreview {
-		s += ui.NormalStyle.Render("  "+m.matches[i]) + "\n"
+		s.WriteString(ui.NormalStyle.Render("  "+m.matches[i]) + "\n")
 	}
 
 	if len(m.matches) > previewLimit {
-		s += ui.SubtitleStyle.Render("  ...and " + strconv.Itoa(len(m.matches)-previewLimit) + " more")
+		s.WriteString(ui.SubtitleStyle.Render("  ...and " + strconv.Itoa(len(m.matches)-previewLimit) + " more"))
 	}
 
-	s += "\n" + ui.HelpStyle.Render("[enter] apply  [esc] cancel")
+	s.WriteString("\n" + ui.HelpStyle.Render("[enter] apply  [esc] cancel"))
 
-	return s
+	return s.String()
 }
 
 // IsDone returns true if the modal is finished.

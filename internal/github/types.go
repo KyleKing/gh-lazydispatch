@@ -14,18 +14,18 @@ type WorkflowRun struct {
 	HeadBranch string    `json:"head_branch"`
 }
 
-// RunStatus constants
+// RunStatus constants.
 const (
 	StatusQueued     = "queued"
 	StatusInProgress = "in_progress"
 	StatusCompleted  = "completed"
 )
 
-// Conclusion constants
+// Conclusion constants.
 const (
 	ConclusionSuccess   = "success"
 	ConclusionFailure   = "failure"
-	ConclusionCancelled = "cancelled"
+	ConclusionCancelled = "cancelled" //nolint:misspell // matches GitHub Actions API's actual conclusion value
 	ConclusionSkipped   = "skipped"
 )
 

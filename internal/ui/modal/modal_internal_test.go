@@ -312,8 +312,8 @@ func TestFilterModal_ApplyFilter(t *testing.T) {
 		t.Fatalf("expected FilterResultMsg, got %T", msg)
 	}
 
-	if result.Cancelled {
-		t.Error("expected cancelled=false")
+	if result.Canceled {
+		t.Error("expected canceled=false")
 	}
 
 	if result.Value != "en" {
@@ -345,8 +345,8 @@ func TestFilterModal_Cancel(t *testing.T) {
 		t.Fatalf("expected FilterResultMsg, got %T", msg)
 	}
 
-	if !result.Cancelled {
-		t.Error("expected cancelled=true")
+	if !result.Canceled {
+		t.Error("expected canceled=true")
 	}
 }
 

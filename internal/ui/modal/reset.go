@@ -9,7 +9,7 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
-// ResetResultMsg is sent when reset is confirmed or cancelled.
+// ResetResultMsg is sent when reset is confirmed or canceled.
 type ResetResultMsg struct {
 	Confirmed bool
 }

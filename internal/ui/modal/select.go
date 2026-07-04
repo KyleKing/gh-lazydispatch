@@ -2,6 +2,7 @@ package modal
 
 import (
 	"fmt"
+	"strings"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -99,7 +100,9 @@ func (m *SelectModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 
 // View renders the select modal.
 func (m *SelectModal) View() string {
-	s := ui.TitleStyle.Render(m.title) + "\n\n"
+	var s strings.Builder
+
+	s.WriteString(ui.TitleStyle.Render(m.title) + "\n\n")
 
 	for i, opt := range m.options {
 		cursor := "  "
@@ -110,15 +113,15 @@ func (m *SelectModal) View() string {
 			style = ui.SelectedStyle
 		}
 
-		s += style.Render(fmt.Sprintf("%s%s", cursor, opt))
+		s.WriteString(style.Render(fmt.Sprintf("%s%s", cursor, opt)))
 		if i < len(m.options)-1 {
-			s += "\n"
+			s.WriteString("\n")
 		}
 	}
 
-	s += "\n\n" + ui.HelpStyle.Render("[↑↓] navigate  [enter] select  [ctrl+r] default  [esc] cancel")
+	s.WriteString("\n\n" + ui.HelpStyle.Render("[↑↓] navigate  [enter] select  [ctrl+r] default  [esc] cancel"))
 
-	return s
+	return s.String()
 }
 
 // IsDone returns true if the modal is finished.
