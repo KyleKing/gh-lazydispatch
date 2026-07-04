@@ -2,6 +2,7 @@
 package browser
 
 import (
+	"fmt"
 	"os/exec"
 	"runtime"
 )
@@ -39,5 +40,9 @@ func Open(url string) error {
 
 	cmd := execCommand(name, args...)
 
-	return cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("opening browser for %s: %w", url, err)
+	}
+
+	return nil
 }

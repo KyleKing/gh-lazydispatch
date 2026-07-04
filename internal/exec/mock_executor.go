@@ -20,6 +20,15 @@ type MockExecutor struct {
 	ExecutedCommands []ExecutedCommand
 }
 
+// ErrMockCommandNotConfigured indicates the MockExecutor has no result configured for a command.
+var ErrMockCommandNotConfigured = errors.New("mock executor: no result configured for command")
+
+// ErrMockExitStatus1 simulates a generic "exit status 1" failure from an external command.
+var ErrMockExitStatus1 = errors.New("exit status 1")
+
+// ErrMockExitStatus127 simulates a "command not found" (exit status 127) failure.
+var ErrMockExitStatus127 = errors.New("exit status 127")
+
 // CommandResult represents the result of a command execution.
 type CommandResult struct {
 	Error  error
@@ -72,7 +81,7 @@ func (m *MockExecutor) Execute(name string, args ...string) (string, string, err
 	}
 
 	// No match found
-	return "", "", fmt.Errorf("mock executor: no result configured for command: %s", cmdKey)
+	return "", "", fmt.Errorf("%w: %s", ErrMockCommandNotConfigured, cmdKey)
 }
 
 // AddCommand registers a command response.
@@ -175,7 +184,7 @@ func (m *MockExecutor) AddGHAuthStatus(authenticated bool, username string) {
 	if authenticated {
 		m.AddCommand("gh", []string{"auth", "status"}, "✓ Logged in to github.com as "+username, "", nil)
 	} else {
-		m.AddCommand("gh", []string{"auth", "status"}, "", "You are not logged in", errors.New("exit status 1"))
+		m.AddCommand("gh", []string{"auth", "status"}, "", "You are not logged in", ErrMockExitStatus1)
 	}
 }
 

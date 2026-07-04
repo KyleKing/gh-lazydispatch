@@ -20,7 +20,9 @@ func BenchmarkCache_Put(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := range b.N {
-		cache.Put("test", int64(i), runLogs, 1*time.Hour)
+		if err := cache.Put("test", int64(i), runLogs, 1*time.Hour); err != nil {
+			b.Fatalf("Put failed: %v", err)
+		}
 	}
 }
 
@@ -35,7 +37,9 @@ func BenchmarkCache_Get(b *testing.B) {
 		})
 	}
 
-	cache.Put("test", 123, runLogs, 1*time.Hour)
+	if err := cache.Put("test", 123, runLogs, 1*time.Hour); err != nil {
+		b.Fatalf("Put failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -61,7 +65,10 @@ func BenchmarkCache_ConcurrentAccess(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			cache.Put("test", 123, runLogs, 1*time.Hour)
+			if err := cache.Put("test", 123, runLogs, 1*time.Hour); err != nil {
+				b.Fatalf("Put failed: %v", err)
+			}
+
 			cache.Get("test", 123)
 		}
 	})
@@ -80,7 +87,9 @@ func BenchmarkCache_Load(b *testing.B) {
 			})
 		}
 
-		cache1.Put("test", int64(i), runLogs, 1*time.Hour)
+		if err := cache1.Put("test", int64(i), runLogs, 1*time.Hour); err != nil {
+			b.Fatalf("Put failed: %v", err)
+		}
 	}
 
 	b.ResetTimer()
@@ -88,7 +97,9 @@ func BenchmarkCache_Load(b *testing.B) {
 
 	for range b.N {
 		cache2 := NewCache(cacheDir)
-		cache2.Load()
+		if err := cache2.Load(); err != nil {
+			b.Fatalf("Load failed: %v", err)
+		}
 	}
 }
 
@@ -98,7 +109,9 @@ func BenchmarkCache_Stats(b *testing.B) {
 	// Add entries
 	for i := range 100 {
 		runLogs := NewRunLogs("test", "main")
-		cache.Put("test", int64(i), runLogs, 1*time.Hour)
+		if err := cache.Put("test", int64(i), runLogs, 1*time.Hour); err != nil {
+			b.Fatalf("Put failed: %v", err)
+		}
 	}
 
 	b.ResetTimer()
@@ -126,13 +139,18 @@ func BenchmarkCache_Clear(b *testing.B) {
 				ttl = 1 * time.Millisecond
 			}
 
-			cache.Put("test", int64(j), runLogs, ttl)
+			if err := cache.Put("test", int64(j), runLogs, ttl); err != nil {
+				b.Fatalf("Put failed: %v", err)
+			}
 		}
 
 		time.Sleep(5 * time.Millisecond) // Wait for some to expire
 
 		b.StartTimer()
-		cache.Clear()
+
+		if err := cache.Clear(); err != nil {
+			b.Fatalf("Clear failed: %v", err)
+		}
 	}
 }
 
@@ -162,7 +180,10 @@ func BenchmarkCache_PutGet_SmallLogs(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := range b.N {
-		cache.Put("test", int64(i%100), runLogs, 1*time.Hour)
+		if err := cache.Put("test", int64(i%100), runLogs, 1*time.Hour); err != nil {
+			b.Fatalf("Put failed: %v", err)
+		}
+
 		cache.Get("test", int64(i%100))
 	}
 }
@@ -182,7 +203,10 @@ func BenchmarkCache_PutGet_LargeLogs(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := range b.N {
-		cache.Put("test", int64(i%100), runLogs, 1*time.Hour)
+		if err := cache.Put("test", int64(i%100), runLogs, 1*time.Hour); err != nil {
+			b.Fatalf("Put failed: %v", err)
+		}
+
 		cache.Get("test", int64(i%100))
 	}
 }

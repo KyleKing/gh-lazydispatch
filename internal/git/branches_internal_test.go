@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+// Sentinel errors simulating git command failures for test cases.
+var (
+	errGitCommandFailed  = errors.New("git command failed")
+	errNotAGitRepository = errors.New("not a git repository")
+	errRefDoesNotExist   = errors.New("ref does not exist")
+)
+
 func TestParseBranches(t *testing.T) {
 	t.Parallel()
 
@@ -176,7 +183,7 @@ func TestFetchBranches(t *testing.T) {
 		{
 			name:           "command error returns defaults",
 			output:         "",
-			err:            errors.New("git command failed"),
+			err:            errGitCommandFailed,
 			expectedBranch: []string{"main", "master", "develop"},
 			expectedErr:    true,
 		},
@@ -272,7 +279,7 @@ func TestGetCurrentBranch(t *testing.T) {
 		{
 			name:           "command error returns empty",
 			output:         "",
-			err:            errors.New("not a git repository"),
+			err:            errNotAGitRepository,
 			expectedBranch: "",
 		},
 		{
@@ -337,7 +344,7 @@ func TestGetDefaultBranch(t *testing.T) {
 		{
 			name:           "missing origin HEAD returns empty",
 			output:         "",
-			err:            errors.New("ref does not exist"),
+			err:            errRefDoesNotExist,
 			expectedBranch: "",
 		},
 		{

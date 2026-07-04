@@ -9,6 +9,9 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
+// errMockAPIError simulates an API failure returned by a GitHub client.
+var errMockAPIError = errors.New("API error")
+
 type mockGitHubClient struct {
 	runs map[int64]*github.WorkflowRun
 	jobs map[int64][]github.Job
@@ -143,7 +146,7 @@ func TestPollRun_UpdatesState(t *testing.T) {
 func TestPollRun_SurfacesError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("API error")
+	expectedErr := errMockAPIError
 	client := &mockGitHubClient{err: expectedErr}
 
 	w := watcher.NewWatcher(client)

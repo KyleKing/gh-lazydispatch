@@ -94,7 +94,7 @@ func TestParseValidationComment(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			rule, err := ParseValidationComment(tt.comment)
+			rule, _, err := ParseValidationComment(tt.comment)
 
 			if tt.wantError {
 				if err == nil {

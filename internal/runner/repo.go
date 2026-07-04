@@ -22,7 +22,7 @@ type defaultRepositoryDetector struct{}
 func (defaultRepositoryDetector) Current() (Repository, error) {
 	repo, err := repository.Current()
 	if err != nil {
-		return Repository{}, err
+		return Repository{}, fmt.Errorf("detecting current repository: %w", err)
 	}
 
 	return Repository{Owner: repo.Owner, Name: repo.Name}, nil

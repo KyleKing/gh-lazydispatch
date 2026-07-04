@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -58,8 +59,8 @@ func TestLoad_MissingFile(t *testing.T) {
 	dir := t.TempDir()
 
 	cfg, err := config.Load(dir)
-	if err != nil {
-		t.Fatalf("unexpected error for missing file: %v", err)
+	if !errors.Is(err, config.ErrConfigNotFound) {
+		t.Fatalf("expected ErrConfigNotFound, got: %v", err)
 	}
 
 	if cfg != nil {

@@ -7,10 +7,13 @@ import (
 	chainerr "github.com/kyleking/gh-lazydispatch/internal/errors"
 )
 
+// errMockCause is a placeholder underlying cause used across test fixtures.
+var errMockCause = errors.New("mock cause")
+
 func TestStepExecutionError(t *testing.T) {
 	t.Parallel()
 
-	cause := errors.New("run failed")
+	cause := errMockCause
 	err := &chainerr.StepExecutionError{
 		StepIndex: 2,
 		Workflow:  "deploy.yml",
@@ -40,7 +43,7 @@ func TestStepExecutionError_NoURL(t *testing.T) {
 	err := &chainerr.StepExecutionError{
 		StepIndex: 0,
 		Workflow:  "ci.yml",
-		Cause:     errors.New("failed"),
+		Cause:     errMockCause,
 	}
 
 	url := chainerr.GetRunURL(err)
@@ -52,7 +55,7 @@ func TestStepExecutionError_NoURL(t *testing.T) {
 func TestStepDispatchError(t *testing.T) {
 	t.Parallel()
 
-	cause := errors.New("workflow not found")
+	cause := errMockCause
 	err := &chainerr.StepDispatchError{
 		Workflow:   "deploy.yml",
 		Branch:     "main",
@@ -78,7 +81,7 @@ func TestStepDispatchError(t *testing.T) {
 func TestInterpolationError(t *testing.T) {
 	t.Parallel()
 
-	cause := errors.New("invalid template")
+	cause := errMockCause
 	err := &chainerr.InterpolationError{
 		Field: "environment",
 		Value: "{{ invalid }}",
@@ -98,7 +101,7 @@ func TestInterpolationError(t *testing.T) {
 func TestRunWaitError(t *testing.T) {
 	t.Parallel()
 
-	cause := errors.New("API timeout")
+	cause := errMockCause
 	err := &chainerr.RunWaitError{
 		RunID:  99999,
 		RunURL: "https://github.com/owner/repo/actions/runs/99999",
@@ -126,7 +129,7 @@ func TestGetRunURL_NestedError(t *testing.T) {
 	innerErr := &chainerr.RunWaitError{
 		RunID:  123,
 		RunURL: "https://example.com/run/123",
-		Cause:  errors.New("timeout"),
+		Cause:  errMockCause,
 	}
 	outerErr := &chainerr.StepExecutionError{
 		StepIndex: 1,
@@ -147,7 +150,7 @@ func TestGetSuggestion_NoSuggestion(t *testing.T) {
 	err := &chainerr.StepExecutionError{
 		StepIndex: 0,
 		Workflow:  "ci.yml",
-		Cause:     errors.New("failed"),
+		Cause:     errMockCause,
 	}
 
 	suggestion := chainerr.GetSuggestion(err)

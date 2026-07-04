@@ -8,6 +8,12 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
+// Sentinel errors simulating mock client failures.
+var (
+	errMockGetWorkflowRunFailed = errors.New("mock error: failed to get workflow run")
+	errMockGetJobsFailed        = errors.New("mock error: failed to get jobs")
+)
+
 func TestLogStreamer_detectNewLogs(t *testing.T) {
 	t.Parallel()
 
@@ -469,7 +475,7 @@ type errorMockClient struct {
 
 func (e *errorMockClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
 	if e.errorOnGetRun {
-		return nil, errors.New("mock error: failed to get workflow run")
+		return nil, errMockGetWorkflowRunFailed
 	}
 
 	return &github.WorkflowRun{
@@ -480,7 +486,7 @@ func (e *errorMockClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, erro
 
 func (e *errorMockClient) GetWorkflowRunJobs(_ int64) ([]github.Job, error) {
 	if e.errorOnGetJobs {
-		return nil, errors.New("mock error: failed to get jobs")
+		return nil, errMockGetJobsFailed
 	}
 
 	return []github.Job{}, nil

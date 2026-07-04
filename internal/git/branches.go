@@ -3,6 +3,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"sort"
 	"strings"
@@ -23,7 +24,13 @@ type defaultCommandRunner struct{}
 
 func (*defaultCommandRunner) RunCommand(ctx context.Context, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
-	return cmd.Output()
+
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("running git %s: %w", strings.Join(args, " "), err)
+	}
+
+	return out, nil
 }
 
 var runner CommandRunner = &defaultCommandRunner{}

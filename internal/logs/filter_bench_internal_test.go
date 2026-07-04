@@ -11,7 +11,10 @@ func BenchmarkFilter_Apply_10kEntries(b *testing.B) {
 		SearchTerm: "",
 		StepIndex:  -1,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -28,7 +31,10 @@ func BenchmarkFilter_Apply_50kEntries(b *testing.B) {
 		SearchTerm: "",
 		StepIndex:  -1,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -47,7 +53,10 @@ func BenchmarkFilter_SearchTerm_10kEntries(b *testing.B) {
 		Regex:         false,
 		StepIndex:     -1,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -66,7 +75,10 @@ func BenchmarkFilter_RegexSearch_10kEntries(b *testing.B) {
 		CaseSensitive: false,
 		StepIndex:     -1,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -85,7 +97,10 @@ func BenchmarkFilter_RegexSearch_50kEntries(b *testing.B) {
 		CaseSensitive: false,
 		StepIndex:     -1,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -104,7 +119,10 @@ func BenchmarkFilter_CombinedFilters_10kEntries(b *testing.B) {
 		Regex:         false,
 		StepIndex:     -1,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -120,7 +138,10 @@ func BenchmarkFilter_FindMatches_SimpleString(b *testing.B) {
 		CaseSensitive: false,
 		Regex:         false,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	content := "This is an error message with error in it multiple error times"
 
@@ -138,7 +159,10 @@ func BenchmarkFilter_FindMatches_Regex(b *testing.B) {
 		Regex:         true,
 		CaseSensitive: false,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	content := "This is an error message with warning in it and failed multiple error times"
 
@@ -160,7 +184,9 @@ func BenchmarkFilter_NewFilter_Regex(b *testing.B) {
 			Regex:         true,
 			CaseSensitive: false,
 		}
-		NewFilter(config)
+		if _, err := NewFilter(config); err != nil {
+			b.Fatalf("NewFilter failed: %v", err)
+		}
 	}
 }
 
@@ -170,7 +196,10 @@ func BenchmarkFilter_StepIndexFilter_10kEntries(b *testing.B) {
 		Level:     FilterAll,
 		StepIndex: 5, // Filter to single step
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -209,7 +238,10 @@ func BenchmarkFilter_CaseSensitiveSearch_10kEntries(b *testing.B) {
 		Regex:         false,
 		StepIndex:     -1,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -225,7 +257,10 @@ func BenchmarkFilter_WarningsFilter_10kEntries(b *testing.B) {
 		Level:     FilterWarnings,
 		StepIndex: -1,
 	}
-	filter, _ := NewFilter(config)
+	filter, err := NewFilter(config)
+	if err != nil {
+		b.Fatalf("NewFilter failed: %v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()

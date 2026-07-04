@@ -80,8 +80,9 @@ func TestRealExecutor_SafetyCheck_BlocksMutations(t *testing.T) {
 				}
 			}()
 
-			// This will panic if it's a mutation command
-			_, _, _ = executor.Execute(tt.command, tt.args...)
+			// This will panic if it's a mutation command; the command itself is never run.
+			//nolint:errcheck // test only exercises the mutation-command panic guard, not command execution
+			executor.Execute(tt.command, tt.args...)
 		})
 	}
 }

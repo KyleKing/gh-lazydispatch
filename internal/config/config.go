@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -66,6 +67,12 @@ const (
 	FailureContinue FailureAction = "continue"
 )
 
+// ErrConfigNotFound indicates the configuration file does not exist at the given path.
+var ErrConfigNotFound = errors.New("config file not found")
+
+// ErrUnsupportedConfigVersion indicates the configuration file declares an unsupported version.
+var ErrUnsupportedConfigVersion = errors.New("unsupported config version (expected 1 or 2)")
+
 // Load loads the configuration from the default location.
 func Load(repoRoot string) (*WfdConfig, error) {
 	configPath := filepath.Join(repoRoot, ConfigFilename)
@@ -73,11 +80,12 @@ func Load(repoRoot string) (*WfdConfig, error) {
 }
 
 // LoadFrom loads the configuration from a specific path.
+// Returns ErrConfigNotFound if no file exists at path.
 func LoadFrom(path string) (*WfdConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil, fmt.Errorf("%s: %w", path, ErrConfigNotFound)
 		}
 
 		return nil, fmt.Errorf("failed to read config file: %w", err)
@@ -89,7 +97,7 @@ func LoadFrom(path string) (*WfdConfig, error) {
 	}
 
 	if config.Version != 1 && config.Version != 2 {
-		return nil, fmt.Errorf("unsupported config version: %d (expected 1 or 2)", config.Version)
+		return nil, fmt.Errorf("%w: got %d", ErrUnsupportedConfigVersion, config.Version)
 	}
 
 	for name, chain := range config.Chains {

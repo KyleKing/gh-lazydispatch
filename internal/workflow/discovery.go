@@ -2,6 +2,7 @@
 package workflow
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -22,7 +23,7 @@ func Discover(repoRoot string) ([]File, error) {
 	for _, pattern := range patterns {
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("globbing workflow files with pattern %q: %w", pattern, err)
 		}
 
 		files = append(files, matches...)
@@ -51,7 +52,7 @@ func Discover(repoRoot string) ([]File, error) {
 func parseWorkflowFile(path string) (File, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return File{}, err
+		return File{}, fmt.Errorf("reading workflow file %s: %w", path, err)
 	}
 
 	wf, err := Parse(data)

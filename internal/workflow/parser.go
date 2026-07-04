@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"fmt"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -15,7 +16,7 @@ const workflowDispatchTrigger = "workflow_dispatch"
 func Parse(data []byte) (File, error) {
 	var raw rawWorkflow
 	if err := yaml.Unmarshal(data, &raw); err != nil {
-		return File{}, err
+		return File{}, fmt.Errorf("parsing workflow YAML: %w", err)
 	}
 
 	wf := File{
@@ -82,7 +83,7 @@ func (t *rawOnTrigger) UnmarshalYAML(node *yaml.Node) error {
 		}
 
 		if err := node.Decode(&m); err != nil {
-			return err
+			return fmt.Errorf("decoding workflow \"on\" trigger: %w", err)
 		}
 
 		t.Dispatch = m.Dispatch
@@ -96,7 +97,7 @@ func (t *rawOnTrigger) UnmarshalYAML(node *yaml.Node) error {
 func parseInputComments(data []byte) (map[string][]string, error) {
 	var root yaml.Node
 	if err := yaml.Unmarshal(data, &root); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing workflow YAML for comments: %w", err)
 	}
 
 	result := make(map[string][]string)

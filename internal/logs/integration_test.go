@@ -1,7 +1,7 @@
 package logs_test
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -376,7 +376,7 @@ func TestIntegration_GHCLIError(t *testing.T) {
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12348/jobs"}, jobsJSON, "", nil)
 
 	// Simulate gh CLI error (e.g., network timeout, auth failure)
-	mockExec.AddGHRunViewError(runID, jobID, "HTTP 401: Bad credentials", errors.New("exit status 1"))
+	mockExec.AddGHRunViewError(runID, jobID, "HTTP 401: Bad credentials", exec.ErrMockExitStatus1)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -416,7 +416,7 @@ func TestIntegration_GitHubAPIError(t *testing.T) {
 
 	// Mock gh api error response (e.g., rate limiting, server error)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12349/jobs"},
-		"", "HTTP 500: Internal Server Error", errors.New("exit status 1"))
+		"", "HTTP 500: Internal Server Error", exec.ErrMockExitStatus1)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -458,7 +458,7 @@ func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
 		{
 			name: "gh not installed",
 			setupMock: func(m *exec.MockExecutor) {
-				m.AddCommand("gh", []string{"--version"}, "", "command not found", errors.New("exit status 127"))
+				m.AddCommand("gh", []string{"--version"}, "", "command not found", exec.ErrMockExitStatus127)
 			},
 			expectError: true,
 		},
@@ -466,7 +466,7 @@ func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
 			name: "gh not authenticated",
 			setupMock: func(m *exec.MockExecutor) {
 				m.AddCommand("gh", []string{"--version"}, "gh version 2.40.0", "", nil)
-				m.AddCommand("gh", []string{"auth", "status"}, "", "You are not logged in", errors.New("exit status 1"))
+				m.AddCommand("gh", []string{"auth", "status"}, "", "You are not logged in", exec.ErrMockExitStatus1)
 			},
 			expectError: true,
 		},
@@ -1100,7 +1100,7 @@ func TestIntegration_NetworkTimeout(t *testing.T) {
 
 	// Simulate timeout by adding command that returns context error
 	mockExec.AddCommand("gh", []string{"api", fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs", runID)},
-		"", "context deadline exceeded", errors.New("context deadline exceeded"))
+		"", "context deadline exceeded", context.DeadlineExceeded)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {

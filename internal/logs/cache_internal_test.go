@@ -239,8 +239,13 @@ func TestCache_Stats(t *testing.T) {
 	runLogs1 := NewRunLogs("test1", "main")
 	runLogs2 := NewRunLogs("test2", "main")
 
-	cache.Put("test1", 123, runLogs1, 1*time.Hour)
-	cache.Put("test2", 456, runLogs2, 1*time.Hour)
+	if err := cache.Put("test1", 123, runLogs1, 1*time.Hour); err != nil {
+		t.Fatalf("Put failed: %v", err)
+	}
+
+	if err := cache.Put("test2", 456, runLogs2, 1*time.Hour); err != nil {
+		t.Fatalf("Put failed: %v", err)
+	}
 
 	stats = cache.Stats()
 	if stats.TotalEntries != 2 {
@@ -257,7 +262,10 @@ func TestCache_Stats(t *testing.T) {
 
 	// Add expired entry
 	runLogs3 := NewRunLogs("test3", "main")
-	cache.Put("test3", 789, runLogs3, 1*time.Millisecond)
+	if err := cache.Put("test3", 789, runLogs3, 1*time.Millisecond); err != nil {
+		t.Fatalf("Put failed: %v", err)
+	}
+
 	time.Sleep(5 * time.Millisecond)
 
 	stats = cache.Stats()
@@ -294,7 +302,9 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 
 			for j := range opsPerGoroutine {
 				runLogs := NewRunLogs("test", "main")
-				cache.Put("test", int64(id*opsPerGoroutine+j), runLogs, 1*time.Hour)
+				if err := cache.Put("test", int64(id*opsPerGoroutine+j), runLogs, 1*time.Hour); err != nil {
+					t.Errorf("Put failed: %v", err)
+				}
 			}
 		}(i)
 	}

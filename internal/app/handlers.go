@@ -30,6 +30,12 @@ const paneCount = 3
 // boolTrueValue is the string representation of a "true" boolean workflow input.
 const boolTrueValue = "true"
 
+// ErrLogManagerNotInitialized indicates logs were requested before the log manager was set up.
+var ErrLogManagerNotInitialized = errors.New("log manager not initialized")
+
+// ErrNoChainStateOrRunID indicates a log fetch request lacked both chain state and a run ID.
+var ErrNoChainStateOrRunID = errors.New("no chain state or run ID provided")
+
 func (m Model) handleKeyMsg(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
@@ -898,7 +904,7 @@ func (m Model) chainSubscription() tea.Cmd {
 func (m Model) fetchLogs(msg FetchLogsMsg) tea.Cmd {
 	return func() tea.Msg {
 		if m.logManager == nil {
-			return LogsFetchedMsg{Error: errors.New("log manager not initialized")}
+			return LogsFetchedMsg{Error: ErrLogManagerNotInitialized}
 		}
 
 		var runLogs *logs.RunLogs
@@ -922,7 +928,7 @@ func (m Model) fetchLogs(msg FetchLogsMsg) tea.Cmd {
 			runID = msg.RunID
 			workflowName = msg.Workflow
 		default:
-			return LogsFetchedMsg{Error: errors.New("no chain state or run ID provided")}
+			return LogsFetchedMsg{Error: ErrNoChainStateOrRunID}
 		}
 
 		return LogsFetchedMsg{

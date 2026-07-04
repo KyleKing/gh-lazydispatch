@@ -41,6 +41,9 @@ const (
 	StepSkipped   StepStatus = "skipped"
 )
 
+// ErrChainExecutionStopped indicates the chain was stopped while waiting for a run.
+var ErrChainExecutionStopped = errors.New("chain execution stopped")
+
 // StepResult represents the result of a completed step.
 type StepResult struct {
 	Inputs     map[string]string
@@ -358,7 +361,7 @@ func (e *ChainExecutor) waitForRun(runID int64, _ config.WaitCondition) (string,
 	for {
 		select {
 		case <-e.stopCh:
-			return "", "", errors.New("chain execution stopped")
+			return "", "", ErrChainExecutionStopped
 		case <-ticker.C:
 			run, pollErr := e.client.GetWorkflowRun(runID)
 			if pollErr != nil {

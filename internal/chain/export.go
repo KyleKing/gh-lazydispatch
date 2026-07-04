@@ -69,7 +69,14 @@ func resolveChainCommands(chain *config.Chain, variables map[string]string, bran
 	}
 
 	for i, step := range chain.Steps {
-		inputs, _ := InterpolateInputs(step.Inputs, ctx)
+		inputs, err := InterpolateInputs(step.Inputs, ctx)
+		if err != nil {
+			commands[i] = fmt.Sprintf(
+				"# ERROR: failed to interpolate inputs for step %d (%s): %v", i+1, step.Workflow, err,
+			)
+
+			continue
+		}
 
 		cfg := runner.RunConfig{
 			Workflow: step.Workflow,

@@ -8,6 +8,15 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
+// Sentinel errors simulating command and API failures for test cases.
+var (
+	errMockCommandFailed = errors.New("command failed")
+	errMockWatchFailed   = errors.New("watch failed")
+	errMockAPIError      = errors.New("API error")
+	errMockNotAGitRepo   = errors.New("not a git repository")
+	errMockRepoNotFound  = errors.New("repository not found")
+)
+
 func TestBuildArgs(t *testing.T) {
 	t.Parallel()
 
@@ -322,7 +331,7 @@ func TestExecuteWithExecutor(t *testing.T) {
 				Workflow: "deploy.yml",
 			},
 			errorOnCommand: 0,
-			errToReturn:    errors.New("command failed"),
+			errToReturn:    errMockCommandFailed,
 			expectError:    true,
 			wantCommands:   1,
 		},
@@ -333,7 +342,7 @@ func TestExecuteWithExecutor(t *testing.T) {
 				Watch:    true,
 			},
 			errorOnCommand: 1,
-			errToReturn:    errors.New("watch failed"),
+			errToReturn:    errMockWatchFailed,
 			expectError:    true,
 			wantCommands:   2,
 		},
@@ -422,7 +431,7 @@ func TestExecuteAndGetRunIDWithExecutor(t *testing.T) {
 				Branch:   "feature",
 			},
 			mockRun:        nil,
-			mockRunErr:     errors.New("API error"),
+			mockRunErr:     errMockAPIError,
 			errorOnCommand: -1,
 			expectError:    true,
 			expectRunID:    0,
@@ -463,7 +472,7 @@ func TestExecuteAndGetRunIDWithExecutor(t *testing.T) {
 
 			mockExec := &mockCommandExecutor{
 				errorOnCommand: tt.errorOnCommand,
-				errToReturn:    errors.New("command failed"),
+				errToReturn:    errMockCommandFailed,
 			}
 			mockClient := &mockGitHubClient{
 				run: tt.mockRun,
@@ -515,7 +524,7 @@ func TestWatchLatestRunWithExecutor(t *testing.T) {
 			}
 			if tt.execError {
 				mockExec.errorOnCommand = 0
-				mockExec.errToReturn = errors.New("watch failed")
+				mockExec.errToReturn = errMockWatchFailed
 			}
 
 			err := watchLatestRunWithExecutor(tt.workflow, mockExec)
@@ -575,7 +584,7 @@ func TestDetectRepoWithDetector(t *testing.T) {
 		{
 			name:        "detection failure",
 			mockRepo:    Repository{},
-			mockErr:     errors.New("not a git repository"),
+			mockErr:     errMockNotAGitRepo,
 			expectError: true,
 			expectRepo:  "",
 		},
@@ -585,7 +594,7 @@ func TestDetectRepoWithDetector(t *testing.T) {
 				Owner: "",
 				Name:  "",
 			},
-			mockErr:     errors.New("repository not found"),
+			mockErr:     errMockRepoNotFound,
 			expectError: true,
 			expectRepo:  "",
 		},

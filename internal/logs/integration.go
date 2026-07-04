@@ -94,7 +94,7 @@ func (m *Manager) GetLogsForRun(runID int64, workflow string) (*RunLogs, error) 
 
 	stepLogs, err := m.fetcher.FetchStepLogs(runID, workflow)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetching step logs for run %d: %w", runID, err)
 	}
 
 	for _, sl := range stepLogs {

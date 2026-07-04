@@ -3,6 +3,7 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,9 @@ import (
 
 	execpkg "github.com/kyleking/gh-lazydispatch/internal/exec"
 )
+
+// ErrNoRunFound indicates no workflow run was found after dispatch.
+var ErrNoRunFound = errors.New("no run found for workflow")
 
 // RunConfig holds the configuration for running a workflow.
 type RunConfig struct {
@@ -32,13 +36,19 @@ func (e defaultCommandExecutor) Execute(name string, args ...string) error {
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
 
-		return cmd.Run()
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("running %s: %w", name, err)
+		}
+
+		return nil
 	}
 
 	// When using an injected executor (e.g., for testing), use it
-	_, _, err := e.executor.Execute(name, args...)
+	if _, _, err := e.executor.Execute(name, args...); err != nil {
+		return fmt.Errorf("executing %s: %w", name, err)
+	}
 
-	return err
+	return nil
 }
 
 var executor = defaultCommandExecutor{executor: nil}
@@ -117,7 +127,11 @@ func watchLatestRunWithExecutor(_ string, cmdExec CommandExecutor) error {
 	fmt.Println("Watching run...")
 	fmt.Println()
 
-	return cmdExec.Execute("gh", "run", "watch")
+	if err := cmdExec.Execute("gh", "run", "watch"); err != nil {
+		return fmt.Errorf("gh run watch failed: %w", err)
+	}
+
+	return nil
 }
 
 // DryRun prints the command that would be executed without running it.
@@ -151,7 +165,7 @@ func ExecuteAndGetRunIDWithExecutor(cfg RunConfig, client GitHubClient, cmdExec 
 	}
 
 	if run == nil {
-		return 0, fmt.Errorf("no run found for workflow: %s", cfg.Workflow)
+		return 0, fmt.Errorf("%w: %s", ErrNoRunFound, cfg.Workflow)
 	}
 
 	return run.ID, nil

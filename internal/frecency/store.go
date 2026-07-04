@@ -2,6 +2,7 @@ package frecency
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -54,12 +55,12 @@ func LoadFrom(path string) (*Store, error) {
 			return NewStore(), nil
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("reading frecency store %s: %w", path, err)
 	}
 
 	var store Store
 	if err := json.Unmarshal(data, &store); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing frecency store %s: %w", path, err)
 	}
 
 	if store.Entries == nil {
@@ -77,15 +78,19 @@ func (s *Store) Save() error {
 // SaveTo writes the store to a specific path.
 func (s *Store) SaveTo(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
+		return fmt.Errorf("creating directory for frecency store %s: %w", path, err)
 	}
 
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling frecency store: %w", err)
 	}
 
-	return os.WriteFile(path, data, 0o644)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("writing frecency store %s: %w", path, err)
+	}
+
+	return nil
 }
 
 // Record adds or updates a workflow history entry for the given repo.

@@ -193,7 +193,8 @@ func TestConfirmModal_QuickKeys(t *testing.T) {
 		t.Error("expected modal to be done after 'y'")
 	}
 
-	if result, _ := modal.Result().(bool); !result {
+	result, ok := modal.Result().(bool)
+	if !ok || !result {
 		t.Errorf("expected result true, got %v", modal.Result())
 	}
 }
@@ -210,7 +211,8 @@ func TestConfirmModal_QuickNo(t *testing.T) {
 		t.Error("expected modal to be done after 'n'")
 	}
 
-	if result, _ := modal.Result().(bool); result {
+	result, ok := modal.Result().(bool)
+	if ok && result {
 		t.Errorf("expected result false, got %v", modal.Result())
 	}
 }

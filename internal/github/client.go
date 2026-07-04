@@ -3,12 +3,19 @@ package github
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
 )
+
+// ErrInvalidRepositoryFormat indicates a repository string was not in "owner/repo" format.
+var ErrInvalidRepositoryFormat = errors.New("invalid repository format (expected owner/repo)")
+
+// ErrNoWorkflowRuns indicates no workflow runs matched the query.
+var ErrNoWorkflowRuns = errors.New("no workflow runs found")
 
 // Client wraps the GitHub API via gh CLI.
 type Client struct {
@@ -31,7 +38,7 @@ const repoFullNameParts = 2
 func NewClientWithExecutor(repoFullName string, executor exec.CommandExecutor) (*Client, error) {
 	parts := strings.SplitN(repoFullName, "/", repoFullNameParts)
 	if len(parts) != repoFullNameParts {
-		return nil, fmt.Errorf("invalid repository format: %s (expected owner/repo)", repoFullName)
+		return nil, fmt.Errorf("%w: %s", ErrInvalidRepositoryFormat, repoFullName)
 	}
 
 	return &Client{
@@ -93,7 +100,7 @@ func (c *Client) GetLatestRun(workflowName string) (*WorkflowRun, error) {
 	}
 
 	if len(runsResp.WorkflowRuns) == 0 {
-		return nil, nil
+		return nil, ErrNoWorkflowRuns
 	}
 
 	return &runsResp.WorkflowRuns[0], nil

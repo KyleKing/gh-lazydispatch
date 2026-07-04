@@ -7,6 +7,17 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
+// formatString extracts the printf-style format string from the first element
+// of msgAndArgs, falling back to an empty string if it isn't a string.
+func formatString(msgAndArgs []any) string {
+	format, ok := msgAndArgs[0].(string)
+	if !ok {
+		return ""
+	}
+
+	return format
+}
+
 // WorkflowFixture creates a test workflow with specified properties.
 func WorkflowFixture(name, filename string, inputs map[string]workflow.Input) workflow.File {
 	return workflow.File{
@@ -83,7 +94,7 @@ func AssertEqual[T comparable](t *testing.T, got, want T, msgAndArgs ...any) {
 
 	if got != want {
 		if len(msgAndArgs) > 0 {
-			format := msgAndArgs[0].(string)
+			format := formatString(msgAndArgs)
 			args := msgAndArgs[1:]
 			t.Errorf(format+": got %v, want %v", append(args, got, want)...)
 		} else {
@@ -98,7 +109,7 @@ func AssertNotEqual[T comparable](t *testing.T, got, want T, msgAndArgs ...any) 
 
 	if got == want {
 		if len(msgAndArgs) > 0 {
-			format := msgAndArgs[0].(string)
+			format := formatString(msgAndArgs)
 			args := msgAndArgs[1:]
 			t.Errorf(format+": got %v, want != %v", append(args, got, want)...)
 		} else {
@@ -113,7 +124,7 @@ func AssertNil(t *testing.T, value any, msgAndArgs ...any) {
 
 	if value != nil {
 		if len(msgAndArgs) > 0 {
-			format := msgAndArgs[0].(string)
+			format := formatString(msgAndArgs)
 			args := msgAndArgs[1:]
 			t.Errorf(format+": expected nil, got %v", append(args, value)...)
 		} else {
@@ -128,7 +139,7 @@ func AssertNotNil(t *testing.T, value any, msgAndArgs ...any) {
 
 	if value == nil {
 		if len(msgAndArgs) > 0 {
-			format := msgAndArgs[0].(string)
+			format := formatString(msgAndArgs)
 			args := msgAndArgs[1:]
 			t.Errorf(format+": expected non-nil value", args...)
 		} else {
@@ -143,7 +154,7 @@ func AssertTrue(t *testing.T, condition bool, msgAndArgs ...any) {
 
 	if !condition {
 		if len(msgAndArgs) > 0 {
-			format := msgAndArgs[0].(string)
+			format := formatString(msgAndArgs)
 			args := msgAndArgs[1:]
 			t.Errorf(format, args...)
 		} else {
@@ -158,7 +169,7 @@ func AssertFalse(t *testing.T, condition bool, msgAndArgs ...any) {
 
 	if condition {
 		if len(msgAndArgs) > 0 {
-			format := msgAndArgs[0].(string)
+			format := formatString(msgAndArgs)
 			args := msgAndArgs[1:]
 			t.Errorf(format, args...)
 		} else {
@@ -173,7 +184,7 @@ func AssertContains(t *testing.T, haystack, needle string, msgAndArgs ...any) {
 
 	if !contains(haystack, needle) {
 		if len(msgAndArgs) > 0 {
-			format := msgAndArgs[0].(string)
+			format := formatString(msgAndArgs)
 			args := msgAndArgs[1:]
 			t.Errorf(format+": %q not found in %q", append(args, needle, haystack)...)
 		} else {

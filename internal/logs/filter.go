@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -24,7 +25,7 @@ func NewFilter(config *FilterConfig) (*Filter, error) {
 
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("compiling filter regex %q: %w", pattern, err)
 		}
 
 		f.regex = regex

@@ -32,6 +32,15 @@ type ValidationRule struct {
 
 const validationPrefix = "lazydispatch:validate:"
 
+// Errors returned while parsing validation rules.
+var (
+	ErrRegexRuleMissingPattern = errors.New("regex rule requires a pattern")
+	ErrPrefixRuleMissingValue  = errors.New("prefix rule requires a value")
+	ErrSuffixRuleMissingValue  = errors.New("suffix rule requires a value")
+	ErrInvalidRangeFormat      = errors.New("expected format: min-max")
+	ErrRangeMinGreaterThanMax  = errors.New("min must be less than or equal to max")
+)
+
 // ruleSpecMaxParts caps splitting "type:value" into at most a type and a value.
 const ruleSpecMaxParts = 2
 
@@ -39,21 +48,21 @@ const ruleSpecMaxParts = 2
 const rangeParts = 2
 
 // ParseValidationComment parses a single comment line for validation rules.
-// Returns nil if the comment doesn't contain a validation rule.
-func ParseValidationComment(comment string) (*ValidationRule, error) {
+// The ok return is false if the comment doesn't contain a validation rule.
+func ParseValidationComment(comment string) (rule *ValidationRule, ok bool, err error) {
 	comment = strings.TrimSpace(comment)
 	comment = strings.TrimPrefix(comment, "#")
 	comment = strings.TrimSpace(comment)
 
 	if !strings.HasPrefix(comment, validationPrefix) {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	ruleSpec := strings.TrimPrefix(comment, validationPrefix)
 
 	parts := strings.SplitN(ruleSpec, ":", ruleSpecMaxParts)
 	if len(parts) == 0 {
-		return nil, nil
+		return nil, false, nil
 	}
 
 	ruleType := parts[0]
@@ -66,50 +75,50 @@ func ParseValidationComment(comment string) (*ValidationRule, error) {
 	switch ruleType {
 	case "regex":
 		if ruleValue == "" {
-			return nil, errors.New("regex rule requires a pattern")
+			return nil, false, ErrRegexRuleMissingPattern
 		}
 
 		if _, err := regexp.Compile(ruleValue); err != nil {
-			return nil, fmt.Errorf("invalid regex pattern: %w", err)
+			return nil, false, fmt.Errorf("invalid regex pattern: %w", err)
 		}
 
-		return &ValidationRule{Type: RuleRegex, Pattern: ruleValue}, nil
+		return &ValidationRule{Type: RuleRegex, Pattern: ruleValue}, true, nil
 
 	case "range":
 		minVal, maxVal, err := parseRange(ruleValue)
 		if err != nil {
-			return nil, fmt.Errorf("invalid range: %w", err)
+			return nil, false, fmt.Errorf("invalid range: %w", err)
 		}
 
-		return &ValidationRule{Type: RuleRange, Min: minVal, Max: maxVal}, nil
+		return &ValidationRule{Type: RuleRange, Min: minVal, Max: maxVal}, true, nil
 
 	case "required":
-		return &ValidationRule{Type: RuleRequired}, nil
+		return &ValidationRule{Type: RuleRequired}, true, nil
 
 	case "prefix":
 		if ruleValue == "" {
-			return nil, errors.New("prefix rule requires a value")
+			return nil, false, ErrPrefixRuleMissingValue
 		}
 
-		return &ValidationRule{Type: RulePrefix, Pattern: ruleValue}, nil
+		return &ValidationRule{Type: RulePrefix, Pattern: ruleValue}, true, nil
 
 	case "suffix":
 		if ruleValue == "" {
-			return nil, errors.New("suffix rule requires a value")
+			return nil, false, ErrSuffixRuleMissingValue
 		}
 
-		return &ValidationRule{Type: RuleSuffix, Pattern: ruleValue}, nil
+		return &ValidationRule{Type: RuleSuffix, Pattern: ruleValue}, true, nil
 
 	case "length":
 		minVal, maxVal, err := parseRange(ruleValue)
 		if err != nil {
-			return nil, fmt.Errorf("invalid length: %w", err)
+			return nil, false, fmt.Errorf("invalid length: %w", err)
 		}
 
-		return &ValidationRule{Type: RuleLength, Min: minVal, Max: maxVal}, nil
+		return &ValidationRule{Type: RuleLength, Min: minVal, Max: maxVal}, true, nil
 
 	default:
-		return nil, nil
+		return nil, false, nil
 	}
 }
 
@@ -118,12 +127,12 @@ func ParseValidationComments(comments []string) ([]ValidationRule, error) {
 	var rules []ValidationRule
 
 	for _, comment := range comments {
-		rule, err := ParseValidationComment(comment)
+		rule, ok, err := ParseValidationComment(comment)
 		if err != nil {
 			return nil, err
 		}
 
-		if rule != nil {
+		if ok {
 			rules = append(rules, *rule)
 		}
 	}
@@ -202,7 +211,7 @@ func validateRule(value string, r ValidationRule) string {
 func parseRange(s string) (int, int, error) {
 	parts := strings.Split(s, "-")
 	if len(parts) != rangeParts {
-		return 0, 0, errors.New("expected format: min-max")
+		return 0, 0, ErrInvalidRangeFormat
 	}
 
 	minVal, err := strconv.Atoi(strings.TrimSpace(parts[0]))
@@ -216,7 +225,7 @@ func parseRange(s string) (int, int, error) {
 	}
 
 	if minVal > maxVal {
-		return 0, 0, errors.New("min must be less than or equal to max")
+		return 0, 0, ErrRangeMinGreaterThanMax
 	}
 
 	return minVal, maxVal, nil

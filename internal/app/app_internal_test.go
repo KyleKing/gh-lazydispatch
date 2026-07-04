@@ -16,6 +16,18 @@ const (
 	testValueCustom      = "custom"
 )
 
+// asModel asserts that result is a Model, failing the test immediately if not.
+func asModel(t *testing.T, result tea.Model) Model {
+	t.Helper()
+
+	m, ok := result.(Model)
+	if !ok {
+		t.Fatalf("expected Model, got %T", result)
+	}
+
+	return m
+}
+
 func testWorkflows() []workflow.File {
 	return []workflow.File{
 		{
@@ -80,21 +92,21 @@ func TestUpdate_Tab(t *testing.T) {
 
 	msg := tea.KeyPressMsg{Code: tea.KeyTab}
 	result, _ := m.Update(msg)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.focused != PaneHistory {
 		t.Errorf("expected focus on PaneHistory after tab, got %d", m.focused)
 	}
 
 	result, _ = m.Update(msg)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.focused != PaneConfig {
 		t.Errorf("expected focus on PaneConfig after second tab, got %d", m.focused)
 	}
 
 	result, _ = m.Update(msg)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.focused != PaneWorkflows {
 		t.Errorf("expected focus back on PaneWorkflows after third tab, got %d", m.focused)
@@ -108,7 +120,7 @@ func TestUpdate_ShiftTab(t *testing.T) {
 
 	msg := tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
 	result, _ := m.Update(msg)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.focused != PaneConfig {
 		t.Errorf("expected focus on PaneConfig after shift-tab, got %d", m.focused)
@@ -122,7 +134,7 @@ func TestUpdate_UpDown_Workflows(t *testing.T) {
 
 	down := tea.KeyPressMsg{Code: tea.KeyDown}
 	result, _ := m.Update(down)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.selectedWorkflow != 1 {
 		t.Errorf("expected selectedWorkflow 1 after down, got %d", m.selectedWorkflow)
@@ -130,7 +142,7 @@ func TestUpdate_UpDown_Workflows(t *testing.T) {
 
 	up := tea.KeyPressMsg{Code: tea.KeyUp}
 	result, _ = m.Update(up)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.selectedWorkflow != 0 {
 		t.Errorf("expected selectedWorkflow 0 after up, got %d", m.selectedWorkflow)
@@ -144,14 +156,14 @@ func TestUpdate_Watch(t *testing.T) {
 
 	msg := tea.KeyPressMsg{Code: 'w', Text: "w"}
 	result, _ := m.Update(msg)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if !m.watchRun {
 		t.Error("expected watchRun to be true after 'w'")
 	}
 
 	result, _ = m.Update(msg)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.watchRun {
 		t.Error("expected watchRun to be false after second 'w'")
@@ -165,7 +177,7 @@ func TestUpdate_WindowSize(t *testing.T) {
 
 	msg := tea.WindowSizeMsg{Width: 120, Height: 40}
 	result, _ := m.Update(msg)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.width != 120 {
 		t.Errorf("expected width 120, got %d", m.width)
@@ -221,7 +233,7 @@ func TestUpdate_UpDown_History(t *testing.T) {
 
 	down := tea.KeyPressMsg{Code: tea.KeyDown}
 	result, _ := m.Update(down)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	entry := m.rightPanel.SelectedHistoryEntry()
 	if entry == nil {
@@ -230,7 +242,7 @@ func TestUpdate_UpDown_History(t *testing.T) {
 
 	up := tea.KeyPressMsg{Code: tea.KeyUp}
 	result, _ = m.Update(up)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	entry = m.rightPanel.SelectedHistoryEntry()
 	if entry == nil {
@@ -246,7 +258,7 @@ func TestUpdate_UpDown_Config(t *testing.T) {
 
 	down := tea.KeyPressMsg{Code: tea.KeyDown}
 	result, _ := m.Update(down)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.selectedInput != 0 {
 		t.Errorf("expected selectedInput 0 after down, got %d", m.selectedInput)
@@ -258,7 +270,7 @@ func TestUpdate_UpDown_Config(t *testing.T) {
 
 	up := tea.KeyPressMsg{Code: tea.KeyUp}
 	result, _ = m.Update(up)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.selectedInput != 0 {
 		t.Errorf("expected selectedInput 0 (already at top), got %d", m.selectedInput)
@@ -273,7 +285,7 @@ func TestUpdate_Space(t *testing.T) {
 
 	msg := tea.KeyPressMsg{Code: ' ', Text: " "}
 	result, _ := m.Update(msg)
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.focused != PaneConfig {
 		t.Errorf("expected focus on PaneConfig after space, got %d", m.focused)
@@ -287,7 +299,7 @@ func TestHandleSelectResult(t *testing.T) {
 	m.pendingInputName = testInputEnvironment
 
 	result, _ := m.handleSelectResult(modal.SelectResultMsg{Value: "production"})
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.inputs[testInputEnvironment] != "production" {
 		t.Errorf("expected environment=production, got %q", m.inputs[testInputEnvironment])
@@ -304,7 +316,7 @@ func TestHandleBranchResult(t *testing.T) {
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	result, _ := m.handleBranchResult(modal.BranchResultMsg{Value: "feature/test"})
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.branch != "feature/test" {
 		t.Errorf("expected branch=feature/test, got %q", m.branch)
@@ -318,7 +330,7 @@ func TestHandleInputResult(t *testing.T) {
 	m.pendingInputName = testInputEnvironment
 
 	result, _ := m.handleInputResult(modal.InputResultMsg{Value: testValueStaging})
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.inputs[testInputEnvironment] != testValueStaging {
 		t.Errorf("expected environment=staging, got %q", m.inputs[testInputEnvironment])
@@ -349,7 +361,7 @@ func TestHandleConfirmResult(t *testing.T) {
 			m.pendingInputName = "debug"
 
 			result, _ := m.handleConfirmResult(modal.ConfirmResultMsg{Value: tt.value})
-			m = result.(Model)
+			m = asModel(t, result)
 
 			if m.inputs["debug"] != tt.want {
 				t.Errorf("expected debug=%s, got %q", tt.want, m.inputs["debug"])
@@ -368,7 +380,7 @@ func TestHandleFilterResult(t *testing.T) {
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
 	result, _ := m.handleFilterResult(modal.FilterResultMsg{Value: "env", Canceled: false})
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.filterText != "env" {
 		t.Errorf("expected filterText=env, got %q", m.filterText)
@@ -386,7 +398,7 @@ func TestHandleFilterResult_Canceled(t *testing.T) {
 	m.filterText = "existing"
 
 	result, _ := m.handleFilterResult(modal.FilterResultMsg{Value: "new", Canceled: true})
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.filterText != "existing" {
 		t.Errorf("expected filterText unchanged, got %q", m.filterText)
@@ -400,7 +412,7 @@ func TestHandleResetResult(t *testing.T) {
 	m.inputs[testInputEnvironment] = testValueCustom
 
 	result, _ := m.handleResetResult(modal.ResetResultMsg{Confirmed: true})
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.inputs[testInputEnvironment] != testValueStaging {
 		t.Errorf("expected environment reset to staging, got %q", m.inputs[testInputEnvironment])
@@ -414,7 +426,7 @@ func TestHandleResetResult_Canceled(t *testing.T) {
 	m.inputs[testInputEnvironment] = testValueCustom
 
 	result, _ := m.handleResetResult(modal.ResetResultMsg{Confirmed: false})
-	m = result.(Model)
+	m = asModel(t, result)
 
 	if m.inputs[testInputEnvironment] != testValueCustom {
 		t.Errorf("expected environment unchanged, got %q", m.inputs[testInputEnvironment])
@@ -526,7 +538,7 @@ func TestHandleWorkflowKey(t *testing.T) {
 			m.focused = PaneWorkflows
 
 			result, _ := m.handleWorkflowKey(tt.keyNum)
-			m = result.(Model)
+			m = asModel(t, result)
 
 			if m.selectedWorkflow != tt.wantWorkflow {
 				t.Errorf("expected selectedWorkflow=%d, got %d", tt.wantWorkflow, m.selectedWorkflow)

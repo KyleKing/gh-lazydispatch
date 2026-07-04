@@ -159,7 +159,9 @@ func TestEndToEnd_WatcherRegistration(t *testing.T) {
 	}
 
 	executor := chain.NewExecutor(client, w, "test-chain", chainDef)
-	_ = executor.Start(map[string]string{}, "main")
+	if err := executor.Start(map[string]string{}, "main"); err != nil {
+		t.Fatalf("failed to start chain: %v", err)
+	}
 
 	testutil.DrainChainUpdates(t, executor.Updates(), 2*time.Second)
 
@@ -204,7 +206,9 @@ func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 			}
 
 			executor := chain.NewExecutor(client, w, "test", chainDef)
-			_ = executor.Start(map[string]string{}, "main")
+			if err := executor.Start(map[string]string{}, "main"); err != nil {
+				t.Fatalf("failed to start chain: %v", err)
+			}
 
 			testutil.DrainChainUpdates(t, executor.Updates(), 2*time.Second)
 

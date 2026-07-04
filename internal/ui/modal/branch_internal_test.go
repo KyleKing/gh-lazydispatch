@@ -205,7 +205,11 @@ func TestBranchModalKeyHandling(t *testing.T) {
 
 	// Test Enter key selects branch
 	ctx, _ := modal.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
-	branchModal := ctx.(*BranchModal)
+
+	branchModal, ok := ctx.(*BranchModal)
+	if !ok {
+		t.Fatalf("expected *BranchModal, got %T", ctx)
+	}
 
 	if !branchModal.done {
 		t.Error("Enter key should mark modal as done")
@@ -218,7 +222,11 @@ func TestBranchModalKeyHandling(t *testing.T) {
 	// Test Esc key cancels
 	modal2 := NewBranchModal("Test", branches, "main")
 	ctx2, _ := modal2.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
-	branchModal2 := ctx2.(*BranchModal)
+
+	branchModal2, ok := ctx2.(*BranchModal)
+	if !ok {
+		t.Fatalf("expected *BranchModal, got %T", ctx2)
+	}
 
 	if !branchModal2.done {
 		t.Error("Esc key should mark modal as done")
