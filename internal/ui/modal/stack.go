@@ -104,7 +104,7 @@ const (
 	modalPaddingHorizontal = 3
 )
 
-func placeCenter(background, modal string, width, height int) string {
+func placeCenter(_, modal string, width, height int) string {
 	modalStyle := lipgloss.NewStyle().
 		BorderStyle(lipgloss.DoubleBorder()).
 		BorderForeground(ui.PrimaryColor).
@@ -118,7 +118,7 @@ func placeCenter(background, modal string, width, height int) string {
 	)
 }
 
-// ModalClosedMsg is sent when a modal is closed.
-type ModalClosedMsg struct {
+// ClosedMsg is sent when a modal is closed.
+type ClosedMsg struct {
 	Result any
 }

@@ -83,7 +83,7 @@ func (m ChainListModel) SelectedChain() (string, config.Chain, bool) {
 }
 
 // Update handles messages for the chain list.
-func (m ChainListModel) Update(msg tea.Msg) (ChainListModel, tea.Cmd) {
+func (m ChainListModel) Update(_ tea.Msg) (ChainListModel, tea.Cmd) {
 	return m, nil
 }
 

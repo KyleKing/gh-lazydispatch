@@ -56,11 +56,12 @@ func GenerateLargeLogWithErrors(lines int, errorRate float64) string {
 	var sb strings.Builder
 
 	for i := range lines {
-		if float64(i%percentScale) < errorRate*percentScale {
+		switch {
+		case float64(i%percentScale) < errorRate*percentScale:
 			sb.WriteString(fmt.Sprintf("##[error]Error on line %d: operation failed\n", i))
-		} else if float64(i%percentScale) < (errorRate+warningRateOffset)*percentScale {
+		case float64(i%percentScale) < (errorRate+warningRateOffset)*percentScale:
 			sb.WriteString(fmt.Sprintf("##[warning]Warning on line %d: deprecated usage\n", i))
-		} else {
+		default:
 			sb.WriteString(fmt.Sprintf("INFO: Processing line %d\n", i))
 		}
 	}
@@ -153,11 +154,12 @@ func GenerateMultiStepLog(numSteps, linesPerStep int) string {
 		sb.WriteString(fmt.Sprintf("##[group]Run step-%d\n", i))
 
 		for j := range linesPerStep {
-			if j%20 == 0 {
+			switch {
+			case j%20 == 0:
 				sb.WriteString(fmt.Sprintf("##[error]Error in step %d line %d\n", i, j))
-			} else if j%10 == 0 {
+			case j%10 == 0:
 				sb.WriteString(fmt.Sprintf("##[warning]Warning in step %d line %d\n", i, j))
-			} else {
+			default:
 				sb.WriteString(fmt.Sprintf("INFO: Step %d line %d\n", i, j))
 			}
 		}

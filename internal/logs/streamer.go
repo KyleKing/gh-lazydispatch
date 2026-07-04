@@ -26,26 +26,26 @@ func NewStreamState() *StreamState {
 
 // StreamUpdate represents new log content detected during streaming.
 type StreamUpdate struct {
-	RunID      int64
+	Error      error
 	Status     string
 	Conclusion string
 	NewSteps   []*StepLogs
-	Error      error
+	RunID      int64
 }
 
 // LogStreamer polls for incremental log updates from active workflow runs.
 type LogStreamer struct {
-	fetcher  *GHFetcher
 	client   GitHubClient
-	runID    int64
-	workflow string
+	ctx      context.Context
+	fetcher  *GHFetcher
 	state    *StreamState
 	updates  chan StreamUpdate
-	ctx      context.Context
 	cancel   context.CancelFunc
 	ticker   *time.Ticker
-	stopOnce sync.Once
+	workflow string
 	wg       sync.WaitGroup
+	runID    int64
+	stopOnce sync.Once
 	mu       sync.Mutex
 }
 

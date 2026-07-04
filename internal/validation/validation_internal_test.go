@@ -13,14 +13,14 @@ func TestValidateHistoryConfig(t *testing.T) {
 	tests := []struct {
 		name       string
 		entry      *frecency.HistoryEntry
-		wf         *workflow.WorkflowFile
+		wf         *workflow.File
 		wantErrors int
 		checkError func(t *testing.T, errs []ConfigValidationError)
 	}{
 		{
 			name:       "nil entry",
 			entry:      nil,
-			wf:         &workflow.WorkflowFile{},
+			wf:         &workflow.File{},
 			wantErrors: 0,
 		},
 		{
@@ -36,10 +36,10 @@ func TestValidateHistoryConfig(t *testing.T) {
 					"environment": "production",
 				},
 			},
-			wf: &workflow.WorkflowFile{
+			wf: &workflow.File{
 				On: workflow.OnTrigger{
-					WorkflowDispatch: &workflow.WorkflowDispatch{
-						Inputs: map[string]workflow.WorkflowInput{
+					Dispatch: &workflow.Dispatch{
+						Inputs: map[string]workflow.Input{
 							"environment": {Type: "string"},
 						},
 					},
@@ -54,10 +54,10 @@ func TestValidateHistoryConfig(t *testing.T) {
 					"old_env": "production",
 				},
 			},
-			wf: &workflow.WorkflowFile{
+			wf: &workflow.File{
 				On: workflow.OnTrigger{
-					WorkflowDispatch: &workflow.WorkflowDispatch{
-						Inputs: map[string]workflow.WorkflowInput{
+					Dispatch: &workflow.Dispatch{
+						Inputs: map[string]workflow.Input{
 							"environment": {Type: "string"},
 						},
 					},
@@ -82,10 +82,10 @@ func TestValidateHistoryConfig(t *testing.T) {
 					"environment": "development",
 				},
 			},
-			wf: &workflow.WorkflowFile{
+			wf: &workflow.File{
 				On: workflow.OnTrigger{
-					WorkflowDispatch: &workflow.WorkflowDispatch{
-						Inputs: map[string]workflow.WorkflowInput{
+					Dispatch: &workflow.Dispatch{
+						Inputs: map[string]workflow.Input{
 							"environment": {
 								Type:    "choice",
 								Options: []string{"production", "staging"},
@@ -117,10 +117,10 @@ func TestValidateHistoryConfig(t *testing.T) {
 					"environment": "production",
 				},
 			},
-			wf: &workflow.WorkflowFile{
+			wf: &workflow.File{
 				On: workflow.OnTrigger{
-					WorkflowDispatch: &workflow.WorkflowDispatch{
-						Inputs: map[string]workflow.WorkflowInput{
+					Dispatch: &workflow.Dispatch{
+						Inputs: map[string]workflow.Input{
 							"environment": {
 								Type:    "choice",
 								Options: []string{"production", "staging"},
@@ -140,10 +140,10 @@ func TestValidateHistoryConfig(t *testing.T) {
 					"version":    "v2",
 				},
 			},
-			wf: &workflow.WorkflowFile{
+			wf: &workflow.File{
 				On: workflow.OnTrigger{
-					WorkflowDispatch: &workflow.WorkflowDispatch{
-						Inputs: map[string]workflow.WorkflowInput{
+					Dispatch: &workflow.Dispatch{
+						Inputs: map[string]workflow.Input{
 							"environment": {Type: "string"},
 							"region":      {Type: "string"},
 							"version": {
@@ -181,19 +181,19 @@ func TestFindBestMatch(t *testing.T) {
 	tests := []struct {
 		name           string
 		historicalName string
-		currentInputs  map[string]workflow.WorkflowInput
+		currentInputs  map[string]workflow.Input
 		wantSuggestion string
 	}{
 		{
 			name:           "empty inputs",
 			historicalName: "old_env",
-			currentInputs:  map[string]workflow.WorkflowInput{},
+			currentInputs:  map[string]workflow.Input{},
 			wantSuggestion: "",
 		},
 		{
 			name:           "exact match candidate",
 			historicalName: "environment",
-			currentInputs: map[string]workflow.WorkflowInput{
+			currentInputs: map[string]workflow.Input{
 				"environment": {Type: "string"},
 			},
 			wantSuggestion: "environment",
@@ -201,7 +201,7 @@ func TestFindBestMatch(t *testing.T) {
 		{
 			name:           "similar name",
 			historicalName: "env",
-			currentInputs: map[string]workflow.WorkflowInput{
+			currentInputs: map[string]workflow.Input{
 				"environment": {Type: "string"},
 				"region":      {Type: "string"},
 			},
@@ -210,7 +210,7 @@ func TestFindBestMatch(t *testing.T) {
 		{
 			name:           "returns best fuzzy match",
 			historicalName: "envirn",
-			currentInputs: map[string]workflow.WorkflowInput{
+			currentInputs: map[string]workflow.Input{
 				"environment": {Type: "string"},
 				"debug":       {Type: "boolean"},
 			},
@@ -238,22 +238,22 @@ func TestValidateInputValue(t *testing.T) {
 		name       string
 		inputName  string
 		value      string
-		input      workflow.WorkflowInput
+		input      workflow.Input
 		wantError  bool
-		wantStatus ValidationStatus
+		wantStatus Status
 	}{
 		{
 			name:      "string type valid",
 			inputName: "message",
 			value:     "hello world",
-			input:     workflow.WorkflowInput{Type: "string"},
+			input:     workflow.Input{Type: "string"},
 			wantError: false,
 		},
 		{
 			name:      "choice valid option",
 			inputName: "environment",
 			value:     "production",
-			input: workflow.WorkflowInput{
+			input: workflow.Input{
 				Type:    "choice",
 				Options: []string{"production", "staging"},
 			},
@@ -263,7 +263,7 @@ func TestValidateInputValue(t *testing.T) {
 			name:      "choice invalid option",
 			inputName: "environment",
 			value:     "development",
-			input: workflow.WorkflowInput{
+			input: workflow.Input{
 				Type:    "choice",
 				Options: []string{"production", "staging"},
 				Default: "staging",
@@ -275,7 +275,7 @@ func TestValidateInputValue(t *testing.T) {
 			name:      "choice empty options",
 			inputName: "environment",
 			value:     "production",
-			input: workflow.WorkflowInput{
+			input: workflow.Input{
 				Type:    "choice",
 				Options: []string{},
 			},
@@ -285,7 +285,7 @@ func TestValidateInputValue(t *testing.T) {
 			name:      "boolean type",
 			inputName: "debug",
 			value:     "true",
-			input:     workflow.WorkflowInput{Type: "boolean"},
+			input:     workflow.Input{Type: "boolean"},
 			wantError: false,
 		},
 	}

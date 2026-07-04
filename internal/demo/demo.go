@@ -28,9 +28,9 @@ const (
 
 // MockConfig holds configuration for demo mode.
 type MockConfig struct {
+	Executor *exec.MockExecutor
 	Owner    string
 	Repo     string
-	Executor *exec.MockExecutor
 }
 
 // NewMockConfig creates a default mock configuration.
@@ -55,7 +55,7 @@ func (c *MockConfig) Install() {
 }
 
 // Uninstall removes the mock executor.
-func (c *MockConfig) Uninstall() {
+func (*MockConfig) Uninstall() {
 	runner.SetExecutor(nil)
 }
 
@@ -105,7 +105,7 @@ func (c *MockConfig) setupWorkflowDispatch() {
 	c.Executor.AddGHAPILatestRun(c.Owner, c.Repo, "release.yml", demoLatestRunIDRelease, github.StatusQueued)
 }
 
-func (c *MockConfig) addWorkflowRun(runID int64, name, status, conclusion string) {
+func (c *MockConfig) addWorkflowRun(runID int64, _, status, conclusion string) {
 	c.Executor.AddGHAPIRun(c.Owner, c.Repo, runID, status, conclusion)
 }
 
@@ -125,14 +125,14 @@ func (c *MockConfig) addRunLogs(runID, jobID int64, logs string) {
 }
 
 // Workflows returns a set of demo workflows for testing the UI.
-func Workflows() []workflow.WorkflowFile {
-	return []workflow.WorkflowFile{
+func Workflows() []workflow.File {
+	return []workflow.File{
 		{
 			Name:     "CI",
 			Filename: "ci.yml",
 			On: workflow.OnTrigger{
-				WorkflowDispatch: &workflow.WorkflowDispatch{
-					Inputs: map[string]workflow.WorkflowInput{},
+				Dispatch: &workflow.Dispatch{
+					Inputs: map[string]workflow.Input{},
 				},
 			},
 		},
@@ -140,8 +140,8 @@ func Workflows() []workflow.WorkflowFile {
 			Name:     "Deploy",
 			Filename: "deploy.yml",
 			On: workflow.OnTrigger{
-				WorkflowDispatch: &workflow.WorkflowDispatch{
-					Inputs: map[string]workflow.WorkflowInput{
+				Dispatch: &workflow.Dispatch{
+					Inputs: map[string]workflow.Input{
 						"environment": {
 							Type: "choice", Description: "Target environment", Required: true,
 							Options: []string{"staging", "production"}, Default: "staging",
@@ -157,8 +157,8 @@ func Workflows() []workflow.WorkflowFile {
 			Name:     "Release",
 			Filename: "release.yml",
 			On: workflow.OnTrigger{
-				WorkflowDispatch: &workflow.WorkflowDispatch{
-					Inputs: map[string]workflow.WorkflowInput{
+				Dispatch: &workflow.Dispatch{
+					Inputs: map[string]workflow.Input{
 						"version": {
 							Type: "string", Description: "Version to release (e.g., 1.0.0)",
 							Required: true, Default: "",
@@ -174,8 +174,8 @@ func Workflows() []workflow.WorkflowFile {
 			Name:     "Benchmark",
 			Filename: "benchmark.yml",
 			On: workflow.OnTrigger{
-				WorkflowDispatch: &workflow.WorkflowDispatch{
-					Inputs: map[string]workflow.WorkflowInput{
+				Dispatch: &workflow.Dispatch{
+					Inputs: map[string]workflow.Input{
 						"iterations": {
 							Type: "string", Description: "Number of iterations", Required: false, Default: "100",
 						},

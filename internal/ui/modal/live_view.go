@@ -14,10 +14,10 @@ import (
 
 // LiveViewModal displays the status of watched workflow runs.
 type LiveViewModal struct {
+	keys     liveViewKeyMap
 	runs     []watcher.WatchedRun
 	selected int
 	done     bool
-	keys     liveViewKeyMap
 }
 
 type liveViewKeyMap struct {
@@ -48,8 +48,7 @@ func NewLiveViewModal(runs []watcher.WatchedRun) *LiveViewModal {
 
 // Update handles input for the live view modal.
 func (m *LiveViewModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Close):
 			m.done = true
@@ -104,7 +103,9 @@ func (m *LiveViewModal) View() string {
 		return s.String()
 	}
 
-	for i, run := range m.runs {
+	for i := range m.runs {
+		run := &m.runs[i]
+
 		prefix := "  "
 		if i == m.selected {
 			prefix = "> "
@@ -152,7 +153,7 @@ func (m *LiveViewModal) IsDone() bool {
 }
 
 // Result returns nil for live view modal.
-func (m *LiveViewModal) Result() any {
+func (*LiveViewModal) Result() any {
 	return nil
 }
 
@@ -196,7 +197,9 @@ func FormatStatusBar(runs []watcher.WatchedRun) string {
 	success := 0
 	failed := 0
 
-	for _, run := range runs {
+	for i := range runs {
+		run := &runs[i]
+
 		switch {
 		case run.IsActive():
 			active++

@@ -27,16 +27,16 @@ const (
 
 // StepLogs contains all log entries for a single workflow step.
 type StepLogs struct {
-	StepIndex  int        `json:"step_index"`
+	FetchedAt  time.Time  `json:"fetched_at"`
+	Error      error      `json:"-"`
 	Workflow   string     `json:"workflow"`
-	RunID      int64      `json:"run_id"`
 	JobName    string     `json:"job_name"`
 	StepName   string     `json:"step_name"`
 	Status     string     `json:"status"`
 	Conclusion string     `json:"conclusion"`
 	Entries    []LogEntry `json:"entries"`
-	FetchedAt  time.Time  `json:"fetched_at"`
-	Error      error      `json:"-"`
+	StepIndex  int        `json:"step_index"`
+	RunID      int64      `json:"run_id"`
 }
 
 // RunLogs contains logs for all steps in a workflow run or chain.

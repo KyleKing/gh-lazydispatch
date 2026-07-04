@@ -316,14 +316,14 @@ func TestLogStreamer_RunCompletion(t *testing.T) {
 		case update, ok := <-streamer.Updates():
 			if !ok {
 				// Channel closed, verify we got completion
-				if completionUpdate.Status != "completed" {
+				if completionUpdate.Status != github.StatusCompleted {
 					t.Error("expected completion update before channel closed")
 				}
 
 				return
 			}
 
-			if update.Status == "completed" {
+			if update.Status == github.StatusCompleted {
 				completionUpdate = update
 			}
 		case <-timeout:
@@ -435,29 +435,29 @@ func TestLogStreamer_ConcurrentStop(t *testing.T) {
 // mockGitHubClient is a minimal mock for testing.
 type mockGitHubClient struct{}
 
-func (m *mockGitHubClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
+func (*mockGitHubClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
 	return &github.WorkflowRun{
 		ID:     runID,
 		Status: "in_progress",
 	}, nil
 }
 
-func (m *mockGitHubClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error) {
+func (*mockGitHubClient) GetWorkflowRunJobs(_ int64) ([]github.Job, error) {
 	return []github.Job{}, nil
 }
 
 // completedRunMockClient returns a completed run status.
 type completedRunMockClient struct{}
 
-func (c *completedRunMockClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
+func (*completedRunMockClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
 	return &github.WorkflowRun{
 		ID:         runID,
-		Status:     "completed",
+		Status:     github.StatusCompleted,
 		Conclusion: "success",
 	}, nil
 }
 
-func (c *completedRunMockClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error) {
+func (*completedRunMockClient) GetWorkflowRunJobs(_ int64) ([]github.Job, error) {
 	return []github.Job{}, nil
 }
 
@@ -478,7 +478,7 @@ func (e *errorMockClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, erro
 	}, nil
 }
 
-func (e *errorMockClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error) {
+func (e *errorMockClient) GetWorkflowRunJobs(_ int64) ([]github.Job, error) {
 	if e.errorOnGetJobs {
 		return nil, errors.New("mock error: failed to get jobs")
 	}

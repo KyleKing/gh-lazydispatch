@@ -75,7 +75,7 @@ func Interpolate(template string, ctx *InterpolationContext) (string, error) {
 }
 
 func parseStepIndex(s string, n *int) bool {
-	if len(s) == 0 {
+	if s == "" {
 		return false
 	}
 

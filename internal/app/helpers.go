@@ -22,7 +22,7 @@ func (m Model) currentHistoryEntries() []frecency.HistoryEntry {
 }
 
 // SelectedWorkflow returns the currently selected workflow.
-func (m Model) SelectedWorkflow() *workflow.WorkflowFile {
+func (m Model) SelectedWorkflow() *workflow.File {
 	if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
 		return nil
 	}
@@ -30,7 +30,7 @@ func (m Model) SelectedWorkflow() *workflow.WorkflowFile {
 	return &m.workflows[m.selectedWorkflow]
 }
 
-func (m *Model) initializeInputs(wf workflow.WorkflowFile) {
+func (m *Model) initializeInputs(wf workflow.File) {
 	m.inputs = make(map[string]string)
 	m.inputOrder = nil
 

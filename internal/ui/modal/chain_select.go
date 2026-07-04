@@ -14,10 +14,10 @@ import (
 // ChainSelectModal displays available chains for selection.
 type ChainSelectModal struct {
 	chains   map[string]config.Chain
+	keys     chainSelectKeyMap
 	names    []string
 	selected int
 	done     bool
-	keys     chainSelectKeyMap
 }
 
 type chainSelectKeyMap struct {
@@ -49,8 +49,7 @@ func NewChainSelectModal(cfg *config.WfdConfig) *ChainSelectModal {
 
 // Update handles input for the chain select modal.
 func (m *ChainSelectModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Up):
 			if m.selected > 0 {
@@ -144,7 +143,7 @@ func (m *ChainSelectModal) IsDone() bool {
 }
 
 // Result returns nil for chain select modal.
-func (m *ChainSelectModal) Result() any {
+func (*ChainSelectModal) Result() any {
 	return nil
 }
 

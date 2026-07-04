@@ -92,7 +92,8 @@ func (s *Store) SaveTo(path string) error {
 func (s *Store) Record(repo, workflow, branch string, inputs map[string]string) {
 	entries := s.Entries[repo]
 
-	for i, e := range entries {
+	for i := range entries {
+		e := &entries[i]
 		if e.Type == EntryTypeWorkflow && e.Workflow == workflow && e.Branch == branch && mapsEqual(e.Inputs, inputs) {
 			entries[i].RunCount++
 			entries[i].LastRunAt = time.Now()
@@ -117,15 +118,18 @@ func (s *Store) Record(repo, workflow, branch string, inputs map[string]string) 
 func (s *Store) RecordChain(repo, chainName, branch string, inputs map[string]string, stepResults []ChainStepResult) {
 	entries := s.Entries[repo]
 
-	for i, e := range entries {
-		if e.Type == EntryTypeChain && e.ChainName == chainName && e.Branch == branch && mapsEqual(e.Inputs, inputs) {
-			entries[i].RunCount++
-			entries[i].LastRunAt = time.Now()
-			entries[i].StepResults = stepResults
-			s.Entries[repo] = entries
-
-			return
+	for i := range entries {
+		e := &entries[i]
+		if e.Type != EntryTypeChain || e.ChainName != chainName || e.Branch != branch || !mapsEqual(e.Inputs, inputs) {
+			continue
 		}
+
+		entries[i].RunCount++
+		entries[i].LastRunAt = time.Now()
+		entries[i].StepResults = stepResults
+		s.Entries[repo] = entries
+
+		return
 	}
 
 	entries = append(entries, HistoryEntry{

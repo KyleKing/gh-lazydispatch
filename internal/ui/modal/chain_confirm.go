@@ -16,10 +16,10 @@ import (
 
 // ChainConfirmResultMsg is sent when chain execution is confirmed or canceled.
 type ChainConfirmResultMsg struct {
-	Confirmed bool
-	ChainName string
 	Variables map[string]string
+	ChainName string
 	Branch    string
+	Confirmed bool
 	Watch     bool
 }
 
@@ -37,15 +37,15 @@ type resolvedStep struct {
 
 // ChainConfirmModal shows the chain configuration and confirms execution.
 type ChainConfirmModal struct {
-	chainName     string
 	chain         *config.Chain
 	variables     map[string]string
+	chainName     string
 	branch        string
-	watchMode     bool
-	resolvedSteps []resolvedStep
-	done          bool
-	result        ChainConfirmResultMsg
 	keys          chainConfirmKeyMap
+	result        ChainConfirmResultMsg
+	resolvedSteps []resolvedStep
+	watchMode     bool
+	done          bool
 }
 
 // NewChainConfirmModal creates a chain confirmation modal.
@@ -106,8 +106,7 @@ func (m *ChainConfirmModal) resolveSteps() {
 
 // Update handles input for the chain confirm modal.
 func (m *ChainConfirmModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Watch):
 			m.watchMode = !m.watchMode

@@ -8,12 +8,12 @@ import (
 )
 
 // WorkflowFixture creates a test workflow with specified properties.
-func WorkflowFixture(name, filename string, inputs map[string]workflow.WorkflowInput) workflow.WorkflowFile {
-	return workflow.WorkflowFile{
+func WorkflowFixture(name, filename string, inputs map[string]workflow.Input) workflow.File {
+	return workflow.File{
 		Name:     name,
 		Filename: filename,
 		On: workflow.OnTrigger{
-			WorkflowDispatch: &workflow.WorkflowDispatch{
+			Dispatch: &workflow.Dispatch{
 				Inputs: inputs,
 			},
 		},
@@ -21,13 +21,13 @@ func WorkflowFixture(name, filename string, inputs map[string]workflow.WorkflowI
 }
 
 // SimpleWorkflow creates a basic workflow with no inputs.
-func SimpleWorkflow(name, filename string) workflow.WorkflowFile {
+func SimpleWorkflow(name, filename string) workflow.File {
 	return WorkflowFixture(name, filename, nil)
 }
 
 // WorkflowWithChoice creates a workflow with a choice input.
-func WorkflowWithChoice(name, filename, inputName string, options []string, defaultVal string) workflow.WorkflowFile {
-	return WorkflowFixture(name, filename, map[string]workflow.WorkflowInput{
+func WorkflowWithChoice(name, filename, inputName string, options []string, defaultVal string) workflow.File {
+	return WorkflowFixture(name, filename, map[string]workflow.Input{
 		inputName: {
 			Type:    "choice",
 			Default: defaultVal,
@@ -37,13 +37,13 @@ func WorkflowWithChoice(name, filename, inputName string, options []string, defa
 }
 
 // WorkflowWithBoolean creates a workflow with a boolean input.
-func WorkflowWithBoolean(name, filename, inputName string, defaultVal bool) workflow.WorkflowFile {
+func WorkflowWithBoolean(name, filename, inputName string, defaultVal bool) workflow.File {
 	defaultStr := "false"
 	if defaultVal {
 		defaultStr = "true"
 	}
 
-	return WorkflowFixture(name, filename, map[string]workflow.WorkflowInput{
+	return WorkflowFixture(name, filename, map[string]workflow.Input{
 		inputName: {
 			Type:    "boolean",
 			Default: defaultStr,
@@ -52,8 +52,8 @@ func WorkflowWithBoolean(name, filename, inputName string, defaultVal bool) work
 }
 
 // WorkflowWithString creates a workflow with a string input.
-func WorkflowWithString(name, filename, inputName, defaultVal, description string) workflow.WorkflowFile {
-	return WorkflowFixture(name, filename, map[string]workflow.WorkflowInput{
+func WorkflowWithString(name, filename, inputName, defaultVal, description string) workflow.File {
+	return WorkflowFixture(name, filename, map[string]workflow.Input{
 		inputName: {
 			Type:        "string",
 			Default:     defaultVal,
@@ -64,9 +64,9 @@ func WorkflowWithString(name, filename, inputName, defaultVal, description strin
 
 // NewTestHistory creates a history store with test data.
 func NewTestHistory(repo string, records []struct {
+	Inputs   map[string]string
 	Workflow string
 	Branch   string
-	Inputs   map[string]string
 },
 ) *frecency.Store {
 	store := frecency.NewStore()
@@ -78,7 +78,7 @@ func NewTestHistory(repo string, records []struct {
 }
 
 // AssertEqual fails the test if got != want.
-func AssertEqual[T comparable](t *testing.T, got, want T, msgAndArgs ...interface{}) {
+func AssertEqual[T comparable](t *testing.T, got, want T, msgAndArgs ...any) {
 	t.Helper()
 
 	if got != want {
@@ -93,7 +93,7 @@ func AssertEqual[T comparable](t *testing.T, got, want T, msgAndArgs ...interfac
 }
 
 // AssertNotEqual fails the test if got == want.
-func AssertNotEqual[T comparable](t *testing.T, got, want T, msgAndArgs ...interface{}) {
+func AssertNotEqual[T comparable](t *testing.T, got, want T, msgAndArgs ...any) {
 	t.Helper()
 
 	if got == want {
@@ -108,7 +108,7 @@ func AssertNotEqual[T comparable](t *testing.T, got, want T, msgAndArgs ...inter
 }
 
 // AssertNil fails the test if value is not nil.
-func AssertNil(t *testing.T, value interface{}, msgAndArgs ...interface{}) {
+func AssertNil(t *testing.T, value any, msgAndArgs ...any) {
 	t.Helper()
 
 	if value != nil {
@@ -123,7 +123,7 @@ func AssertNil(t *testing.T, value interface{}, msgAndArgs ...interface{}) {
 }
 
 // AssertNotNil fails the test if value is nil.
-func AssertNotNil(t *testing.T, value interface{}, msgAndArgs ...interface{}) {
+func AssertNotNil(t *testing.T, value any, msgAndArgs ...any) {
 	t.Helper()
 
 	if value == nil {
@@ -138,7 +138,7 @@ func AssertNotNil(t *testing.T, value interface{}, msgAndArgs ...interface{}) {
 }
 
 // AssertTrue fails the test if condition is false.
-func AssertTrue(t *testing.T, condition bool, msgAndArgs ...interface{}) {
+func AssertTrue(t *testing.T, condition bool, msgAndArgs ...any) {
 	t.Helper()
 
 	if !condition {
@@ -153,7 +153,7 @@ func AssertTrue(t *testing.T, condition bool, msgAndArgs ...interface{}) {
 }
 
 // AssertFalse fails the test if condition is true.
-func AssertFalse(t *testing.T, condition bool, msgAndArgs ...interface{}) {
+func AssertFalse(t *testing.T, condition bool, msgAndArgs ...any) {
 	t.Helper()
 
 	if condition {
@@ -168,7 +168,7 @@ func AssertFalse(t *testing.T, condition bool, msgAndArgs ...interface{}) {
 }
 
 // AssertContains fails the test if haystack doesn't contain needle.
-func AssertContains(t *testing.T, haystack, needle string, msgAndArgs ...interface{}) {
+func AssertContains(t *testing.T, haystack, needle string, msgAndArgs ...any) {
 	t.Helper()
 
 	if !contains(haystack, needle) {
@@ -183,7 +183,7 @@ func AssertContains(t *testing.T, haystack, needle string, msgAndArgs ...interfa
 }
 
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || containsHelper(s, substr))
+	return len(s) >= len(substr) && (s == substr || substr == "" || containsHelper(s, substr))
 }
 
 func containsHelper(s, substr string) bool {

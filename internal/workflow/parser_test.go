@@ -158,7 +158,7 @@ on:
 func TestWorkflowInput_InputType_Default(t *testing.T) {
 	t.Parallel()
 
-	input := workflow.WorkflowInput{}
+	input := workflow.Input{}
 	if input.InputType() != "string" {
 		t.Errorf("expected default type 'string', got %q", input.InputType())
 	}
@@ -167,7 +167,7 @@ func TestWorkflowInput_InputType_Default(t *testing.T) {
 func TestWorkflowInput_InputType_Explicit(t *testing.T) {
 	t.Parallel()
 
-	input := workflow.WorkflowInput{Type: "boolean"}
+	input := workflow.Input{Type: "boolean"}
 	if input.InputType() != "boolean" {
 		t.Errorf("expected type 'boolean', got %q", input.InputType())
 	}

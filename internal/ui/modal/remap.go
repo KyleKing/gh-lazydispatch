@@ -15,6 +15,7 @@ import (
 // RemapAction represents the action to take for a validation error.
 type RemapAction int
 
+// Remap action values.
 const (
 	RemapActionDrop RemapAction = iota // Drop this input
 	RemapActionKeep                    // Keep with original name (ignore error)
@@ -24,28 +25,28 @@ const (
 // RemapDecision represents a user decision for a validation error.
 type RemapDecision struct {
 	OriginalName string
+	NewName      string
 	Action       RemapAction
-	NewName      string // Used when Action is RemapActionMap
 }
 
 // RemapModal presents a wizard for remapping invalid configuration inputs.
 type RemapModal struct {
+	currentInputs   map[string]workflow.Input
+	keys            remapKeyMap
 	errors          []validation.ConfigValidationError
-	currentInputs   map[string]workflow.WorkflowInput
-	currentErrorIdx int
 	decisions       []RemapDecision
-	selected        int
 	options         []remapOption
+	currentErrorIdx int
+	selected        int
 	done            bool
 	canceled        bool
-	keys            remapKeyMap
 }
 
 type remapOption struct {
 	label       string
-	action      RemapAction
 	targetName  string
 	description string
+	action      RemapAction
 }
 
 type remapKeyMap struct {
@@ -66,7 +67,7 @@ func defaultRemapKeyMap() remapKeyMap {
 
 // NewRemapModal creates a new remapping wizard modal.
 func NewRemapModal(
-	errors []validation.ConfigValidationError, currentInputs map[string]workflow.WorkflowInput,
+	errors []validation.ConfigValidationError, currentInputs map[string]workflow.Input,
 ) *RemapModal {
 	m := &RemapModal{
 		errors:          errors,
@@ -90,19 +91,19 @@ func (m *RemapModal) buildOptions() {
 	err := m.errors[m.currentErrorIdx]
 	m.options = make([]remapOption, 0)
 
-	// Option 1: Drop this input
-	m.options = append(m.options, remapOption{
-		label:       "Drop this input",
-		action:      RemapActionDrop,
-		description: "Remove from configuration",
-	})
-
-	// Option 2: Keep original (ignore error)
-	m.options = append(m.options, remapOption{
-		label:       "Keep original (ignore error)",
-		action:      RemapActionKeep,
-		description: "Apply configuration as-is",
-	})
+	// Option 1: Drop this input; Option 2: Keep original (ignore error)
+	m.options = append(m.options,
+		remapOption{
+			label:       "Drop this input",
+			action:      RemapActionDrop,
+			description: "Remove from configuration",
+		},
+		remapOption{
+			label:       "Keep original (ignore error)",
+			action:      RemapActionKeep,
+			description: "Apply configuration as-is",
+		},
+	)
 
 	// Option 3: Map to suggestion (if available)
 	if err.Suggestion != "" {
@@ -131,8 +132,7 @@ func (m *RemapModal) buildOptions() {
 
 // Update handles input for the remap modal.
 func (m *RemapModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Up):
 			if m.selected > 0 {
@@ -253,7 +253,7 @@ func (m *RemapModal) View() string {
 }
 
 // getStatusText returns a human-readable status message.
-func getStatusText(status validation.ValidationStatus) string {
+func getStatusText(status validation.Status) string {
 	switch status {
 	case validation.StatusMissing:
 		return "Input name no longer exists"

@@ -13,12 +13,12 @@ import (
 // SelectModal presents a list of options to choose from.
 type SelectModal struct {
 	title      string
+	result     string
+	keys       selectKeyMap
 	options    []string
 	selected   int
 	defaultIdx int
 	done       bool
-	result     string
-	keys       selectKeyMap
 }
 
 type selectKeyMap struct {
@@ -65,8 +65,7 @@ func NewSelectModal(title string, options []string, current, defaultVal string) 
 
 // Update handles input for the select modal.
 func (m *SelectModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.RestoreDefault):
 			m.selected = m.defaultIdx

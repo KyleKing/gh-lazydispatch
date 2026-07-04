@@ -48,9 +48,10 @@ func FilterByWorkflow(entries []HistoryEntry, workflow string) []HistoryEntry {
 
 	var filtered []HistoryEntry
 
-	for _, e := range entries {
+	for i := range entries {
+		e := &entries[i]
 		if e.Workflow == workflow && (e.Type == EntryTypeWorkflow || e.Type == "") {
-			filtered = append(filtered, e)
+			filtered = append(filtered, *e)
 		}
 	}
 
@@ -62,14 +63,16 @@ func FilterByWorkflow(entries []HistoryEntry, workflow string) []HistoryEntry {
 func FilterByType(entries []HistoryEntry, entryType EntryType) []HistoryEntry {
 	var filtered []HistoryEntry
 
-	for _, e := range entries {
+	for i := range entries {
+		e := &entries[i]
+
 		effectiveType := e.Type
 		if effectiveType == "" {
 			effectiveType = EntryTypeWorkflow
 		}
 
 		if effectiveType == entryType {
-			filtered = append(filtered, e)
+			filtered = append(filtered, *e)
 		}
 	}
 

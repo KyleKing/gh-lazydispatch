@@ -112,11 +112,11 @@ func TestDemoWorkflows(t *testing.T) {
 		}
 	}
 
-	var deployInputs map[string]interface{}
+	var deployInputs map[string]any
 
 	for _, w := range workflows {
 		if w.Name == "Deploy" {
-			deployInputs = make(map[string]interface{})
+			deployInputs = make(map[string]any)
 			for k, v := range w.GetInputs() {
 				deployInputs[k] = v
 			}
@@ -141,5 +141,5 @@ func TestInstallUninstall(t *testing.T) {
 	cfg.SetupMockExecutor()
 
 	cfg.Install()
-	defer cfg.Uninstall()
+	cfg.Uninstall()
 }

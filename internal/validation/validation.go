@@ -10,27 +10,28 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
-// ValidationStatus represents the validation state of a historical input.
-type ValidationStatus int
+// Status represents the validation state of a historical input.
+type Status int
 
+// Validation status values.
 const (
-	StatusValid          ValidationStatus = iota // Input is valid
-	StatusMissing                                // Input name no longer exists
-	StatusTypeChanged                            // Input type has changed
-	StatusOptionsChanged                         // Value not in choice options
+	StatusValid          Status = iota // Input is valid
+	StatusMissing                      // Input name no longer exists
+	StatusTypeChanged                  // Input type has changed
+	StatusOptionsChanged               // Value not in choice options
 )
 
 // ConfigValidationError represents a validation error for a historical input.
 type ConfigValidationError struct {
 	HistoricalName  string
 	HistoricalValue string
-	Status          ValidationStatus
-	Suggestion      string // Suggested input name for remapping
+	Suggestion      string
+	Status          Status
 }
 
 // ValidateHistoryConfig validates a historical configuration against current workflow inputs.
 // Returns a list of validation errors, or nil if all inputs are valid.
-func ValidateHistoryConfig(entry *frecency.HistoryEntry, wf *workflow.WorkflowFile) []ConfigValidationError {
+func ValidateHistoryConfig(entry *frecency.HistoryEntry, wf *workflow.File) []ConfigValidationError {
 	if entry == nil || wf == nil {
 		return nil
 	}
@@ -65,7 +66,7 @@ func ValidateHistoryConfig(entry *frecency.HistoryEntry, wf *workflow.WorkflowFi
 }
 
 // validateInputValue checks if a historical value is compatible with the current input definition.
-func validateInputValue(name, value string, input workflow.WorkflowInput) *ConfigValidationError {
+func validateInputValue(name, value string, input workflow.Input) *ConfigValidationError {
 	// For choice inputs, validate that the value is still in the options
 	if input.Type == "choice" && len(input.Options) > 0 {
 		validOption := false
@@ -94,7 +95,7 @@ func validateInputValue(name, value string, input workflow.WorkflowInput) *Confi
 
 // findBestMatch uses fuzzy matching to find the most similar input name.
 // Returns empty string if no good match is found.
-func findBestMatch(historicalName string, currentInputs map[string]workflow.WorkflowInput) string {
+func findBestMatch(historicalName string, currentInputs map[string]workflow.Input) string {
 	if len(currentInputs) == 0 {
 		return ""
 	}

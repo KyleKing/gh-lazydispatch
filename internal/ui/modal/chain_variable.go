@@ -33,16 +33,16 @@ type chainVariableKeyMap struct {
 
 // ChainVariableModal collects variable values for chain execution.
 type ChainVariableModal struct {
-	chainName     string
 	chain         *config.Chain
 	variables     map[string]string
+	chainName     string
+	keys          chainVariableKeyMap
+	result        ChainVariableResultMsg
 	variableOrder []string
+	editInput     textinput.Model
 	selectedIndex int
 	editing       bool
-	editInput     textinput.Model
 	done          bool
-	result        ChainVariableResultMsg
-	keys          chainVariableKeyMap
 }
 
 // NewChainVariableModal creates a chain variable input modal.
@@ -128,8 +128,7 @@ func (m *ChainVariableModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 }
 
 func (m *ChainVariableModal) updateNavigating(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		v := m.currentVariable()
 		name := m.currentName()
 
@@ -268,8 +267,7 @@ func (m *ChainVariableModal) tryConfirm() (Context, tea.Cmd) {
 }
 
 func (m *ChainVariableModal) updateEditing(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
 			name := m.currentName()

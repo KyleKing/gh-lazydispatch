@@ -13,10 +13,10 @@ import (
 // ValidationErrorModal displays validation errors and allows override or fixing.
 type ValidationErrorModal struct {
 	errors   map[string][]string
+	keys     validationErrorKeyMap
+	selected int
 	done     bool
 	override bool
-	selected int
-	keys     validationErrorKeyMap
 }
 
 type validationErrorKeyMap struct {
@@ -52,8 +52,7 @@ func NewValidationErrorModal(errors map[string][]string) *ValidationErrorModal {
 
 // Update handles input for the validation error modal.
 func (m *ValidationErrorModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Close):
 			m.done = true

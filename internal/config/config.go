@@ -15,17 +15,17 @@ const ConfigFilename = ".github/lazydispatch.yml"
 
 // WfdConfig represents the lazydispatch configuration file.
 type WfdConfig struct {
-	Version int              `yaml:"version"`
 	Chains  map[string]Chain `yaml:"chains"`
+	Version int              `yaml:"version"`
 }
 
 // ChainVariable represents a variable that can be set when running a chain.
 type ChainVariable struct {
 	Name        string   `yaml:"name"`
-	Type        string   `yaml:"type"` // "string", "choice", "boolean"
+	Type        string   `yaml:"type"`
 	Description string   `yaml:"description"`
-	Options     []string `yaml:"options"` // for type: choice
 	Default     string   `yaml:"default"`
+	Options     []string `yaml:"options"`
 	Required    bool     `yaml:"required"`
 }
 

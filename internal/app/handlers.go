@@ -404,7 +404,7 @@ func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Mo
 	return m, m.chainSubscription()
 }
 
-func (m Model) buildChainCommands(chainDef *config.Chain, variables map[string]string, branch string) []string {
+func (Model) buildChainCommands(chainDef *config.Chain, variables map[string]string, branch string) []string {
 	commands := make([]string, len(chainDef.Steps))
 
 	ctx := &chain.InterpolationContext{
@@ -470,7 +470,7 @@ func (m Model) executeWorkflow() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) validateAllInputs(wf workflow.WorkflowFile) map[string][]string {
+func (m Model) validateAllInputs(wf workflow.File) map[string][]string {
 	errs := make(map[string][]string)
 
 	inputs := wf.GetInputs()
@@ -907,20 +907,21 @@ func (m Model) fetchLogs(msg FetchLogsMsg) tea.Cmd {
 
 		var runID int64
 
-		var workflow string
+		var workflowName string
 
-		if msg.ChainState != nil {
+		switch {
+		case msg.ChainState != nil:
 			runLogs, err = m.logManager.GetLogsForChain(*msg.ChainState, msg.Branch)
 			// For chains, get runID from first step if available
 			if runLogs != nil && len(runLogs.Steps) > 0 {
 				runID = runLogs.Steps[0].RunID
-				workflow = runLogs.Steps[0].Workflow
+				workflowName = runLogs.Steps[0].Workflow
 			}
-		} else if msg.RunID != 0 {
+		case msg.RunID != 0:
 			runLogs, err = m.logManager.GetLogsForRun(msg.RunID, msg.Workflow)
 			runID = msg.RunID
-			workflow = msg.Workflow
-		} else {
+			workflowName = msg.Workflow
+		default:
 			return LogsFetchedMsg{Error: errors.New("no chain state or run ID provided")}
 		}
 
@@ -928,13 +929,13 @@ func (m Model) fetchLogs(msg FetchLogsMsg) tea.Cmd {
 			Logs:       runLogs,
 			ErrorsOnly: msg.ErrorsOnly,
 			RunID:      runID,
-			Workflow:   workflow,
+			Workflow:   workflowName,
 			Error:      err,
 		}
 	}
 }
 
-func (m Model) showLogsViewer(runLogs *logs.RunLogs, errorsOnly bool, runID int64, workflow string) Model {
+func (m Model) showLogsViewer(runLogs *logs.RunLogs, errorsOnly bool, runID int64, _ string) Model {
 	var logsModal modal.Context
 	if errorsOnly {
 		logsModal = modal.NewLogsViewerModalWithError(runLogs, m.width, m.height)
@@ -958,14 +959,14 @@ func (m Model) showLogsViewer(runLogs *logs.RunLogs, errorsOnly bool, runID int6
 	return m
 }
 
-func (m *Model) startLogStream(runID int64, workflow string) tea.Cmd {
+func (m *Model) startLogStream(runID int64, workflowName string) tea.Cmd {
 	// Stop any existing streamer
 	if m.logStreamer != nil {
 		m.logStreamer.Stop()
 	}
 
 	// Create and start new streamer
-	m.logStreamer = logs.NewLogStreamer(m.ghClient, runID, workflow)
+	m.logStreamer = logs.NewLogStreamer(m.ghClient, runID, workflowName)
 	m.logStreamer.Start()
 
 	return m.logStreamSubscription()

@@ -9,8 +9,8 @@ import (
 
 // HelpModal displays keyboard shortcuts and help.
 type HelpModal struct {
-	done bool
 	keys helpKeyMap
+	done bool
 }
 
 type helpKeyMap struct {
@@ -32,8 +32,7 @@ func NewHelpModal() *HelpModal {
 
 // Update handles input for the help modal.
 func (m *HelpModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		if key.Matches(msg, m.keys.Close) {
 			m.done = true
 		}
@@ -43,7 +42,7 @@ func (m *HelpModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 }
 
 // View renders the help modal.
-func (m *HelpModal) View() string {
+func (*HelpModal) View() string {
 	return ui.TitleStyle.Render("Keyboard Shortcuts") + `
 
 ` + ui.SubtitleStyle.Render("Navigation") + `
@@ -78,6 +77,6 @@ func (m *HelpModal) IsDone() bool {
 }
 
 // Result returns nil for help modal.
-func (m *HelpModal) Result() any {
+func (*HelpModal) Result() any {
 	return nil
 }

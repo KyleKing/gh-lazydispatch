@@ -13,8 +13,8 @@ import (
 type ErrorModal struct {
 	title   string
 	message string
-	done    bool
 	keys    errorKeyMap
+	done    bool
 }
 
 type errorKeyMap struct {
@@ -71,6 +71,6 @@ func (m *ErrorModal) IsDone() bool {
 }
 
 // Result returns nil for error modal.
-func (m *ErrorModal) Result() any {
+func (*ErrorModal) Result() any {
 	return nil
 }

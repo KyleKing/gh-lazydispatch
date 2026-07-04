@@ -93,7 +93,7 @@ func (f *GHFetcher) fetchJobLogs(runID, jobID int64) (string, error) {
 }
 
 // parseJobLogsIntoSteps parses raw job logs into separate step logs.
-func (f *GHFetcher) parseJobLogsIntoSteps(
+func (*GHFetcher) parseJobLogsIntoSteps(
 	job github.Job,
 	rawLogs string,
 	workflow string,
@@ -120,7 +120,8 @@ func (f *GHFetcher) parseJobLogsIntoSteps(
 		line := scanner.Text()
 
 		// Detect step boundaries
-		if strings.HasPrefix(line, "##[group]") {
+		switch {
+		case strings.HasPrefix(line, "##[group]"):
 			// Save previous step if any
 			if currentStepIdx >= 0 && currentStepIdx < len(job.Steps) {
 				step := job.Steps[currentStepIdx]
@@ -141,10 +142,8 @@ func (f *GHFetcher) parseJobLogsIntoSteps(
 			currentStepIdx++
 			currentLines = make([]string, 0, 1)
 			currentLines = append(currentLines, line)
-		} else if strings.HasPrefix(line, "##[endgroup]") {
-			currentLines = append(currentLines, line)
-		} else {
-			// Regular log line
+		default:
+			// Regular log line, including "##[endgroup]" markers
 			currentLines = append(currentLines, line)
 		}
 	}

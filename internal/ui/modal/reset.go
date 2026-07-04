@@ -28,10 +28,10 @@ type resetKeyMap struct {
 
 // ResetModal shows values that will be reset and confirms.
 type ResetModal struct {
+	keys   resetKeyMap
 	diffs  []ResetDiff
 	done   bool
 	result bool
-	keys   resetKeyMap
 }
 
 // NewResetModal creates a reset confirmation modal.
@@ -47,8 +47,7 @@ func NewResetModal(diffs []ResetDiff) *ResetModal {
 
 // Update handles input for the reset modal.
 func (m *ResetModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Confirm):
 			if len(m.diffs) == 0 {

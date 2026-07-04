@@ -13,9 +13,9 @@ import (
 
 // RunConfig holds the configuration for running a workflow.
 type RunConfig struct {
+	Inputs   map[string]string
 	Workflow string
 	Branch   string
-	Inputs   map[string]string
 	Watch    bool
 }
 
@@ -45,8 +45,8 @@ var executor = defaultCommandExecutor{executor: nil}
 
 // SetExecutor sets the command executor for testing purposes.
 // Pass nil to reset to default behavior.
-func SetExecutor(exec execpkg.CommandExecutor) {
-	executor = defaultCommandExecutor{executor: exec}
+func SetExecutor(cmdExec execpkg.CommandExecutor) {
+	executor = defaultCommandExecutor{executor: cmdExec}
 }
 
 // BuildArgs constructs the gh workflow run arguments.
@@ -92,7 +92,8 @@ func Execute(cfg RunConfig) error {
 	return ExecuteWithExecutor(cfg, executor)
 }
 
-func ExecuteWithExecutor(cfg RunConfig, exec CommandExecutor) error {
+// ExecuteWithExecutor runs the workflow using the given executor instead of the package default.
+func ExecuteWithExecutor(cfg RunConfig, cmdExec CommandExecutor) error {
 	args := BuildArgs(cfg)
 
 	fmt.Println()
@@ -100,23 +101,23 @@ func ExecuteWithExecutor(cfg RunConfig, exec CommandExecutor) error {
 	fmt.Println("  " + FormatCommand(args))
 	fmt.Println()
 
-	if err := exec.Execute("gh", args...); err != nil {
+	if err := cmdExec.Execute("gh", args...); err != nil {
 		return fmt.Errorf("gh workflow run failed: %w", err)
 	}
 
 	if cfg.Watch {
-		return watchLatestRunWithExecutor(cfg.Workflow, exec)
+		return watchLatestRunWithExecutor(cfg.Workflow, cmdExec)
 	}
 
 	return nil
 }
 
-func watchLatestRunWithExecutor(_ string, exec CommandExecutor) error {
+func watchLatestRunWithExecutor(_ string, cmdExec CommandExecutor) error {
 	fmt.Println()
 	fmt.Println("Watching run...")
 	fmt.Println()
 
-	return exec.Execute("gh", "run", "watch")
+	return cmdExec.Execute("gh", "run", "watch")
 }
 
 // DryRun prints the command that would be executed without running it.
@@ -131,7 +132,8 @@ func ExecuteAndGetRunID(cfg RunConfig, client GitHubClient) (int64, error) {
 	return ExecuteAndGetRunIDWithExecutor(cfg, client, executor)
 }
 
-func ExecuteAndGetRunIDWithExecutor(cfg RunConfig, client GitHubClient, exec CommandExecutor) (int64, error) {
+// ExecuteAndGetRunIDWithExecutor runs the workflow using the given executor and returns the triggered run ID.
+func ExecuteAndGetRunIDWithExecutor(cfg RunConfig, client GitHubClient, cmdExec CommandExecutor) (int64, error) {
 	args := BuildArgs(cfg)
 
 	fmt.Println()
@@ -139,7 +141,7 @@ func ExecuteAndGetRunIDWithExecutor(cfg RunConfig, client GitHubClient, exec Com
 	fmt.Println("  " + FormatCommand(args))
 	fmt.Println()
 
-	if err := exec.Execute("gh", args...); err != nil {
+	if err := cmdExec.Execute("gh", args...); err != nil {
 		return 0, fmt.Errorf("gh workflow run failed: %w", err)
 	}
 

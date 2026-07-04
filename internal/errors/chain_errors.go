@@ -1,5 +1,5 @@
-// Package errors defines custom error types for workflow chain execution and GitHub API operations.
-package errors
+// Package chainerr defines custom error types for workflow chain execution and GitHub API operations.
+package chainerr
 
 import (
 	"errors"
@@ -8,11 +8,11 @@ import (
 
 // StepExecutionError represents an error that occurred during step execution.
 type StepExecutionError struct {
-	StepIndex int
-	Workflow  string
-	RunID     int64
-	RunURL    string
 	Cause     error
+	Workflow  string
+	RunURL    string
+	StepIndex int
+	RunID     int64
 }
 
 func (e *StepExecutionError) Error() string {
@@ -45,9 +45,9 @@ func (e *StepDispatchError) Unwrap() error {
 
 // InterpolationError represents a failure to interpolate template variables.
 type InterpolationError struct {
+	Cause error
 	Field string
 	Value string
-	Cause error
 }
 
 func (e *InterpolationError) Error() string {
@@ -60,9 +60,9 @@ func (e *InterpolationError) Unwrap() error {
 
 // RunWaitError represents an error while waiting for a run to complete.
 type RunWaitError struct {
-	RunID  int64
-	RunURL string
 	Cause  error
+	RunURL string
+	RunID  int64
 }
 
 func (e *RunWaitError) Error() string {

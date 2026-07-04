@@ -4,14 +4,14 @@ import "time"
 
 // WorkflowRun represents a GitHub Actions workflow run.
 type WorkflowRun struct {
-	ID         int64     `json:"id"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 	Name       string    `json:"name"`
 	Status     string    `json:"status"`
 	Conclusion string    `json:"conclusion"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
 	HTMLURL    string    `json:"html_url"`
 	HeadBranch string    `json:"head_branch"`
+	ID         int64     `json:"id"`
 }
 
 // RunStatus constants.
@@ -41,12 +41,12 @@ func (r WorkflowRun) IsSuccess() bool {
 
 // Job represents a job within a workflow run.
 type Job struct {
-	ID         int64     `json:"id"`
+	StartedAt  time.Time `json:"started_at"`
 	Name       string    `json:"name"`
 	Status     string    `json:"status"`
 	Conclusion string    `json:"conclusion"`
-	StartedAt  time.Time `json:"started_at"`
 	Steps      []Step    `json:"steps"`
+	ID         int64     `json:"id"`
 }
 
 // Step represents a step within a job.
@@ -59,12 +59,12 @@ type Step struct {
 
 // JobsResponse represents the API response for listing jobs.
 type JobsResponse struct {
-	TotalCount int   `json:"total_count"`
 	Jobs       []Job `json:"jobs"`
+	TotalCount int   `json:"total_count"`
 }
 
 // RunsResponse represents the API response for listing runs.
 type RunsResponse struct {
-	TotalCount   int           `json:"total_count"`
 	WorkflowRuns []WorkflowRun `json:"workflow_runs"`
+	TotalCount   int           `json:"total_count"`
 }

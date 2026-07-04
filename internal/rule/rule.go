@@ -9,11 +9,12 @@ import (
 	"strings"
 )
 
-// RuleType represents the type of validation rule.
-type RuleType int
+// Type represents the type of validation rule.
+type Type int
 
+// Validation rule types.
 const (
-	RuleRegex RuleType = iota
+	RuleRegex Type = iota
 	RuleRange
 	RuleRequired
 	RulePrefix
@@ -23,8 +24,8 @@ const (
 
 // ValidationRule represents a single validation rule parsed from YAML comments.
 type ValidationRule struct {
-	Type    RuleType
 	Pattern string
+	Type    Type
 	Min     int
 	Max     int
 }
@@ -195,6 +196,9 @@ func validateRule(value string, r ValidationRule) string {
 	return ""
 }
 
+// parseRange returns (min, max, err).
+//
+//nolint:gocritic // unnamedResult wants named returns, but nonamedreturns forbids them
 func parseRange(s string) (int, int, error) {
 	parts := strings.Split(s, "-")
 	if len(parts) != rangeParts {

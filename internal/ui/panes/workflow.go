@@ -10,9 +10,10 @@ import (
 
 // WorkflowItem represents a workflow in the list.
 type WorkflowItem struct {
-	workflow workflow.WorkflowFile
+	workflow workflow.File
 }
 
+// Title returns the workflow name, falling back to its filename.
 func (i WorkflowItem) Title() string {
 	if i.workflow.Name != "" {
 		return i.workflow.Name
@@ -21,6 +22,7 @@ func (i WorkflowItem) Title() string {
 	return i.workflow.Filename
 }
 
+// Description returns the workflow filename when a name is present.
 func (i WorkflowItem) Description() string {
 	if i.workflow.Name != "" {
 		return i.workflow.Filename
@@ -29,11 +31,13 @@ func (i WorkflowItem) Description() string {
 	return ""
 }
 
+// FilterValue returns the value used for fuzzy filtering.
 func (i WorkflowItem) FilterValue() string {
 	return i.workflow.Name + " " + i.workflow.Filename
 }
 
-func (i WorkflowItem) Workflow() workflow.WorkflowFile {
+// Workflow returns the underlying workflow file.
+func (i WorkflowItem) Workflow() workflow.File {
 	return i.workflow
 }
 
@@ -46,7 +50,7 @@ type WorkflowModel struct {
 }
 
 // NewWorkflowModel creates a new workflow pane model.
-func NewWorkflowModel(workflows []workflow.WorkflowFile) WorkflowModel {
+func NewWorkflowModel(workflows []workflow.File) WorkflowModel {
 	items := make([]list.Item, len(workflows))
 	for i, wf := range workflows {
 		items[i] = WorkflowItem{workflow: wf}
@@ -101,7 +105,7 @@ func (m WorkflowModel) View() string {
 }
 
 // SelectedWorkflow returns the currently selected workflow.
-func (m WorkflowModel) SelectedWorkflow() *workflow.WorkflowFile {
+func (m WorkflowModel) SelectedWorkflow() *workflow.File {
 	item := m.list.SelectedItem()
 	if item == nil {
 		return nil
@@ -124,7 +128,7 @@ func (m WorkflowModel) SelectedIndex() int {
 
 // WorkflowSelectedMsg is sent when a workflow is selected.
 type WorkflowSelectedMsg struct {
-	Workflow workflow.WorkflowFile
+	Workflow workflow.File
 	Index    int
 }
 

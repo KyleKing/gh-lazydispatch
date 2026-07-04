@@ -41,26 +41,26 @@ type MatchLocation struct {
 
 // LogsViewerModal displays workflow logs in a unified view with collapsible sections.
 type LogsViewerModal struct {
-	runLogs        *logs.RunLogs
+	startTime      time.Time
+	lastUpdateTime time.Time
 	filtered       *logs.FilteredResult
 	filter         *logs.Filter
 	filterCfg      *logs.FilterConfig
-	viewport       viewport.Model
-	searchInput    textinput.Model
-	collapsedSteps map[int]bool // track which steps are collapsed
-	searchMode     bool
-	done           bool
+	collapsedSteps map[int]bool
+	runLogs        *logs.RunLogs
+	liveStatus     string
 	keys           logsViewerKeyMap
+	matches        []MatchLocation
+	searchInput    textinput.Model
+	viewport       viewport.Model
 	width          int
 	height         int
-	startTime      time.Time       // for calculating relative timestamps
-	matches        []MatchLocation // all match positions in rendered content
-	currentMatch   int             // index of current match (-1 if none)
+	currentMatch   int
+	streamRunID    int64
 	isStreaming    bool
 	autoScroll     bool
-	streamRunID    int64
-	liveStatus     string
-	lastUpdateTime time.Time
+	done           bool
+	searchMode     bool
 }
 
 type logsViewerKeyMap struct {
@@ -517,7 +517,7 @@ func formatDuration(d time.Duration) string {
 }
 
 // getLogLevelStyle returns the style for a log level.
-func (m *LogsViewerModal) getLogLevelStyle(level logs.LogLevel) lipgloss.Style {
+func (*LogsViewerModal) getLogLevelStyle(level logs.LogLevel) lipgloss.Style {
 	switch level {
 	case logs.LogLevelError:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("203")) // Red
@@ -531,7 +531,7 @@ func (m *LogsViewerModal) getLogLevelStyle(level logs.LogLevel) lipgloss.Style {
 }
 
 // highlightMatches applies highlighting to matched portions of text.
-func (m *LogsViewerModal) highlightMatches(content string, matches []logs.MatchPosition, isCurrentMatch bool) string {
+func (*LogsViewerModal) highlightMatches(content string, matches []logs.MatchPosition, isCurrentMatch bool) string {
 	if len(matches) == 0 {
 		return content
 	}
@@ -828,6 +828,6 @@ func (m *LogsViewerModal) IsDone() bool {
 }
 
 // Result returns nil.
-func (m *LogsViewerModal) Result() any {
+func (*LogsViewerModal) Result() any {
 	return nil
 }

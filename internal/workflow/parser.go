@@ -11,19 +11,19 @@ import (
 // workflowDispatchTrigger is the GitHub Actions trigger name that makes a workflow dispatchable.
 const workflowDispatchTrigger = "workflow_dispatch"
 
-// Parse parses workflow YAML content into a WorkflowFile struct.
-func Parse(data []byte) (WorkflowFile, error) {
+// Parse parses workflow YAML content into a File struct.
+func Parse(data []byte) (File, error) {
 	var raw rawWorkflow
 	if err := yaml.Unmarshal(data, &raw); err != nil {
-		return WorkflowFile{}, err
+		return File{}, err
 	}
 
-	wf := WorkflowFile{
+	wf := File{
 		Name: raw.Name,
 	}
 
-	if raw.On.WorkflowDispatch != nil {
-		wf.On.WorkflowDispatch = raw.On.WorkflowDispatch
+	if raw.On.Dispatch != nil {
+		wf.On.Dispatch = raw.On.Dispatch
 	}
 
 	inputComments, err := parseInputComments(data)
@@ -31,8 +31,8 @@ func Parse(data []byte) (WorkflowFile, error) {
 		return wf, err
 	}
 
-	if wf.On.WorkflowDispatch != nil && wf.On.WorkflowDispatch.Inputs != nil {
-		for name, input := range wf.On.WorkflowDispatch.Inputs {
+	if wf.On.Dispatch != nil && wf.On.Dispatch.Inputs != nil {
+		for name, input := range wf.On.Dispatch.Inputs {
 			if comments, ok := inputComments[name]; ok {
 				rules, err := rule.ParseValidationComments(comments)
 				if err != nil {
@@ -40,7 +40,7 @@ func Parse(data []byte) (WorkflowFile, error) {
 				}
 
 				input.ValidationRules = rules
-				wf.On.WorkflowDispatch.Inputs[name] = input
+				wf.On.Dispatch.Inputs[name] = input
 			}
 		}
 	}
@@ -50,27 +50,27 @@ func Parse(data []byte) (WorkflowFile, error) {
 
 // rawWorkflow handles the flexible "on" field parsing.
 type rawWorkflow struct {
-	Name string       `yaml:"name"`
 	On   rawOnTrigger `yaml:"on"`
+	Name string       `yaml:"name"`
 }
 
 // rawOnTrigger handles "on" being either a string, list, or map.
 type rawOnTrigger struct {
-	WorkflowDispatch *WorkflowDispatch
+	Dispatch *Dispatch
 }
 
 func (t *rawOnTrigger) UnmarshalYAML(node *yaml.Node) error {
 	switch node.Kind {
 	case yaml.ScalarNode:
 		if node.Value == workflowDispatchTrigger {
-			t.WorkflowDispatch = &WorkflowDispatch{}
+			t.Dispatch = &Dispatch{}
 		}
 	case yaml.SequenceNode:
 		var triggers []string
 		if err := node.Decode(&triggers); err == nil {
 			for _, trigger := range triggers {
 				if trigger == workflowDispatchTrigger {
-					t.WorkflowDispatch = &WorkflowDispatch{}
+					t.Dispatch = &Dispatch{}
 					break
 				}
 			}
@@ -78,14 +78,14 @@ func (t *rawOnTrigger) UnmarshalYAML(node *yaml.Node) error {
 	case yaml.MappingNode:
 		var m struct {
 			//nolint:tagliatelle // matches GitHub Actions workflow YAML schema
-			WorkflowDispatch *WorkflowDispatch `yaml:"workflow_dispatch"`
+			Dispatch *Dispatch `yaml:"workflow_dispatch"`
 		}
 
 		if err := node.Decode(&m); err != nil {
 			return err
 		}
 
-		t.WorkflowDispatch = m.WorkflowDispatch
+		t.Dispatch = m.Dispatch
 	}
 
 	return nil

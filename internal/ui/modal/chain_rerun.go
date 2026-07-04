@@ -13,9 +13,9 @@ import (
 
 // ChainRerunResultMsg is sent when chain re-run options are selected.
 type ChainRerunResultMsg struct {
-	Action         string // "full", "resume", "cancel"
-	ResumeFromStep int
 	HistoryEntry   *frecency.HistoryEntry
+	Action         string
+	ResumeFromStep int
 }
 
 type chainRerunKeyMap struct {
@@ -27,12 +27,12 @@ type chainRerunKeyMap struct {
 
 // ChainRerunModal presents options for re-running a chain from history.
 type ChainRerunModal struct {
+	result        ChainRerunResultMsg
 	entry         *frecency.HistoryEntry
+	keys          chainRerunKeyMap
 	options       []rerunOption
 	selectedIndex int
 	done          bool
-	result        ChainRerunResultMsg
-	keys          chainRerunKeyMap
 }
 
 type rerunOption struct {
@@ -73,8 +73,7 @@ func NewChainRerunModal(entry *frecency.HistoryEntry) *ChainRerunModal {
 
 // Update handles input for the chain re-run modal.
 func (m *ChainRerunModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Up):
 			if m.selectedIndex > 0 {

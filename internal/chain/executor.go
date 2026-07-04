@@ -350,7 +350,8 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 	}, nil
 }
 
-func (e *ChainExecutor) waitForRun(runID int64, waitFor config.WaitCondition) (conclusion, runURL string, err error) {
+//nolint:gocritic // unnamedResult wants named returns, but nonamedreturns forbids them
+func (e *ChainExecutor) waitForRun(runID int64, _ config.WaitCondition) (string, string, error) {
 	ticker := time.NewTicker(watcher.PollInterval)
 	defer ticker.Stop()
 
@@ -367,9 +368,8 @@ func (e *ChainExecutor) waitForRun(runID int64, waitFor config.WaitCondition) (c
 				}
 			}
 
-			runURL = run.HTMLURL
 			if run.Status == github.StatusCompleted {
-				return run.Conclusion, runURL, nil
+				return run.Conclusion, run.HTMLURL, nil
 			}
 		}
 	}
@@ -391,7 +391,7 @@ func (e *ChainExecutor) handleStepError(idx int, step config.ChainStep, err erro
 	}
 }
 
-func (e *ChainExecutor) handleStepFailure(idx int, step config.ChainStep) bool {
+func (e *ChainExecutor) handleStepFailure(_ int, step config.ChainStep) bool {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 

@@ -27,13 +27,13 @@ type InputModal struct {
 	description     string
 	defaultVal      string
 	inputType       string
+	result          string
+	validationErr   string
+	keys            inputKeyMap
 	options         []string
 	validationRules []rule.ValidationRule
 	input           textinput.Model
 	done            bool
-	result          string
-	keys            inputKeyMap
-	validationErr   string
 	hasError        bool
 }
 
@@ -115,8 +115,7 @@ func (m *InputModal) validate() string {
 
 // Update handles input for the input modal.
 func (m *InputModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.RestoreDefault):
 			m.input.SetValue(m.defaultVal)

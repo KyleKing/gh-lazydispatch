@@ -19,21 +19,21 @@ type Store struct {
 // ChainStepResult represents the result of a single step in a chain run.
 type ChainStepResult struct {
 	Workflow   string `json:"workflow"`
-	RunID      int64  `json:"run_id"`
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion"`
+	RunID      int64  `json:"run_id"`
 }
 
 // HistoryEntry represents a single workflow or chain run in history.
 type HistoryEntry struct {
+	LastRunAt   time.Time         `json:"last_run_at"`
+	Inputs      map[string]string `json:"inputs"`
 	Type        EntryType         `json:"type"`
 	Workflow    string            `json:"workflow"`
 	ChainName   string            `json:"chain_name,omitempty"`
 	Branch      string            `json:"branch"`
-	Inputs      map[string]string `json:"inputs"`
 	StepResults []ChainStepResult `json:"step_results,omitempty"`
 	RunCount    int               `json:"run_count"`
-	LastRunAt   time.Time         `json:"last_run_at"`
 }
 
 // NewStore creates an empty Store.

@@ -162,8 +162,8 @@ func (f *Filter) findMatches(content string) []MatchPosition {
 
 // FilteredResult contains the filtered logs with match information.
 type FilteredResult struct {
-	Steps  []*FilteredStepLogs
 	Config *FilterConfig
+	Steps  []*FilteredStepLogs
 }
 
 // TotalEntries returns the total number of filtered entries.
@@ -178,17 +178,17 @@ func (fr *FilteredResult) TotalEntries() int {
 
 // FilteredStepLogs contains filtered logs for a single step.
 type FilteredStepLogs struct {
-	StepIndex int
 	Workflow  string
 	StepName  string
 	Entries   []FilteredLogEntry
+	StepIndex int
 }
 
 // FilteredLogEntry wraps a log entry with match information.
 type FilteredLogEntry struct {
 	Original      LogEntry
-	OriginalIndex int
 	Matches       []MatchPosition
+	OriginalIndex int
 }
 
 // MatchPosition indicates where a search term was found in the content.

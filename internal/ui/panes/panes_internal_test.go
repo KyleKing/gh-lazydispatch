@@ -16,14 +16,14 @@ const (
 	testChainAlpha   = "alpha"
 )
 
-func testWorkflows() []workflow.WorkflowFile {
-	return []workflow.WorkflowFile{
+func testWorkflows() []workflow.File {
+	return []workflow.File{
 		{
 			Name:     "Deploy",
 			Filename: "deploy.yml",
 			On: workflow.OnTrigger{
-				WorkflowDispatch: &workflow.WorkflowDispatch{
-					Inputs: map[string]workflow.WorkflowInput{
+				Dispatch: &workflow.Dispatch{
+					Inputs: map[string]workflow.Input{
 						"environment": {
 							Type:    "choice",
 							Default: testValueStaging,
@@ -41,30 +41,30 @@ func testWorkflows() []workflow.WorkflowFile {
 			Name:     "CI",
 			Filename: "ci.yml",
 			On: workflow.OnTrigger{
-				WorkflowDispatch: &workflow.WorkflowDispatch{},
+				Dispatch: &workflow.Dispatch{},
 			},
 		},
 	}
 }
 
-func testWorkflowWithInputs(name, filename string, inputs map[string]workflow.WorkflowInput) workflow.WorkflowFile {
-	return workflow.WorkflowFile{
+func testWorkflowWithInputs(name, filename string, inputs map[string]workflow.Input) workflow.File {
+	return workflow.File{
 		Name:     name,
 		Filename: filename,
 		On: workflow.OnTrigger{
-			WorkflowDispatch: &workflow.WorkflowDispatch{
+			Dispatch: &workflow.Dispatch{
 				Inputs: inputs,
 			},
 		},
 	}
 }
 
-func testManyInputsWorkflow() workflow.WorkflowFile {
-	inputs := make(map[string]workflow.WorkflowInput)
+func testManyInputsWorkflow() workflow.File {
+	inputs := make(map[string]workflow.Input)
 
 	for i := range 15 {
 		name := fmt.Sprintf("input%02d", i)
-		inputs[name] = workflow.WorkflowInput{
+		inputs[name] = workflow.Input{
 			Type:    "string",
 			Default: "",
 		}
@@ -92,7 +92,7 @@ func TestWorkflowModel_SelectedWorkflow(t *testing.T) {
 func TestWorkflowItem_FilterValue(t *testing.T) {
 	t.Parallel()
 
-	wf := workflow.WorkflowFile{Name: "Deploy", Filename: "deploy.yml"}
+	wf := workflow.File{Name: "Deploy", Filename: "deploy.yml"}
 	item := WorkflowItem{workflow: wf}
 
 	fv := item.FilterValue()
@@ -571,13 +571,13 @@ func TestWorkflowItem_Title_NoName(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		wf          workflow.WorkflowFile
+		wf          workflow.File
 		expectTitle string
 		expectDesc  string
 	}{
 		{
 			name: "name and filename",
-			wf: workflow.WorkflowFile{
+			wf: workflow.File{
 				Name:     "Deploy",
 				Filename: "deploy.yml",
 			},
@@ -586,7 +586,7 @@ func TestWorkflowItem_Title_NoName(t *testing.T) {
 		},
 		{
 			name: "no name fallback to filename",
-			wf: workflow.WorkflowFile{
+			wf: workflow.File{
 				Name:     "",
 				Filename: "test.yml",
 			},
@@ -617,7 +617,7 @@ func TestWorkflowItem_Title_NoName(t *testing.T) {
 func TestWorkflowModel_SelectedWorkflow_EmptyList(t *testing.T) {
 	t.Parallel()
 
-	m := NewWorkflowModel([]workflow.WorkflowFile{})
+	m := NewWorkflowModel([]workflow.File{})
 	m.SetSize(40, 20)
 
 	wf := m.SelectedWorkflow()

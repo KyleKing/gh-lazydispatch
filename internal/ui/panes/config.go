@@ -25,19 +25,18 @@ const (
 
 // ConfigModel manages the configuration pane.
 type ConfigModel struct {
-	workflow      *workflow.WorkflowFile
-	branch        string
+	workflow      *workflow.File
 	inputs        map[string]string
+	branch        string
+	filterText    string
 	inputOrder    []string
 	filteredOrder []string
-	filterText    string
-	watchRun      bool
-	focused       bool
 	width         int
 	height        int
-
-	selectedRow  int
-	scrollOffset int
+	selectedRow   int
+	scrollOffset  int
+	watchRun      bool
+	focused       bool
 }
 
 // NewConfigModel creates a new config pane model.
@@ -49,7 +48,7 @@ func NewConfigModel() ConfigModel {
 }
 
 // SetWorkflow updates the current workflow.
-func (m *ConfigModel) SetWorkflow(wf *workflow.WorkflowFile) {
+func (m *ConfigModel) SetWorkflow(wf *workflow.File) {
 	m.workflow = wf
 	m.inputs = make(map[string]string)
 	m.inputOrder = nil
@@ -199,7 +198,7 @@ func (m ConfigModel) visibleRowCount() int {
 }
 
 // Update handles messages for the config pane.
-func (m ConfigModel) Update(msg tea.Msg) (ConfigModel, tea.Cmd) {
+func (m ConfigModel) Update(_ tea.Msg) (ConfigModel, tea.Cmd) {
 	return m, nil
 }
 
@@ -279,7 +278,7 @@ func (m ConfigModel) View() string {
 	return style.Render(content.String())
 }
 
-func (m ConfigModel) renderTableHeader() string {
+func (ConfigModel) renderTableHeader() string {
 	return ui.TableHeaderStyle.Render(
 		fmt.Sprintf(" %-2s  %-3s  %-15s  %-18s  %-15s", "#", "Req", "Name", "Value", "Default"),
 	)
@@ -344,11 +343,13 @@ func (m ConfigModel) renderTableRows() string {
 			indicator, numStr, reqStr, displayName, valueDisplay, defaultDisplay)
 
 		rowStyle := ui.TableRowStyle
-		if isSelected {
+
+		switch {
+		case isSelected:
 			rowStyle = ui.TableSelectedStyle
-		} else if isDimmed {
+		case isDimmed:
 			rowStyle = ui.TableDefaultStyle
-		} else if isSpecialValue {
+		case isSpecialValue:
 			rowStyle = ui.TableItalicStyle
 		}
 
@@ -403,7 +404,7 @@ func (m ConfigModel) WatchRun() bool {
 }
 
 // Workflow returns the current workflow.
-func (m ConfigModel) Workflow() *workflow.WorkflowFile {
+func (m ConfigModel) Workflow() *workflow.File {
 	return m.workflow
 }
 

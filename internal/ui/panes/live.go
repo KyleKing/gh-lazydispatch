@@ -79,7 +79,7 @@ func (m LiveRunsModel) RunCount() int {
 }
 
 // Update handles messages for the live runs model.
-func (m LiveRunsModel) Update(msg tea.Msg) (LiveRunsModel, tea.Cmd) {
+func (m LiveRunsModel) Update(_ tea.Msg) (LiveRunsModel, tea.Cmd) {
 	return m, nil
 }
 
@@ -105,16 +105,20 @@ func (m LiveRunsModel) ViewContent() string {
 		"     Workflow                Status"))
 	content.WriteString("\n")
 
-	for i, run := range m.runs {
+	for i := range m.runs {
+		run := &m.runs[i]
+
 		icon := runStatusIcon(run.Status, run.Conclusion)
 		workflow := ui.TruncateWithEllipsis(run.Workflow, liveWorkflowColWidth)
 
 		var status string
-		if run.Status != "" && run.Status != github.StatusCompleted {
+
+		switch {
+		case run.Status != "" && run.Status != github.StatusCompleted:
 			status = run.Status
-		} else if run.Conclusion != "" {
+		case run.Conclusion != "":
 			status = run.Conclusion
-		} else {
+		default:
 			status = "unknown"
 		}
 
@@ -174,8 +178,8 @@ func runStatusIcon(status, conclusion string) string {
 func (m LiveRunsModel) ActiveCount() int {
 	count := 0
 
-	for _, run := range m.runs {
-		if run.IsActive() {
+	for i := range m.runs {
+		if m.runs[i].IsActive() {
 			count++
 		}
 	}

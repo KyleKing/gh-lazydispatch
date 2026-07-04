@@ -19,20 +19,20 @@ type ChainStatusStopMsg struct{}
 
 // ChainStatusViewLogsMsg is sent when the user requests to view logs.
 type ChainStatusViewLogsMsg struct {
-	State      chain.ChainState
 	Branch     string
+	State      chain.ChainState
 	ErrorsOnly bool
 }
 
 // ChainStatusModal displays the current status of a chain execution.
 type ChainStatusModal struct {
-	state    chain.ChainState
-	commands []string
 	branch   string
+	keys     chainStatusKeyMap
+	commands []string
+	state    chain.ChainState
 	done     bool
 	stopped  bool
 	copied   bool
-	keys     chainStatusKeyMap
 }
 
 type chainStatusKeyMap struct {
@@ -84,8 +84,7 @@ func (m *ChainStatusModal) SetCommands(commands []string, branch string) {
 
 // Update handles input for the chain status modal.
 func (m *ChainStatusModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Close):
 			m.done = true
@@ -226,13 +225,14 @@ func (m *ChainStatusModal) View() string {
 
 	hasFailedURL := m.GetFailedStepRunURL() != ""
 
-	if m.state.Status == chain.ChainRunning {
+	switch {
+	case m.state.Status == chain.ChainRunning:
 		s.WriteString(ui.HelpStyle.Render("[esc/q] close (continues)  [C-c] stop  [c] copy script"))
-	} else if m.state.Status == chain.ChainFailed && hasFailedURL {
+	case m.state.Status == chain.ChainFailed && hasFailedURL:
 		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [o] open in browser  [l] view logs  [c] copy script"))
-	} else if m.state.Status == chain.ChainCompleted || m.state.Status == chain.ChainFailed {
+	case m.state.Status == chain.ChainCompleted || m.state.Status == chain.ChainFailed:
 		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [l] view logs  [c] copy script"))
-	} else {
+	default:
 		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [c] copy script"))
 	}
 
@@ -250,7 +250,7 @@ func (m *ChainStatusModal) WasStopped() bool {
 }
 
 // Result returns nil for chain status modal.
-func (m *ChainStatusModal) Result() any {
+func (*ChainStatusModal) Result() any {
 	return nil
 }
 

@@ -1,3 +1,4 @@
+// Command branch-demo is a standalone harness for exercising the branch selector modal.
 package main
 
 import (
@@ -19,9 +20,9 @@ const (
 
 type model struct {
 	branchModal *modal.SimpleBranchModal
+	result      string
 	width       int
 	height      int
-	result      string
 	done        bool
 }
 
@@ -49,7 +50,7 @@ func initialModel() model {
 	}
 }
 
-func (_ model) Init() tea.Cmd {
+func (model) Init() tea.Cmd {
 	return nil
 }
 

@@ -13,8 +13,8 @@ import (
 
 // RunConfirmResultMsg is sent when workflow execution is confirmed or canceled.
 type RunConfirmResultMsg struct {
-	Confirmed bool
 	Config    runner.RunConfig
+	Confirmed bool
 }
 
 type runConfirmKeyMap struct {
@@ -24,10 +24,10 @@ type runConfirmKeyMap struct {
 
 // RunConfirmModal shows the command that will be executed and confirms.
 type RunConfirmModal struct {
-	config runner.RunConfig
-	done   bool
-	result RunConfirmResultMsg
 	keys   runConfirmKeyMap
+	config runner.RunConfig
+	result RunConfirmResultMsg
+	done   bool
 }
 
 // NewRunConfirmModal creates a run confirmation modal.
@@ -43,8 +43,7 @@ func NewRunConfirmModal(cfg runner.RunConfig) *RunConfirmModal {
 
 // Update handles input for the run confirm modal.
 func (m *RunConfirmModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Confirm):
 			m.done = true

@@ -464,7 +464,7 @@ func TestCacheEntry_Fields(t *testing.T) {
 		t.Error("Logs mismatch")
 	}
 
-	if entry.CachedAt != now {
+	if !entry.CachedAt.Equal(now) {
 		t.Error("CachedAt mismatch")
 	}
 

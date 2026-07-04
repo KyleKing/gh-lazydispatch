@@ -21,7 +21,7 @@ type CommandRunner interface {
 
 type defaultCommandRunner struct{}
 
-func (r *defaultCommandRunner) RunCommand(ctx context.Context, args ...string) ([]byte, error) {
+func (*defaultCommandRunner) RunCommand(ctx context.Context, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	return cmd.Output()
 }

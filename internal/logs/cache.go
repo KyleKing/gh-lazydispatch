@@ -12,17 +12,17 @@ import (
 
 // Cache stores fetched logs locally for quick access.
 type Cache struct {
+	entries  map[string]*CacheEntry
 	cacheDir string
 	mu       sync.RWMutex
-	entries  map[string]*CacheEntry // keyed by chainName:runID
 }
 
 // CacheEntry represents cached log data.
 type CacheEntry struct {
+	CachedAt  time.Time     `json:"cached_at"`
+	Logs      *RunLogs      `json:"logs"`
 	ChainName string        `json:"chain_name"`
 	RunID     int64         `json:"run_id"`
-	Logs      *RunLogs      `json:"logs"`
-	CachedAt  time.Time     `json:"cached_at"`
 	TTL       time.Duration `json:"ttl"`
 }
 
@@ -162,12 +162,12 @@ func (c *Cache) persistEntry(key string, entry *CacheEntry) error {
 }
 
 // makeKey creates a unique key for a chain run.
-func (c *Cache) makeKey(chainName string, runID int64) string {
+func (*Cache) makeKey(chainName string, runID int64) string {
 	return fmt.Sprintf("%s:%d", chainName, runID)
 }
 
 // makeFilename creates a filesystem-safe filename from a key.
-func (c *Cache) makeFilename(key string) string {
+func (*Cache) makeFilename(key string) string {
 	// Replace colons and slashes for filesystem safety
 	safe := key
 	safe = filepath.Base(safe)

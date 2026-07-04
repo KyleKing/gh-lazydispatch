@@ -16,14 +16,14 @@ const (
 	testValueCustom      = "custom"
 )
 
-func testWorkflows() []workflow.WorkflowFile {
-	return []workflow.WorkflowFile{
+func testWorkflows() []workflow.File {
+	return []workflow.File{
 		{
 			Name:     "Deploy",
 			Filename: "deploy.yml",
 			On: workflow.OnTrigger{
-				WorkflowDispatch: &workflow.WorkflowDispatch{
-					Inputs: map[string]workflow.WorkflowInput{
+				Dispatch: &workflow.Dispatch{
+					Inputs: map[string]workflow.Input{
 						testInputEnvironment: {
 							Type:    "choice",
 							Default: testValueStaging,
@@ -37,7 +37,7 @@ func testWorkflows() []workflow.WorkflowFile {
 			Name:     "CI",
 			Filename: "ci.yml",
 			On: workflow.OnTrigger{
-				WorkflowDispatch: &workflow.WorkflowDispatch{},
+				Dispatch: &workflow.Dispatch{},
 			},
 		},
 	}

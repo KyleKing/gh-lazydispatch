@@ -1,12 +1,12 @@
-package errors
+package chainerr
 
 import "fmt"
 
 // APIError represents an error from a GitHub API operation.
 type APIError struct {
+	Err       error
 	Operation string
 	RunID     int64
-	Err       error
 }
 
 func (e *APIError) Error() string {

@@ -65,7 +65,7 @@ func (f *Fetcher) FetchStepLogs(runID int64, workflow string) ([]*StepLogs, erro
 
 // generateSyntheticLogs creates placeholder logs based on step metadata.
 // Real implementation would parse actual log output from GitHub.
-func (f *Fetcher) generateSyntheticLogs(jobName string, step github.Step) []LogEntry {
+func (*Fetcher) generateSyntheticLogs(jobName string, step github.Step) []LogEntry {
 	entries := []LogEntry{
 		{
 			Timestamp: time.Now(),

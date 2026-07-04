@@ -248,7 +248,7 @@ lazydispatch/
 │   │   └── app_test.go
 │   ├── workflow/              # Workflow discovery & parsing
 │   │   ├── discovery.go      # Find .github/workflows/*.yml
-│   │   ├── types.go          # WorkflowFile, WorkflowInput structs
+│   │   ├── types.go          # File, Input structs
 │   │   └── parser.go
 │   ├── frecency/              # History & scoring
 │   │   └── store.go          # JSON persistence, frecency calc
@@ -346,16 +346,16 @@ Releases are automated via goreleaser:
 The `workflow_dispatch` schema has well-defined structure:
 
 ```go
-type WorkflowFile struct {
+type File struct {
     Name string `yaml:"name"`
     On   struct {
-        WorkflowDispatch *struct {
-            Inputs map[string]WorkflowInput `yaml:"inputs"`
+        Dispatch *struct {
+            Inputs map[string]Input `yaml:"inputs"`
         } `yaml:"workflow_dispatch"`
     } `yaml:"on"`
 }
 
-type WorkflowInput struct {
+type Input struct {
     Description string   `yaml:"description"`
     Required    bool     `yaml:"required"`
     Default     string   `yaml:"default"`

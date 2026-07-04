@@ -14,14 +14,14 @@ const PollInterval = 5 * time.Second
 
 // WatchedRun represents a run being watched.
 type WatchedRun struct {
-	RunID      int64
+	UpdatedAt  time.Time
+	LastError  error
 	Workflow   string
 	Status     string
 	Conclusion string
-	Jobs       []JobStatus
 	HTMLURL    string
-	UpdatedAt  time.Time
-	LastError  error
+	Jobs       []JobStatus
+	RunID      int64
 }
 
 // JobStatus represents the status of a job in a watched run.
@@ -52,24 +52,24 @@ func (r WatchedRun) IsSuccess() bool {
 
 // RunUpdate represents an update to a watched run.
 type RunUpdate struct {
-	RunID int64
-	Run   WatchedRun
 	Error error
+	Run   WatchedRun
+	RunID int64
 }
 
 // RunWatcher monitors workflow runs and sends updates.
 type RunWatcher struct {
 	client    GitHubClient
+	ctx       context.Context
 	runs      map[int64]*WatchedRun
 	updates   chan RunUpdate
-	mu        sync.RWMutex
-	ctx       context.Context
 	cancel    context.CancelFunc
 	ticker    *time.Ticker
-	isPolling bool
-	pollingMu sync.Mutex
-	stopOnce  sync.Once
 	wg        sync.WaitGroup
+	mu        sync.RWMutex
+	stopOnce  sync.Once
+	pollingMu sync.Mutex
+	isPolling bool
 }
 
 // NewWatcher creates a new RunWatcher.

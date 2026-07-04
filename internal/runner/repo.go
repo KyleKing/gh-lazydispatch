@@ -19,7 +19,7 @@ type RepositoryDetector interface {
 
 type defaultRepositoryDetector struct{}
 
-func (d defaultRepositoryDetector) Current() (Repository, error) {
+func (defaultRepositoryDetector) Current() (Repository, error) {
 	repo, err := repository.Current()
 	if err != nil {
 		return Repository{}, err
@@ -35,6 +35,7 @@ func DetectRepo() (string, error) {
 	return DetectRepoWithDetector(detector)
 }
 
+// DetectRepoWithDetector returns the current repository in "owner/repo" format using det.
 func DetectRepoWithDetector(det RepositoryDetector) (string, error) {
 	repo, err := det.Current()
 	if err != nil {

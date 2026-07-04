@@ -8,33 +8,33 @@ import (
 // FetchLogsMsg requests fetching logs for a chain or run.
 type FetchLogsMsg struct {
 	ChainState *chain.ChainState
-	RunID      int64
 	Workflow   string
 	Branch     string
+	RunID      int64
 	ErrorsOnly bool
 }
 
 // LogsFetchedMsg contains fetched logs or an error.
 type LogsFetchedMsg struct {
-	Logs       *logs.RunLogs
-	ErrorsOnly bool
-	RunID      int64
-	Workflow   string
 	Error      error
+	Logs       *logs.RunLogs
+	Workflow   string
+	RunID      int64
+	ErrorsOnly bool
 }
 
 // ShowLogsViewerMsg opens the logs viewer modal.
 type ShowLogsViewerMsg struct {
 	Logs       *logs.RunLogs
-	ErrorsOnly bool
-	RunID      int64
 	Workflow   string
+	RunID      int64
+	ErrorsOnly bool
 }
 
 // StartLogStreamMsg begins streaming logs for an active run.
 type StartLogStreamMsg struct {
-	RunID      int64
 	Workflow   string
+	RunID      int64
 	AutoScroll bool
 }
 

@@ -1,4 +1,4 @@
-package errors_test
+package chainerr_test
 
 import (
 	"errors"

@@ -28,7 +28,9 @@ func NewRealExecutor() *RealExecutor {
 
 // Execute runs the actual command using os/exec.
 // It includes a safety check to prevent accidental mutation of GitHub resources during tests.
-func (e *RealExecutor) Execute(name string, args ...string) (string, string, error) {
+//
+//nolint:nonamedreturns // gocritic wants named returns matching the CommandExecutor interface
+func (*RealExecutor) Execute(name string, args ...string) (stdout, stderr string, err error) {
 	// Safety check: Prevent mutation commands during tests
 	if testing.Testing() && isMutationCommand(name, args) {
 		panic(fmt.Sprintf(
@@ -41,16 +43,14 @@ func (e *RealExecutor) Execute(name string, args ...string) (string, string, err
 
 	cmd := exec.CommandContext(context.Background(), name, args...)
 
-	var stdout bytes.Buffer
+	var stdoutBuf, stderrBuf bytes.Buffer
 
-	var stderr bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
 
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	err = cmd.Run()
 
-	err := cmd.Run()
-
-	return stdout.String(), stderr.String(), err
+	return stdoutBuf.String(), stderrBuf.String(), err
 }
 
 // isMutationCommand checks if a command could mutate GitHub resources.

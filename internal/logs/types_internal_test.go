@@ -238,7 +238,7 @@ func TestLogEntry_Creation(t *testing.T) {
 		StepName:  "build",
 	}
 
-	if entry.Timestamp != now {
+	if !entry.Timestamp.Equal(now) {
 		t.Error("Timestamp mismatch")
 	}
 
@@ -291,6 +291,30 @@ func TestStepLogs_Creation(t *testing.T) {
 
 	if len(stepLogs.Entries) != 2 {
 		t.Errorf("expected 2 entries, got %d", len(stepLogs.Entries))
+	}
+
+	if stepLogs.JobName != "build" {
+		t.Errorf("JobName: got %q, want %q", stepLogs.JobName, "build")
+	}
+
+	if stepLogs.StepName != "Run tests" {
+		t.Errorf("StepName: got %q, want %q", stepLogs.StepName, "Run tests")
+	}
+
+	if stepLogs.Status != "completed" {
+		t.Errorf("Status: got %q, want %q", stepLogs.Status, "completed")
+	}
+
+	if stepLogs.Conclusion != "success" {
+		t.Errorf("Conclusion: got %q, want %q", stepLogs.Conclusion, "success")
+	}
+
+	if !stepLogs.FetchedAt.Equal(now) {
+		t.Errorf("FetchedAt: got %v, want %v", stepLogs.FetchedAt, now)
+	}
+
+	if stepLogs.Error != nil {
+		t.Errorf("Error: got %v, want nil", stepLogs.Error)
 	}
 }
 

@@ -7,13 +7,13 @@ import (
 
 // MockGitHubClient implements both chain.GitHubClient and watcher.GitHubClient interfaces.
 type MockGitHubClient struct {
+	Err              error
 	Runs             map[int64]*github.WorkflowRun
 	Jobs             map[int64][]github.Job
-	LatestID         int64
-	LatestByWorkflow map[string]int64 // Map workflow name to run ID
-	Err              error
+	LatestByWorkflow map[string]int64
 	owner            string
 	repo             string
+	LatestID         int64
 }
 
 // defaultMockLatestID is an arbitrary starting run ID for mock-generated runs.
@@ -57,6 +57,7 @@ func (m *MockGitHubClient) WithError(err error) *MockGitHubClient {
 	return m
 }
 
+// GetWorkflowRun returns the mocked run for runID, or a queued stub if none is configured.
 func (m *MockGitHubClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, error) {
 	if m.Err != nil {
 		return nil, m.Err
@@ -69,6 +70,7 @@ func (m *MockGitHubClient) GetWorkflowRun(runID int64) (*github.WorkflowRun, err
 	return &github.WorkflowRun{ID: runID, Status: github.StatusQueued}, nil
 }
 
+// GetWorkflowRunJobs returns the mocked jobs for runID.
 func (m *MockGitHubClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error) {
 	if m.Err != nil {
 		return nil, m.Err
@@ -77,6 +79,7 @@ func (m *MockGitHubClient) GetWorkflowRunJobs(runID int64) ([]github.Job, error)
 	return m.Jobs[runID], nil
 }
 
+// GetLatestRun returns the mocked latest run for workflow.
 func (m *MockGitHubClient) GetLatestRun(workflow string) (*github.WorkflowRun, error) {
 	if m.Err != nil {
 		return nil, m.Err
@@ -89,8 +92,11 @@ func (m *MockGitHubClient) GetLatestRun(workflow string) (*github.WorkflowRun, e
 	return &github.WorkflowRun{ID: m.LatestID, Status: github.StatusQueued}, nil
 }
 
+// Owner returns the mocked repository owner.
 func (m *MockGitHubClient) Owner() string { return m.owner }
-func (m *MockGitHubClient) Repo() string  { return m.repo }
+
+// Repo returns the mocked repository name.
+func (m *MockGitHubClient) Repo() string { return m.repo }
 
 // MockRunWatcher implements chain.RunWatcher interface.
 type MockRunWatcher struct {
@@ -106,14 +112,17 @@ func NewMockRunWatcher() *MockRunWatcher {
 	}
 }
 
+// Watch records runID as watched for workflowName.
 func (m *MockRunWatcher) Watch(runID int64, workflowName string) {
 	m.Watched[runID] = workflowName
 }
 
+// Unwatch removes runID from the watched set.
 func (m *MockRunWatcher) Unwatch(runID int64) {
 	delete(m.Watched, runID)
 }
 
+// Updates returns the mocked run update channel.
 func (m *MockRunWatcher) Updates() <-chan watcher.RunUpdate {
 	return m.updates
 }

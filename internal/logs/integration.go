@@ -56,6 +56,10 @@ func (a *ghFetcherAdapter) FetchStepLogs(runID int64, workflow string) ([]*StepL
 }
 
 // GetLogsForChain fetches or retrieves cached logs for a chain execution.
+// Per-step fetch errors are recorded on the affected step rather than returned, but the
+// error return is kept for symmetry with GetLogsForRun since callers assign both into one var.
+//
+//nolint:unparam // see comment above
 func (m *Manager) GetLogsForChain(chainState chain.ChainState, branch string) (*RunLogs, error) {
 	runLogs := NewRunLogs(chainState.ChainName, branch)
 

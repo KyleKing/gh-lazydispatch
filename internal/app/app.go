@@ -49,50 +49,39 @@ const (
 
 // Model is the root bubbletea model for the application.
 type Model struct {
-	focused   FocusedPane
-	workflows []workflow.WorkflowFile
-	history   *frecency.Store
-	repo      string
-
-	selectedWorkflow int
-	branch           string
-	inputs           map[string]string
-	inputOrder       []string
-	watchRun         bool
-
-	modalStack *modal.Stack
-
-	pendingInputName string
-
-	selectedInput          int
-	viewMode               ViewMode
-	filterText             string
-	filteredInputs         []string
-	previewingHistoryEntry *frecency.HistoryEntry
-
-	ghClient    *github.Client
-	watcher     *watcher.RunWatcher
-	logManager  *logs.Manager
-	logStreamer *logs.LogStreamer
-
-	wfdConfig     *config.WfdConfig
-	chainExecutor *chain.ChainExecutor
-
-	pendingChainName      string
-	pendingChain          *config.Chain
-	pendingChainVariables map[string]string
-	pendingChainCommands  []string
-
-	// Metadata for the currently executing chain
+	pendingChainVariables   map[string]string
+	watcher                 *watcher.RunWatcher
+	history                 *frecency.Store
+	executingChainVariables map[string]string
+	pendingChain            *config.Chain
+	chainExecutor           *chain.ChainExecutor
+	inputs                  map[string]string
+	wfdConfig               *config.WfdConfig
+	logStreamer             *logs.LogStreamer
+	modalStack              *modal.Stack
+	ghClient                *github.Client
+	logManager              *logs.Manager
+	previewingHistoryEntry  *frecency.HistoryEntry
+	repo                    string
 	executingChainName      string
 	executingChainBranch    string
-	executingChainVariables map[string]string
-
-	rightPanel panes.TabbedRightModel
-
-	width  int
-	height int
-	keys   KeyMap
+	branch                  string
+	pendingChainName        string
+	pendingInputName        string
+	filterText              string
+	keys                    KeyMap
+	inputOrder              []string
+	filteredInputs          []string
+	pendingChainCommands    []string
+	workflows               []workflow.File
+	rightPanel              panes.TabbedRightModel
+	height                  int
+	viewMode                ViewMode
+	focused                 FocusedPane
+	selectedWorkflow        int
+	width                   int
+	selectedInput           int
+	watchRun                bool
 }
 
 // RunUpdateMsg is sent when a watched run is updated.
@@ -106,7 +95,7 @@ type ChainUpdateMsg struct {
 }
 
 // New creates a new application model.
-func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string) Model {
+func New(workflows []workflow.File, history *frecency.Store, repo string) Model {
 	ctx := context.Background()
 	currentBranch := git.GetCurrentBranch(ctx)
 
@@ -157,7 +146,7 @@ func New(workflows []workflow.WorkflowFile, history *frecency.Store, repo string
 }
 
 // Init implements tea.Model.
-func (m Model) Init() tea.Cmd {
+func (Model) Init() tea.Cmd {
 	return nil
 }
 
@@ -275,14 +264,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Start streaming if the modal enabled it
 		if topModal := m.modalStack.Current(); topModal != nil {
 			if viewer, ok := topModal.(*modal.LogsViewerModal); ok && viewer.IsStreaming() {
-				return m, m.startLogStream(msg.RunID, msg.Workflow)
+				cmd := m.startLogStream(msg.RunID, msg.Workflow)
+				return m, cmd
 			}
 		}
 
 		return m, nil
 
 	case StartLogStreamMsg:
-		return m, m.startLogStream(msg.RunID, msg.Workflow)
+		cmd := m.startLogStream(msg.RunID, msg.Workflow)
+		return m, cmd
 
 	case LogStreamUpdateMsg:
 		// Update the logs viewer modal if it's on top

@@ -1,3 +1,4 @@
+// Command gh-lazydispatch is a TUI gh extension for dispatching and watching GitHub Actions workflows.
 package main
 
 import (

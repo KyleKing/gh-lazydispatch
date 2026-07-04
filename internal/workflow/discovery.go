@@ -9,7 +9,7 @@ import (
 
 // Discover finds all workflow files in the .github/workflows directory
 // and returns only those with workflow_dispatch triggers.
-func Discover(repoRoot string) ([]WorkflowFile, error) {
+func Discover(repoRoot string) ([]File, error) {
 	workflowDir := filepath.Join(repoRoot, ".github", "workflows")
 
 	patterns := []string{
@@ -28,7 +28,7 @@ func Discover(repoRoot string) ([]WorkflowFile, error) {
 		files = append(files, matches...)
 	}
 
-	var workflows []WorkflowFile
+	var workflows []File
 
 	for _, file := range files {
 		wf, err := parseWorkflowFile(file)
@@ -48,15 +48,15 @@ func Discover(repoRoot string) ([]WorkflowFile, error) {
 	return workflows, nil
 }
 
-func parseWorkflowFile(path string) (WorkflowFile, error) {
+func parseWorkflowFile(path string) (File, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return WorkflowFile{}, err
+		return File{}, err
 	}
 
 	wf, err := Parse(data)
 	if err != nil {
-		return WorkflowFile{}, err
+		return File{}, err
 	}
 
 	wf.Filename = filepath.Base(path)

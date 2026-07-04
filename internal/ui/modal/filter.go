@@ -25,12 +25,12 @@ type filterKeyMap struct {
 // FilterModal presents a fuzzy filter input.
 type FilterModal struct {
 	title    string
-	input    textinput.Model
+	keys     filterKeyMap
 	items    []string
 	matches  []string
+	input    textinput.Model
 	done     bool
 	canceled bool
-	keys     filterKeyMap
 }
 
 // NewFilterModal creates a new filter modal.
@@ -76,8 +76,7 @@ func (m *FilterModal) updateMatches() {
 
 // Update handles input for the filter modal.
 func (m *FilterModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.Enter):
 			m.done = true

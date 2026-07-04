@@ -22,9 +22,9 @@ type MockExecutor struct {
 
 // CommandResult represents the result of a command execution.
 type CommandResult struct {
+	Error  error
 	Stdout string
 	Stderr string
-	Error  error
 }
 
 // ExecutedCommand tracks a command that was executed.
@@ -42,6 +42,8 @@ func NewMockExecutor() *MockExecutor {
 }
 
 // Execute simulates command execution by looking up the command in the Commands map.
+//
+//nolint:gocritic // unnamedResult wants named returns, but nonamedreturns forbids them
 func (m *MockExecutor) Execute(name string, args ...string) (string, string, error) {
 	// Track the executed command
 	m.ExecutedCommands = append(m.ExecutedCommands, ExecutedCommand{
@@ -139,8 +141,10 @@ func (m *MockExecutor) AddGHWorkflowRunError(workflow, branch, stderr string, er
 // AddGHAPIRun mocks a gh api call for workflow run data.
 func (m *MockExecutor) AddGHAPIRun(owner, repo string, runID int64, status, conclusion string) {
 	path := fmt.Sprintf("repos/%s/%s/actions/runs/%d", owner, repo, runID)
-	runJSON := fmt.Sprintf(`{"id":%d,"name":"CI","status":"%s","conclusion":"%s","html_url":"https://github.com/%s/%s/actions/runs/%d"}`,
-		runID, status, conclusion, owner, repo, runID)
+	runJSON := fmt.Sprintf(
+		`{"id":%d,"name":"CI","status":%q,"conclusion":%q,"html_url":"https://github.com/%s/%s/actions/runs/%d"}`,
+		runID, status, conclusion, owner, repo, runID,
+	)
 	m.AddCommand("gh", []string{"api", path}, runJSON, "", nil)
 }
 
@@ -157,7 +161,7 @@ func (m *MockExecutor) AddGHAPILatestRun(owner, repo, workflow string, runID int
 		path += "&workflow=" + workflow
 	}
 
-	runsJSON := fmt.Sprintf(`{"total_count":1,"workflow_runs":[{"id":%d,"name":"CI","status":"%s"}]}`, runID, status)
+	runsJSON := fmt.Sprintf(`{"total_count":1,"workflow_runs":[{"id":%d,"name":"CI","status":%q}]}`, runID, status)
 	m.AddCommand("gh", []string{"api", path}, runsJSON, "", nil)
 }
 
@@ -176,13 +180,13 @@ func (m *MockExecutor) AddGHAuthStatus(authenticated bool, username string) {
 }
 
 // buildCommandKey creates a string key from command name and args.
-func (m *MockExecutor) buildCommandKey(name string, args []string) string {
+func (*MockExecutor) buildCommandKey(name string, args []string) string {
 	parts := append([]string{name}, args...)
 	return strings.Join(parts, " ")
 }
 
 // matchesPattern checks if a command matches a pattern (simple wildcard support).
-func (m *MockExecutor) matchesPattern(cmd, pattern string) bool {
+func (*MockExecutor) matchesPattern(cmd, pattern string) bool {
 	// Simple wildcard matching: * matches any segment
 	if !strings.Contains(pattern, "*") {
 		return cmd == pattern

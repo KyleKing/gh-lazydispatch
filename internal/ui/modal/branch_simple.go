@@ -12,20 +12,20 @@ import (
 
 // SimpleBranchModal is a branch selector without bubbles/list complexity.
 type SimpleBranchModal struct {
+	result           string
+	currentBranch    string
+	defaultBranch    string
 	title            string
+	keys             simpleBranchKeyMap
 	allBranches      []string
 	pinnedBranches   []string
 	filteredBranches []string
-	currentBranch    string
-	defaultBranch    string
-	selected         int
-	done             bool
-	result           string
 	filterInput      textinput.Model
-	filtering        bool
-	keys             simpleBranchKeyMap
+	selected         int
 	maxHeight        int
 	scrollOffset     int
+	done             bool
+	filtering        bool
 }
 
 type simpleBranchKeyMap struct {
@@ -93,7 +93,7 @@ func NewSimpleBranchModal(title string, branches []string, current, defaultBranc
 const simpleBranchModalChrome = 6
 
 // SetSize updates the modal dimensions.
-func (m *SimpleBranchModal) SetSize(width, height int) {
+func (m *SimpleBranchModal) SetSize(_, height int) {
 	maxHeight := int(float64(height) * branchModalHeightRatio)
 	if maxHeight > branchModalMaxHeight {
 		maxHeight = branchModalMaxHeight
@@ -108,8 +108,7 @@ func (m *SimpleBranchModal) SetSize(width, height int) {
 
 // Update handles input for the simple branch modal.
 func (m *SimpleBranchModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		if m.filtering {
 			switch msg.String() {
 			case "enter":

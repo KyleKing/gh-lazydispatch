@@ -11,11 +11,11 @@ import (
 type ConfirmModal struct {
 	title       string
 	description string
+	keys        confirmKeyMap
 	selected    bool
 	defaultVal  bool
 	done        bool
 	result      bool
-	keys        confirmKeyMap
 }
 
 type confirmKeyMap struct {
@@ -53,8 +53,7 @@ func NewConfirmModal(title, description string, current, defaultVal bool) *Confi
 
 // Update handles input for the confirm modal.
 func (m *ConfirmModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch {
 		case key.Matches(msg, m.keys.RestoreDefault):
 			m.selected = m.defaultVal

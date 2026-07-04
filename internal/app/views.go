@@ -326,7 +326,7 @@ func (m Model) viewHistoryConfigPane(width, height int) string {
 	content.WriteString(ui.NormalStyle.Render(entry.Branch))
 	content.WriteString("\n\n")
 
-	var currentWorkflow *workflow.WorkflowFile
+	var currentWorkflow *workflow.File
 	if m.selectedWorkflow >= 0 && m.selectedWorkflow < len(m.workflows) {
 		currentWorkflow = &m.workflows[m.selectedWorkflow]
 	}
@@ -448,7 +448,7 @@ func (m Model) viewConfigPane(width, height int) string {
 	return style.Render(content.String())
 }
 
-func (m Model) renderTableHeader() string {
+func (Model) renderTableHeader() string {
 	return ui.TableHeaderStyle.Render(
 		"  #   Req  Name             Value              Default",
 	)
@@ -514,11 +514,13 @@ func (m Model) renderTableRows(height int) string {
 			defaultDisplay
 
 		rowStyle := ui.TableRowStyle
-		if isSelected {
+
+		switch {
+		case isSelected:
 			rowStyle = ui.TableSelectedStyle
-		} else if isDimmed {
+		case isDimmed:
 			rowStyle = ui.TableDimmedStyle
-		} else if isSpecialValue {
+		case isSpecialValue:
 			rowStyle = ui.TableItalicStyle
 		}
 

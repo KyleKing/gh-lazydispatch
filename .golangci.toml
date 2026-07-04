@@ -122,6 +122,15 @@ enable = [
   "zerologlint"
 ]
 
+[linters.exclusions]
+
+[[linters.exclusions.rules]]
+# table-driven tests use positional struct literals (see AGENTS.md); field
+# alignment for memory layout doesn't matter for short-lived test fixtures.
+path = "_test\\.go"
+linters = ["govet"]
+text = "fieldalignment"
+
 [linters.settings.cyclop]
 max-complexity = 15
 skip-tests = true
@@ -151,7 +160,11 @@ ignore-tests = true
 
 [linters.settings.gocritic]
 enabled-tags = ["diagnostic", "style", "performance", "experimental", "opinionated"]
-disabled-checks = ["whyNoLint"]
+# hugeParam: BubbleTea's Elm architecture passes the Model (and message
+# payloads carrying it) by value throughout Update/View/message plumbing by
+# design (see the ireturn allowlist above for the same rationale); flagging
+# every call site would just be noise, not an actionable perf win here.
+disabled-checks = ["whyNoLint", "hugeParam"]
 
 [linters.settings.gocyclo]
 min-complexity = 15

@@ -14,6 +14,7 @@ import (
 // RightTab represents which tab is active in the right panel.
 type RightTab int
 
+// Right panel tab values.
 const (
 	TabHistory RightTab = iota
 	TabChains
@@ -22,14 +23,13 @@ const (
 
 // TabbedRightModel manages the tabbed right panel.
 type TabbedRightModel struct {
+	history   HistoryModel
+	chains    ChainListModel
+	live      LiveRunsModel
 	activeTab RightTab
 	width     int
 	height    int
 	focused   bool
-
-	history HistoryModel
-	chains  ChainListModel
-	live    LiveRunsModel
 }
 
 // NewTabbedRight creates a new tabbed right panel.

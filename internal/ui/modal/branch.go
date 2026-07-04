@@ -23,14 +23,17 @@ type BranchItem struct {
 	name string
 }
 
+// Title returns the branch name for list display.
 func (i BranchItem) Title() string {
 	return i.name
 }
 
-func (i BranchItem) Description() string {
+// Description returns the list item description (unused for branches).
+func (BranchItem) Description() string {
 	return ""
 }
 
+// FilterValue returns the value used for fuzzy filtering.
 func (i BranchItem) FilterValue() string {
 	return i.name
 }
@@ -38,15 +41,15 @@ func (i BranchItem) FilterValue() string {
 // BranchModal presents a filterable list of branches.
 type BranchModal struct {
 	list           list.Model
-	done           bool
 	result         string
-	allBranches    []string
 	currentBranch  string
 	defaultBranch  string
-	wasFiltering   bool
+	allBranches    []string
 	originalItems  []list.Item
 	terminalWidth  int
 	terminalHeight int
+	done           bool
+	wasFiltering   bool
 }
 
 // NewBranchModal creates a new branch selection modal.
@@ -156,8 +159,7 @@ func _pinBranches(branches []string, current, defaultBranch string) []string {
 
 // Update handles input for the branch modal.
 func (m *BranchModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	if msg, ok := msg.(tea.KeyPressMsg); ok {
 		switch msg.String() {
 		case "enter":
 			if item, ok := m.list.SelectedItem().(BranchItem); ok {

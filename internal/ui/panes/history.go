@@ -37,12 +37,12 @@ func formatTimeAgo(t time.Time) string {
 
 // HistoryModel manages the history list pane.
 type HistoryModel struct {
+	workflowFilter string
 	entries        []frecency.HistoryEntry
 	selectedIndex  int
-	focused        bool
 	width          int
 	height         int
-	workflowFilter string
+	focused        bool
 }
 
 // NewHistoryModel creates a new history pane model.
@@ -86,7 +86,7 @@ func (m *HistoryModel) MoveDown() {
 }
 
 // Update handles messages for the history pane.
-func (m HistoryModel) Update(msg tea.Msg) (HistoryModel, tea.Cmd) {
+func (m HistoryModel) Update(_ tea.Msg) (HistoryModel, tea.Cmd) {
 	return m, nil
 }
 
@@ -122,7 +122,9 @@ func (m HistoryModel) ViewContent() string {
 		"    Name                 Branch          Time"))
 	content.WriteString("\n")
 
-	for i, entry := range m.entries {
+	for i := range m.entries {
+		entry := &m.entries[i]
+
 		indicator := "  "
 		if i == m.selectedIndex {
 			indicator = "> "
