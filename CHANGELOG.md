@@ -1,3 +1,12 @@
+## v1.0.1 (2026-07-04)
+
+### Refactor
+
+- fix gosec, complexity, duplication, and remaining misc lint findings
+- allow BubbleTea Model and modal.Context interfaces in ireturn
+- fix err113, errcheck, wrapcheck, and nilnil lint findings
+- fix gocritic, govet, revive, and nonamedreturns lint findings
+
 ## v1.0.0 (2026-07-04)
 
 ### Feat
