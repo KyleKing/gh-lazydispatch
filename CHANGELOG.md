@@ -1,0 +1,62 @@
+## v1.0.0 (2026-07-04)
+
+### Feat
+
+- migrate to my template
+- add error modal
+- expand test coverage and integration
+- implement log streaming
+- add history integration
+- add additional error handling
+- replace go-gh with go-cli
+- implement real log fetching
+- exploring adding workflow logs to the TUI
+- major improvements to chain capabilities and usefulness
+- add context-aware key hints and tabulated history
+- redesign UX to better integrate new chains and history
+- add chaining, history, and rules
+- handle invalid history entries
+- add history detail pane, more selective dimming, and faster selection
+- improve layout and interaction edge cases
+- add filter-selection to the branches
+- rename to wfd for consistent terminology with Actions
+- rename to gh-wfr
+- add catppuccin themes
+- integrate modal system and execution flow
+- Phase 9 - polish with help modal and CLI flags
+- Phase 8 - execution with command display
+- Phase 7 - modal system with lazygit-style stack
+- Phases 4-6 - workflow, history, and config panes
+- Phase 3 - TUI skeleton with 3-pane layout
+- Phase 2 - frecency store with XDG cache
+- Phase 1 - workflow discovery and YAML parsing
+
+### Fix
+
+- resolve goconst and lll lint findings
+- resolve goconst and lll lint findings
+- resolve mechanical lint findings (misspell, godot, nlreturn, etc.)
+- drop mise-managed gsa pin, resolve dual-bump-workflow question
+- resolve testpackage, unused, unparam, usetesting, and thelper findings
+- adopt unreleased template fixes for mise tasks and golangci v2
+- resolve issues with releaser
+- golangci-lint config format and linting errors (#1)
+- migrate to v2 of the golangci configuration
+- don't use real gh-cli when testing
+- use <C-r> for restore and minor visual patches
+- finish lazydispatch rename with gh- prefix
+- correctly handle the modal
+
+### Refactor
+
+- extract repeated string literals into constants (goconst)
+- replace magic numbers with named constants (mnd)
+- switch tests to internal packages and fix errcheck findings
+- run v2 golangci and fix test mocking
+- add workflows for testing
+- improve error handling, tests, and cohesion
+- DRY long conditionals
+- minor defaults and command cleanup
+
+
+- rename once more to lazydispatch
