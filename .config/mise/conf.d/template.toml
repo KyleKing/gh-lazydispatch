@@ -25,7 +25,8 @@ run = "rm -f coverage.out"
 
 [tasks.demo]
 description = "Generate VHS demo recordings"
-run = 'find . -name "*.tape" -not -path "./.git/*" -exec vhs {} +'
+run = 'find . -name "*.tape" -not -path "./.git/*" -exec vhs {} \;'
+depends = ["build"]
 
 [tasks.format]
 description = "Format code with golangci-lint and golines"
