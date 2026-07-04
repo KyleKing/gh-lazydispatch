@@ -381,3 +381,4 @@ type Input struct {
 - [workflow_dispatch input types](https://github.blog/changelog/2021-11-10-github-actions-input-types-for-manual-workflows/)
 - [Atuin shell history](https://atuin.sh/) - frecency inspiration
 - [gh-extension-precompile action](https://github.com/cli/gh-extension-precompile)
+- [Extending the gh CLI with Go](https://mikeball.info/blog/extending-the-gh-cli-with-go)

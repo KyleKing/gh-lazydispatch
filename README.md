@@ -24,7 +24,6 @@ brew install kyleking/tap/gh-lazydispatch
 go install github.com/kyleking/gh-lazydispatch/cmd/gh-lazydispatch@latest
 ```
 
-
 ## Development
 
 ```bash
@@ -34,9 +33,9 @@ mise run ci
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full development workflow.
 
-![.github/assets/demo.gif](https://raw.githubusercontent.com/kyleking/lazydispatch/main/.github/assets/demo.gif)
+![.github/assets/demo.gif](https://raw.githubusercontent.com/KyleKing/gh-lazydispatch/main/.github/assets/demo.gif)
 
-![.github/assets/chains-demo.gif](https://raw.githubusercontent.com/kyleking/lazydispatch/main/.github/assets/chains-demo.gif)
+![.github/assets/chains-demo.gif](https://raw.githubusercontent.com/KyleKing/gh-lazydispatch/main/.github/assets/chains-demo.gif)
 
 ## Features
 
@@ -61,36 +60,6 @@ Other alternatives:
 - [gh workflow run](https://cli.github.com/manual/gh_workflow_run) - Built-in `gh` command with basic interactive prompts
 - [nektos/act](https://github.com/nektos/act) - Run GitHub Actions locally in Docker (different use case: local testing vs remote dispatch)
 
-## Installation
-
-### As a GitHub CLI Extension (Recommended)
-
-> **Note:** Requires a [GitHub Release](https://github.com/kyleking/gh-lazydispatch/releases) with precompiled binaries. For development, see [local install instructions](CONTRIBUTING.md#development-install).
-
-```bash
-gh extension install KyleKing/gh-lazydispatch
-```
-
-Then run with:
-
-```bash
-gh lazydispatch
-```
-
-### Standalone Binary
-
-```bash
-go install github.com/kyleking/gh-lazydispatch@latest
-```
-
-Or build from source:
-
-```bash
-git clone https://github.com/kyleking/gh-lazydispatch
-cd lazydispatch
-go build
-```
-
 ## Usage
 
 Navigate to a directory with a Git repository containing GitHub Actions workflows:
@@ -111,52 +80,52 @@ The tool will discover all workflows with `workflow_dispatch` triggers and prese
 
 #### Navigation
 
-| Key | Action |
-|-----|--------|
-| `Tab` / `Shift+Tab` | Switch between panes |
-| `h` / `l` | Switch tabs (when right panel focused) |
-| `j` / `k` or `Up` / `Down` | Navigate within pane |
-| `Enter` | Select / Execute workflow |
-| `Space` | Select workflow and jump to config |
-| `Esc` | Deselect / Close modal |
+| Key                        | Action                                 |
+| -------------------------- | -------------------------------------- |
+| `Tab` / `Shift+Tab`        | Switch between panes                   |
+| `h` / `l`                  | Switch tabs (when right panel focused) |
+| `j` / `k` or `Up` / `Down` | Navigate within pane                   |
+| `Enter`                    | Select / Execute workflow              |
+| `Space`                    | Select workflow and jump to config     |
+| `Esc`                      | Deselect / Close modal                 |
 
 #### Configuration
 
-| Key | Action |
-|-----|--------|
-| `b` | Select branch |
-| `w` | Toggle watch mode |
-| `1-9`, `0` | Edit input by number |
-| `/` | Filter inputs |
-| `c` | Copy command to clipboard |
-| `r` | Reset all inputs to defaults |
+| Key        | Action                       |
+| ---------- | ---------------------------- |
+| `b`        | Select branch                |
+| `w`        | Toggle watch mode            |
+| `1-9`, `0` | Edit input by number         |
+| `/`        | Filter inputs                |
+| `c`        | Copy command to clipboard    |
+| `r`        | Reset all inputs to defaults |
 
 #### Live Runs
 
-| Key | Action |
-|-----|--------|
-| `d` | Clear selected run |
+| Key | Action                   |
+| --- | ------------------------ |
+| `d` | Clear selected run       |
 | `D` | Clear all completed runs |
 
 #### Log Viewer
 
-| Key | Action |
-|-----|--------|
-| `l` | Open log viewer (from chain status or history) |
-| `Tab` / `Shift+Tab` | Switch between step tabs |
-| `f` | Cycle filter (all / errors / warnings) |
-| `/` | Search logs |
-| `n` / `N` | Next / previous search match |
-| `i` | Toggle case sensitivity |
-| `o` | Open run in browser |
-| `q` / `Esc` | Close log viewer |
+| Key                 | Action                                         |
+| ------------------- | ---------------------------------------------- |
+| `l`                 | Open log viewer (from chain status or history) |
+| `Tab` / `Shift+Tab` | Switch between step tabs                       |
+| `f`                 | Cycle filter (all / errors / warnings)         |
+| `/`                 | Search logs                                    |
+| `n` / `N`           | Next / previous search match                   |
+| `i`                 | Toggle case sensitivity                        |
+| `o`                 | Open run in browser                            |
+| `q` / `Esc`         | Close log viewer                               |
 
 #### General
 
-| Key | Action |
-|-----|--------|
-| `?` | Show help |
-| `q`, `Ctrl+C` | Quit |
+| Key           | Action    |
+| ------------- | --------- |
+| `?`           | Show help |
+| `q`, `Ctrl+C` | Quit      |
 
 ### Environment Variables
 
@@ -192,17 +161,17 @@ chains:
 
 ### Chain Options
 
-| Option | Values | Default | Description |
-|--------|--------|---------|-------------|
-| `wait_for` | `success`, `completion`, `none` | `success` | When to proceed to next step |
-| `on_failure` | `abort`, `skip`, `continue` | `abort` | What to do when step fails |
-| `inputs` | map | - | Override workflow inputs |
+| Option       | Values                          | Default   | Description                  |
+| ------------ | ------------------------------- | --------- | ---------------------------- |
+| `wait_for`   | `success`, `completion`, `none` | `success` | When to proceed to next step |
+| `on_failure` | `abort`, `skip`, `continue`     | `abort`   | What to do when step fails   |
+| `inputs`     | map                             | -         | Override workflow inputs     |
 
 ### Accessing Chains
 
 1. Press `Tab` to focus the right panel
-2. Press `l` to switch to the Chains tab
-3. Navigate with `j`/`k` and press `Enter` to execute
+1. Press `l` to switch to the Chains tab
+1. Navigate with `j`/`k` and press `Enter` to execute
 
 The status bar shows `Chains(N)` when chains are configured, and `Chain: name (step/total)` during execution.
 
@@ -276,8 +245,6 @@ go tool cover -func=coverage.out | grep total
 go test -race ./...
 ```
 
-## Planned Features
+## Roadmap
 
-- [ ] Add timeline view for log visualization
-- [ ] Pattern detection for common errors (timeouts, OOM, permissions)
-- [ ] Implement export functionality (markdown export for logs)
+See [ROADMAP.md](ROADMAP.md) for planned features (markdown log export, error-pattern detection, timeline view) and deferred ideas.
