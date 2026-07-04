@@ -94,7 +94,7 @@ func TestMockExecutor_RunJobs(t *testing.T) {
 func TestDemoWorkflows(t *testing.T) {
 	t.Parallel()
 
-	workflows := demo.DemoWorkflows()
+	workflows := demo.Workflows()
 
 	if len(workflows) != 4 {
 		t.Errorf("expected 4 demo workflows, got %d", len(workflows))

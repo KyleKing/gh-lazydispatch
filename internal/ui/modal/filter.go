@@ -13,7 +13,7 @@ import (
 
 // FilterResultMsg is sent when filter is applied or canceled.
 type FilterResultMsg struct {
-	Value     string
+	Value    string
 	Canceled bool
 }
 
@@ -24,13 +24,13 @@ type filterKeyMap struct {
 
 // FilterModal presents a fuzzy filter input.
 type FilterModal struct {
-	title     string
-	input     textinput.Model
-	items     []string
-	matches   []string
-	done      bool
+	title    string
+	input    textinput.Model
+	items    []string
+	matches  []string
+	done     bool
 	canceled bool
-	keys      filterKeyMap
+	keys     filterKeyMap
 }
 
 // NewFilterModal creates a new filter modal.

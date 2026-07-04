@@ -49,6 +49,7 @@ type ChainStep struct {
 // WaitCondition specifies when to proceed to the next step.
 type WaitCondition string
 
+// Wait conditions for a chain step.
 const (
 	WaitSuccess    WaitCondition = "success"
 	WaitCompletion WaitCondition = "completion"
@@ -58,6 +59,7 @@ const (
 // FailureAction specifies what to do when a step fails.
 type FailureAction string
 
+// Failure actions for a chain step.
 const (
 	FailureAbort    FailureAction = "abort"
 	FailureSkip     FailureAction = "skip"

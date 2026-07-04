@@ -1,5 +1,6 @@
 package app
 
+// UI layout and history limits.
 const (
 	MaxHistoryEntries = 10
 	MinTerminalHeight = 20

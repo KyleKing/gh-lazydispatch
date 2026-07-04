@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	chainNameColWidth = 15
-	chainDescColWidth = 20
+	chainNameColWidth  = 15
+	chainDescColWidth  = 20
+	chainStepsColWidth = 5
+	chainVarsColWidth  = 4
 )
 
 // ChainListModel manages the chain list display.
@@ -136,8 +138,8 @@ func (m ChainListModel) ViewContent() string {
 			indicator = "> "
 		}
 
-		row := indicator + ui.PadRight(displayName, 15) + "  " + ui.PadRight(steps, 5) + "  " +
-			ui.PadRight(vars, 4) + "  " + desc
+		row := indicator + ui.PadRight(displayName, chainNameColWidth) + "  " +
+			ui.PadRight(steps, chainStepsColWidth) + "  " + ui.PadRight(vars, chainVarsColWidth) + "  " + desc
 
 		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {

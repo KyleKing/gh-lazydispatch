@@ -16,6 +16,7 @@ type LogEntry struct {
 // LogLevel indicates the severity of a log line.
 type LogLevel string
 
+// Log severity levels.
 const (
 	LogLevelError   LogLevel = "error"
 	LogLevelWarning LogLevel = "warning"
@@ -87,6 +88,7 @@ func (rl *RunLogs) AllSteps() []*StepLogs {
 // FilterLevel represents different log filtering modes.
 type FilterLevel string
 
+// Log filtering modes.
 const (
 	FilterAll      FilterLevel = "all"
 	FilterErrors   FilterLevel = "errors"

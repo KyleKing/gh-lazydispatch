@@ -16,7 +16,7 @@ import (
 type ChainVariableResultMsg struct {
 	Variables map[string]string
 	ChainName string
-	Canceled bool
+	Canceled  bool
 }
 
 type chainVariableKeyMap struct {
@@ -261,7 +261,7 @@ func (m *ChainVariableModal) tryConfirm() (Context, tea.Cmd) {
 	m.result = ChainVariableResultMsg{
 		Variables: m.variables,
 		ChainName: m.chainName,
-		Canceled: false,
+		Canceled:  false,
 	}
 
 	return m, func() tea.Msg { return m.result }

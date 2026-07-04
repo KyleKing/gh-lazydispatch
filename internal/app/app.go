@@ -23,6 +23,7 @@ import (
 // FocusedPane represents which pane currently has focus.
 type FocusedPane int
 
+// Panes available in the TUI, in tab order.
 const (
 	PaneWorkflows FocusedPane = iota
 	PaneHistory
@@ -32,6 +33,7 @@ const (
 // ViewMode represents the current view mode.
 type ViewMode int
 
+// View modes for the config pane.
 const (
 	WorkflowListMode ViewMode = iota
 	HistoryPreviewMode

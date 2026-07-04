@@ -16,8 +16,11 @@ import (
 )
 
 // ChainStatus represents the overall status of a chain execution.
+//
+//nolint:revive // stutters but renaming to Status would break call sites across the codebase
 type ChainStatus string
 
+// Overall chain execution statuses.
 const (
 	ChainPending   ChainStatus = "pending"
 	ChainRunning   ChainStatus = "running"
@@ -28,6 +31,7 @@ const (
 // StepStatus represents the status of a single step.
 type StepStatus string
 
+// Per-step execution statuses.
 const (
 	StepPending   StepStatus = "pending"
 	StepRunning   StepStatus = "running"
@@ -39,41 +43,47 @@ const (
 
 // StepResult represents the result of a completed step.
 type StepResult struct {
-	Workflow   string
 	Inputs     map[string]string
-	RunID      int64
+	Workflow   string
 	RunURL     string
 	Status     StepStatus
 	Conclusion string
+	RunID      int64
 }
 
 // ChainState represents the current state of a chain execution.
+//
+//nolint:revive // stutters but renaming to State would break call sites across the codebase
 type ChainState struct {
-	ChainName    string
-	CurrentStep  int
-	StepResults  map[int]*StepResult
-	StepStatuses []StepStatus
-	Status       ChainStatus
 	Error        error
+	StepResults  map[int]*StepResult
+	ChainName    string
+	Status       ChainStatus
+	StepStatuses []StepStatus
+	CurrentStep  int
 }
 
 // ChainUpdate is sent when the chain state changes.
+//
+//nolint:revive // stutters but renaming to Update would break call sites across the codebase
 type ChainUpdate struct {
 	State ChainState
 }
 
 // ChainExecutor manages the execution of a workflow chain.
+//
+//nolint:revive // stutters but renaming to Executor would break call sites across the codebase
 type ChainExecutor struct {
 	client    GitHubClient
 	watcher   RunWatcher
 	chain     *config.Chain
-	chainName string
 	state     *ChainState
-	variables map[string]string // chain-level variables
-	branch    string
+	variables map[string]string
 	updates   chan ChainUpdate
-	mu        sync.RWMutex
 	stopCh    chan struct{}
+	chainName string
+	branch    string
+	mu        sync.RWMutex
 	stopOnce  sync.Once
 }
 
@@ -104,9 +114,9 @@ func NewExecutor(client GitHubClient, w RunWatcher, chainName string, chain *con
 // PreviousStepResult contains the result of a previously completed step.
 type PreviousStepResult struct {
 	Workflow   string
-	RunID      int64
 	Status     string
 	Conclusion string
+	RunID      int64
 }
 
 // NewExecutorFromHistory creates a chain executor that resumes from a specific step.

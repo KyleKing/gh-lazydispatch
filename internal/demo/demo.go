@@ -124,8 +124,8 @@ func (c *MockConfig) addRunLogs(runID, jobID int64, logs string) {
 	c.Executor.AddGHRunView(runID, jobID, logs)
 }
 
-// DemoWorkflows returns a set of demo workflows for testing the UI.
-func DemoWorkflows() []workflow.WorkflowFile {
+// Workflows returns a set of demo workflows for testing the UI.
+func Workflows() []workflow.WorkflowFile {
 	return []workflow.WorkflowFile{
 		{
 			Name:     "CI",

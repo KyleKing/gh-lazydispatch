@@ -5,6 +5,7 @@ import "time"
 // EntryType distinguishes between workflow and chain entries.
 type EntryType string
 
+// History entry types.
 const (
 	EntryTypeWorkflow EntryType = "workflow"
 	EntryTypeChain    EntryType = "chain"
