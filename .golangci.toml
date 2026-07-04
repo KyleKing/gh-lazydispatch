@@ -73,7 +73,7 @@ enable = [
   "ineffassign",
   "interfacebloat",
   "intrange",
-  "ireturn", # revisit: BubbleTea Init/Update methods return interfaces by design
+  "ireturn",
   "lll",
   "loggercheck",
   "maintidx",
@@ -181,7 +181,10 @@ enable-all = true
 disable = ["shadow"]
 
 [linters.settings.ireturn]
-allow = ["error", "empty", "stdlib"]
+# tea.Model and modal.Context: BubbleTea's Elm architecture requires Update/Init
+# to return these interfaces so a component can switch to a different concrete
+# model or modal.
+allow = ["error", "empty", "stdlib", "bubbletea/v2\\.Model$", "internal/ui/modal\\.Context$"]
 
 [linters.settings.lll]
 line-length = 120
