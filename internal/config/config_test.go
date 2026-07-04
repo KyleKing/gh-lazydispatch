@@ -15,7 +15,7 @@ func TestLoad_ValidConfig(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
@@ -31,7 +31,7 @@ chains:
 `
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -74,12 +74,12 @@ func TestLoad_InvalidYAML(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
-	if err := os.WriteFile(configPath, []byte("invalid: [yaml: content"), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte("invalid: [yaml: content"), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -95,7 +95,7 @@ func TestLoad_UnsupportedVersion(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
@@ -104,7 +104,7 @@ chains: {}
 `
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -120,7 +120,7 @@ func TestLoad_DefaultValues(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
@@ -132,7 +132,7 @@ chains:
 `
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -166,7 +166,7 @@ func TestChainNames_Sorted(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
@@ -184,7 +184,7 @@ chains:
 `
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -213,7 +213,7 @@ func TestGetChain_Exists(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
@@ -226,7 +226,7 @@ chains:
 `
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -251,7 +251,7 @@ func TestGetChain_NotFound(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
@@ -263,7 +263,7 @@ chains:
 `
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -309,7 +309,7 @@ func TestLoad_Version2WithVariables(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
@@ -338,7 +338,7 @@ chains:
 `
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
@@ -393,7 +393,7 @@ func TestLoad_Version2DefaultVariableType(t *testing.T) {
 	dir := t.TempDir()
 
 	configDir := filepath.Join(dir, ".github")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		t.Fatalf("failed to create .github dir: %v", err)
 	}
 
@@ -408,7 +408,7 @@ chains:
 `
 	configPath := filepath.Join(configDir, "lazydispatch.yml")
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
 	}
 

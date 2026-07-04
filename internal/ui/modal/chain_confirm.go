@@ -164,27 +164,52 @@ func (m *ChainConfirmModal) View() string {
 	s.WriteString(ui.TableDimmedStyle.Render(branch))
 	s.WriteString("\n\n")
 
-	if len(m.variables) > 0 {
-		s.WriteString(ui.SubtitleStyle.Render("Variables:"))
-		s.WriteString("\n")
+	m.renderVariables(&s)
+	m.renderSteps(&s)
 
-		keys := make([]string, 0, len(m.variables))
-		for k := range m.variables {
-			keys = append(keys, k)
-		}
+	s.WriteString("\n")
 
-		sort.Strings(keys)
+	watchIndicator := "[ ]"
+	if m.watchMode {
+		watchIndicator = "[x]"
+	}
 
-		for _, k := range keys {
-			v := m.variables[k]
-			s.WriteString(ui.NormalStyle.Render(fmt.Sprintf("  %s: ", k)))
-			s.WriteString(ui.TableDimmedStyle.Render(v))
-			s.WriteString("\n")
-		}
+	s.WriteString(ui.NormalStyle.Render("Watch runs: " + watchIndicator))
+	s.WriteString("\n\n")
 
+	s.WriteString(ui.HelpStyle.Render("[enter/y] confirm  [esc/n] cancel  [w] toggle watch"))
+
+	return s.String()
+}
+
+// renderVariables writes the sorted chain variables (if any) to s.
+func (m *ChainConfirmModal) renderVariables(s *strings.Builder) {
+	if len(m.variables) == 0 {
+		return
+	}
+
+	s.WriteString(ui.SubtitleStyle.Render("Variables:"))
+	s.WriteString("\n")
+
+	keys := make([]string, 0, len(m.variables))
+	for k := range m.variables {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v := m.variables[k]
+		s.WriteString(ui.NormalStyle.Render(fmt.Sprintf("  %s: ", k)))
+		s.WriteString(ui.TableDimmedStyle.Render(v))
 		s.WriteString("\n")
 	}
 
+	s.WriteString("\n")
+}
+
+// renderSteps writes each resolved chain step's command and wait condition to s.
+func (m *ChainConfirmModal) renderSteps(s *strings.Builder) {
 	s.WriteString(ui.SubtitleStyle.Render("Steps:"))
 	s.WriteString("\n")
 
@@ -208,20 +233,6 @@ func (m *ChainConfirmModal) View() string {
 		s.WriteString(ui.CLIPreviewStyle.Render("     " + step.Command))
 		s.WriteString("\n")
 	}
-
-	s.WriteString("\n")
-
-	watchIndicator := "[ ]"
-	if m.watchMode {
-		watchIndicator = "[x]"
-	}
-
-	s.WriteString(ui.NormalStyle.Render("Watch runs: " + watchIndicator))
-	s.WriteString("\n\n")
-
-	s.WriteString(ui.HelpStyle.Render("[enter/y] confirm  [esc/n] cancel  [w] toggle watch"))
-
-	return s.String()
 }
 
 // IsDone returns true if the modal is finished.

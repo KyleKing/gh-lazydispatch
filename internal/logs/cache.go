@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	dirPerm  = 0o750
+	filePerm = 0o600
+)
+
 // Cache stores fetched logs locally for quick access.
 type Cache struct {
 	entries  map[string]*CacheEntry
@@ -80,7 +85,7 @@ func (c *Cache) Load() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if err := os.MkdirAll(c.cacheDir, 0o755); err != nil {
+	if err := os.MkdirAll(c.cacheDir, dirPerm); err != nil {
 		return fmt.Errorf("failed to create cache dir: %w", err)
 	}
 
@@ -96,7 +101,7 @@ func (c *Cache) Load() error {
 
 		path := filepath.Join(c.cacheDir, entry.Name())
 
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) //nolint:gosec // path built from cacheDir + a filename returned by ReadDir
 		if err != nil {
 			continue // Skip invalid entries
 		}
@@ -108,7 +113,7 @@ func (c *Cache) Load() error {
 
 		// Check if expired
 		if time.Since(cacheEntry.CachedAt) > cacheEntry.TTL {
-			//nolint:errcheck // best-effort cleanup of an expired entry; a failed remove is harmless
+			//nolint:errcheck,gosec // best-effort cleanup of an expired entry; a failed remove is harmless
 			os.Remove(path)
 			continue
 		}
@@ -132,7 +137,7 @@ func (c *Cache) Clear() error {
 			// Remove from disk
 			filename := c.makeFilename(key)
 			path := filepath.Join(c.cacheDir, filename)
-			//nolint:errcheck // best-effort cleanup of an expired entry; a failed remove is harmless
+			//nolint:errcheck,gosec // best-effort cleanup of an expired entry; a failed remove is harmless
 			os.Remove(path)
 		}
 	}
@@ -142,7 +147,7 @@ func (c *Cache) Clear() error {
 
 // persistEntry writes a cache entry to disk.
 func (c *Cache) persistEntry(key string, entry *CacheEntry) error {
-	if err := os.MkdirAll(c.cacheDir, 0o755); err != nil {
+	if err := os.MkdirAll(c.cacheDir, dirPerm); err != nil {
 		return fmt.Errorf("failed to create cache dir: %w", err)
 	}
 
@@ -154,7 +159,7 @@ func (c *Cache) persistEntry(key string, entry *CacheEntry) error {
 	filename := c.makeFilename(key)
 	path := filepath.Join(c.cacheDir, filename)
 
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, filePerm); err != nil {
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
 

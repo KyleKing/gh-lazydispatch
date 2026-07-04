@@ -71,6 +71,8 @@ func GenerateLargeLogWithErrors(lines int, errorRate float64) string {
 
 // GenerateUnicodeLog creates logs with unicode characters.
 // Tests proper handling of international characters and emoji.
+//
+//nolint:gosmopolitan // intentional non-ASCII test fixture verifying unicode log handling
 func GenerateUnicodeLog() string {
 	return `##[group]Build 🏗️
 Running tests ✓
@@ -121,7 +123,7 @@ func LoadFixture(tb testing.TB, filename string) string {
 	}
 
 	for _, path := range paths {
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(path) //nolint:gosec // test-only, fixed testdata directory candidates
 		if err == nil {
 			return string(data)
 		}

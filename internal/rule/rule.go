@@ -49,7 +49,7 @@ const rangeParts = 2
 
 // ParseValidationComment parses a single comment line for validation rules.
 // The ok return is false if the comment doesn't contain a validation rule.
-func ParseValidationComment(comment string) (rule *ValidationRule, ok bool, err error) {
+func ParseValidationComment(comment string) (*ValidationRule, bool, error) {
 	comment = strings.TrimSpace(comment)
 	comment = strings.TrimPrefix(comment, "#")
 	comment = strings.TrimSpace(comment)
@@ -74,52 +74,66 @@ func ParseValidationComment(comment string) (rule *ValidationRule, ok bool, err 
 
 	switch ruleType {
 	case "regex":
-		if ruleValue == "" {
-			return nil, false, ErrRegexRuleMissingPattern
-		}
-
-		if _, err := regexp.Compile(ruleValue); err != nil {
-			return nil, false, fmt.Errorf("invalid regex pattern: %w", err)
-		}
-
-		return &ValidationRule{Type: RuleRegex, Pattern: ruleValue}, true, nil
-
+		return parseRegexRule(ruleValue)
 	case "range":
-		minVal, maxVal, err := parseRange(ruleValue)
-		if err != nil {
-			return nil, false, fmt.Errorf("invalid range: %w", err)
-		}
-
-		return &ValidationRule{Type: RuleRange, Min: minVal, Max: maxVal}, true, nil
-
+		return parseRangeRule(ruleValue)
 	case "required":
 		return &ValidationRule{Type: RuleRequired}, true, nil
-
 	case "prefix":
-		if ruleValue == "" {
-			return nil, false, ErrPrefixRuleMissingValue
-		}
-
-		return &ValidationRule{Type: RulePrefix, Pattern: ruleValue}, true, nil
-
+		return parsePrefixRule(ruleValue)
 	case "suffix":
-		if ruleValue == "" {
-			return nil, false, ErrSuffixRuleMissingValue
-		}
-
-		return &ValidationRule{Type: RuleSuffix, Pattern: ruleValue}, true, nil
-
+		return parseSuffixRule(ruleValue)
 	case "length":
-		minVal, maxVal, err := parseRange(ruleValue)
-		if err != nil {
-			return nil, false, fmt.Errorf("invalid length: %w", err)
-		}
-
-		return &ValidationRule{Type: RuleLength, Min: minVal, Max: maxVal}, true, nil
-
+		return parseLengthRule(ruleValue)
 	default:
 		return nil, false, nil
 	}
+}
+
+func parseRegexRule(ruleValue string) (*ValidationRule, bool, error) {
+	if ruleValue == "" {
+		return nil, false, ErrRegexRuleMissingPattern
+	}
+
+	if _, err := regexp.Compile(ruleValue); err != nil {
+		return nil, false, fmt.Errorf("invalid regex pattern: %w", err)
+	}
+
+	return &ValidationRule{Type: RuleRegex, Pattern: ruleValue}, true, nil
+}
+
+func parseRangeRule(ruleValue string) (*ValidationRule, bool, error) {
+	minVal, maxVal, err := parseRange(ruleValue)
+	if err != nil {
+		return nil, false, fmt.Errorf("invalid range: %w", err)
+	}
+
+	return &ValidationRule{Type: RuleRange, Min: minVal, Max: maxVal}, true, nil
+}
+
+func parsePrefixRule(ruleValue string) (*ValidationRule, bool, error) {
+	if ruleValue == "" {
+		return nil, false, ErrPrefixRuleMissingValue
+	}
+
+	return &ValidationRule{Type: RulePrefix, Pattern: ruleValue}, true, nil
+}
+
+func parseSuffixRule(ruleValue string) (*ValidationRule, bool, error) {
+	if ruleValue == "" {
+		return nil, false, ErrSuffixRuleMissingValue
+	}
+
+	return &ValidationRule{Type: RuleSuffix, Pattern: ruleValue}, true, nil
+}
+
+func parseLengthRule(ruleValue string) (*ValidationRule, bool, error) {
+	minVal, maxVal, err := parseRange(ruleValue)
+	if err != nil {
+		return nil, false, fmt.Errorf("invalid length: %w", err)
+	}
+
+	return &ValidationRule{Type: RuleLength, Min: minVal, Max: maxVal}, true, nil
 }
 
 // ParseValidationComments parses multiple comment lines and returns all valid rules.
@@ -157,49 +171,80 @@ func ValidateValue(value string, rules []ValidationRule) []string {
 func validateRule(value string, r ValidationRule) string {
 	switch r.Type {
 	case RuleRequired:
-		if strings.TrimSpace(value) == "" {
-			return "value is required"
-		}
-
+		return validateRequiredRule(value)
 	case RuleRegex:
-		re, err := regexp.Compile(r.Pattern)
-		if err != nil {
-			return "invalid regex pattern: " + r.Pattern
-		}
-
-		if !re.MatchString(value) {
-			return "must match pattern: " + r.Pattern
-		}
-
+		return validateRegexRule(value, r)
 	case RuleRange:
-		if value == "" {
-			return ""
-		}
-
-		num, err := strconv.Atoi(value)
-		if err != nil {
-			return "must be a number"
-		}
-
-		if num < r.Min || num > r.Max {
-			return fmt.Sprintf("must be between %d and %d", r.Min, r.Max)
-		}
-
+		return validateRangeRule(value, r)
 	case RulePrefix:
-		if value != "" && !strings.HasPrefix(value, r.Pattern) {
-			return "must start with: " + r.Pattern
-		}
-
+		return validatePrefixRule(value, r)
 	case RuleSuffix:
-		if value != "" && !strings.HasSuffix(value, r.Pattern) {
-			return "must end with: " + r.Pattern
-		}
-
+		return validateSuffixRule(value, r)
 	case RuleLength:
-		length := len(value)
-		if length < r.Min || length > r.Max {
-			return fmt.Sprintf("length must be between %d and %d", r.Min, r.Max)
-		}
+		return validateLengthRule(value, r)
+	}
+
+	return ""
+}
+
+func validateRequiredRule(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "value is required"
+	}
+
+	return ""
+}
+
+func validateRegexRule(value string, r ValidationRule) string {
+	re, err := regexp.Compile(r.Pattern)
+	if err != nil {
+		return "invalid regex pattern: " + r.Pattern
+	}
+
+	if !re.MatchString(value) {
+		return "must match pattern: " + r.Pattern
+	}
+
+	return ""
+}
+
+func validateRangeRule(value string, r ValidationRule) string {
+	if value == "" {
+		return ""
+	}
+
+	num, err := strconv.Atoi(value)
+	if err != nil {
+		return "must be a number"
+	}
+
+	if num < r.Min || num > r.Max {
+		return fmt.Sprintf("must be between %d and %d", r.Min, r.Max)
+	}
+
+	return ""
+}
+
+func validatePrefixRule(value string, r ValidationRule) string {
+	if value != "" && !strings.HasPrefix(value, r.Pattern) {
+		return "must start with: " + r.Pattern
+	}
+
+	return ""
+}
+
+func validateSuffixRule(value string, r ValidationRule) string {
+	if value != "" && !strings.HasSuffix(value, r.Pattern) {
+		return "must end with: " + r.Pattern
+	}
+
+	return ""
+}
+
+func validateLengthRule(value string, r ValidationRule) string {
+	length := len(value)
+	if length < r.Min || length > r.Max {
+		return fmt.Sprintf("length must be between %d and %d", r.Min, r.Max)
 	}
 
 	return ""

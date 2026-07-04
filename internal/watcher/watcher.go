@@ -59,7 +59,8 @@ type RunUpdate struct {
 
 // RunWatcher monitors workflow runs and sends updates.
 type RunWatcher struct {
-	client    GitHubClient
+	client GitHubClient
+	//nolint:containedctx // ctx's lifetime is the watcher's lifetime; paired with cancel for Stop()
 	ctx       context.Context
 	runs      map[int64]*WatchedRun
 	updates   chan RunUpdate

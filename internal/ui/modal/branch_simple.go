@@ -108,65 +108,78 @@ func (m *SimpleBranchModal) SetSize(_, height int) {
 
 // Update handles input for the simple branch modal.
 func (m *SimpleBranchModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	if msg, ok := msg.(tea.KeyPressMsg); ok {
-		if m.filtering {
-			switch msg.String() {
-			case "enter":
-				m.filtering = false
-				m.filterInput.Blur()
+	keyMsg, ok := msg.(tea.KeyPressMsg)
+	if !ok {
+		return m, nil
+	}
 
-				return m, nil
-			case "esc":
-				if m.filterInput.Value() == "" {
-					m.filtering = false
-					m.filterInput.Blur()
-				} else {
-					m.filterInput.SetValue("")
-					m.applyFilter()
-				}
+	if m.filtering {
+		return m.updateFiltering(keyMsg)
+	}
 
-				return m, nil
-			default:
-				var cmd tea.Cmd
-				m.filterInput, cmd = m.filterInput.Update(msg)
-				m.applyFilter()
+	return m.updateNavigating(keyMsg)
+}
 
-				return m, cmd
-			}
+// updateFiltering handles key input while the branch filter is active.
+func (m *SimpleBranchModal) updateFiltering(msg tea.KeyPressMsg) (Context, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		m.filtering = false
+		m.filterInput.Blur()
+
+		return m, nil
+	case "esc":
+		if m.filterInput.Value() == "" {
+			m.filtering = false
+			m.filterInput.Blur()
+		} else {
+			m.filterInput.SetValue("")
+			m.applyFilter()
 		}
 
-		switch {
-		case key.Matches(msg, m.keys.Up):
-			if m.selected > 0 {
-				m.selected--
-				m.adjustScroll()
-			}
-		case key.Matches(msg, m.keys.Down):
-			if m.selected < len(m.filteredBranches)-1 {
-				m.selected++
-				m.adjustScroll()
-			}
-		case key.Matches(msg, m.keys.Enter):
-			if m.selected < len(m.filteredBranches) {
-				m.result = m.filteredBranches[m.selected]
-			}
+		return m, nil
+	default:
+		var cmd tea.Cmd
+		m.filterInput, cmd = m.filterInput.Update(msg)
+		m.applyFilter()
 
-			m.done = true
+		return m, cmd
+	}
+}
 
-			return m, func() tea.Msg {
-				return BranchResultMsg{Value: m.result}
-			}
-		case key.Matches(msg, m.keys.Escape):
-			m.done = true
-			return m, nil
-		default:
-			// Auto-start filtering on any printable character
-			if !m.filtering && len(msg.String()) == 1 && msg.String() >= " " && msg.String() <= "~" {
-				m.filtering = true
-				m.filterInput.Focus()
-				m.filterInput.SetValue(msg.String())
-				m.applyFilter()
-			}
+// updateNavigating handles key input while browsing the branch list.
+func (m *SimpleBranchModal) updateNavigating(msg tea.KeyPressMsg) (Context, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Up):
+		if m.selected > 0 {
+			m.selected--
+			m.adjustScroll()
+		}
+	case key.Matches(msg, m.keys.Down):
+		if m.selected < len(m.filteredBranches)-1 {
+			m.selected++
+			m.adjustScroll()
+		}
+	case key.Matches(msg, m.keys.Enter):
+		if m.selected < len(m.filteredBranches) {
+			m.result = m.filteredBranches[m.selected]
+		}
+
+		m.done = true
+
+		return m, func() tea.Msg {
+			return BranchResultMsg{Value: m.result}
+		}
+	case key.Matches(msg, m.keys.Escape):
+		m.done = true
+		return m, nil
+	default:
+		// Auto-start filtering on any printable character
+		if len(msg.String()) == 1 && msg.String() >= " " && msg.String() <= "~" {
+			m.filtering = true
+			m.filterInput.Focus()
+			m.filterInput.SetValue(msg.String())
+			m.applyFilter()
 		}
 	}
 
@@ -233,53 +246,7 @@ func (m *SimpleBranchModal) View() string {
 		endIdx = len(m.filteredBranches)
 	}
 
-	if len(m.filteredBranches) == 0 {
-		s.WriteString(ui.SubtitleStyle.Render("No branches found"))
-	} else {
-		for i := m.scrollOffset; i < endIdx; i++ {
-			branch := m.filteredBranches[i]
-			cursor := "  "
-			style := ui.NormalStyle
-
-			if i == m.selected {
-				cursor = "> "
-				style = ui.SelectedStyle
-			}
-
-			// Add indicators for current/default
-			indicator := ""
-			switch branch {
-			case m.currentBranch:
-				indicator = " *"
-			case m.defaultBranch:
-				indicator = " ·"
-			}
-
-			s.WriteString(style.Render(cursor + branch + indicator))
-
-			if i < endIdx-1 {
-				s.WriteString("\n")
-			}
-		}
-
-		// Show scroll indicator
-		if len(m.filteredBranches) > visibleLines {
-			s.WriteString("\n")
-			s.WriteString(ui.SubtitleStyle.Render("  "))
-
-			scrollInfo := ""
-			if m.scrollOffset > 0 {
-				scrollInfo += "↑ "
-			}
-
-			scrollInfo += "  "
-			if endIdx < len(m.filteredBranches) {
-				scrollInfo += "↓"
-			}
-
-			s.WriteString(ui.SubtitleStyle.Render(scrollInfo))
-		}
-	}
+	m.renderBranchList(&s, endIdx, visibleLines)
 
 	// Help
 	s.WriteString("\n\n")
@@ -292,6 +259,60 @@ func (m *SimpleBranchModal) View() string {
 	s.WriteString(ui.HelpStyle.Render(helpText))
 
 	return s.String()
+}
+
+// renderBranchList writes the visible slice of filtered branches (with cursor,
+// selection style, and current/default indicators) plus a scroll indicator.
+func (m *SimpleBranchModal) renderBranchList(s *strings.Builder, endIdx, visibleLines int) {
+	if len(m.filteredBranches) == 0 {
+		s.WriteString(ui.SubtitleStyle.Render("No branches found"))
+		return
+	}
+
+	for i := m.scrollOffset; i < endIdx; i++ {
+		branch := m.filteredBranches[i]
+		cursor := "  "
+		style := ui.NormalStyle
+
+		if i == m.selected {
+			cursor = "> "
+			style = ui.SelectedStyle
+		}
+
+		// Add indicators for current/default
+		indicator := ""
+		switch branch {
+		case m.currentBranch:
+			indicator = " *"
+		case m.defaultBranch:
+			indicator = " ·"
+		}
+
+		s.WriteString(style.Render(cursor + branch + indicator))
+
+		if i < endIdx-1 {
+			s.WriteString("\n")
+		}
+	}
+
+	if len(m.filteredBranches) <= visibleLines {
+		return
+	}
+
+	s.WriteString("\n")
+	s.WriteString(ui.SubtitleStyle.Render("  "))
+
+	scrollInfo := ""
+	if m.scrollOffset > 0 {
+		scrollInfo += "↑ "
+	}
+
+	scrollInfo += "  "
+	if endIdx < len(m.filteredBranches) {
+		scrollInfo += "↓"
+	}
+
+	s.WriteString(ui.SubtitleStyle.Render(scrollInfo))
 }
 
 // IsDone returns true if the modal is finished.

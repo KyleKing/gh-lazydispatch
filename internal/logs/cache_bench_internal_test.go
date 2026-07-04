@@ -165,14 +165,17 @@ func BenchmarkCache_MakeKey(b *testing.B) {
 	}
 }
 
-func BenchmarkCache_PutGet_SmallLogs(b *testing.B) {
+// benchmarkCachePutGet runs a Put+Get cache benchmark against a RunLogs with
+// numSteps steps of numEntries entries each.
+func benchmarkCachePutGet(b *testing.B, numSteps, numEntries int) {
+	b.Helper()
+
 	cache := NewCache(b.TempDir())
 	runLogs := NewRunLogs("test", "main")
 
-	// Small logs: 10 steps with 10 entries each
-	for range 10 {
+	for range numSteps {
 		runLogs.AddStep(&StepLogs{
-			Entries: make([]LogEntry, 10),
+			Entries: make([]LogEntry, numEntries),
 		})
 	}
 
@@ -188,25 +191,12 @@ func BenchmarkCache_PutGet_SmallLogs(b *testing.B) {
 	}
 }
 
+// BenchmarkCache_PutGet_SmallLogs benchmarks Put+Get with 10 steps of 10 entries each.
+func BenchmarkCache_PutGet_SmallLogs(b *testing.B) {
+	benchmarkCachePutGet(b, 10, 10)
+}
+
+// BenchmarkCache_PutGet_LargeLogs benchmarks Put+Get with 200 steps of 500 entries each.
 func BenchmarkCache_PutGet_LargeLogs(b *testing.B) {
-	cache := NewCache(b.TempDir())
-	runLogs := NewRunLogs("test", "main")
-
-	// Large logs: 200 steps with 500 entries each
-	for range 200 {
-		runLogs.AddStep(&StepLogs{
-			Entries: make([]LogEntry, 500),
-		})
-	}
-
-	b.ResetTimer()
-	b.ReportAllocs()
-
-	for i := range b.N {
-		if err := cache.Put("test", int64(i%100), runLogs, 1*time.Hour); err != nil {
-			b.Fatalf("Put failed: %v", err)
-		}
-
-		cache.Get("test", int64(i%100))
-	}
+	benchmarkCachePutGet(b, 200, 500)
 }

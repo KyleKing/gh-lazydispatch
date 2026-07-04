@@ -12,7 +12,10 @@ import (
 func TestDiscover(t *testing.T) {
 	t.Parallel()
 
-	_, currentFile, _, _ := runtime.Caller(0)
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed to determine current file")
+	}
 	repoRoot := filepath.Join(filepath.Dir(currentFile), "..", "..", "testdata")
 
 	workflows, err := workflow.Discover(repoRoot)
@@ -60,7 +63,7 @@ func TestDiscover_EmptyDir(t *testing.T) {
 
 	tmpDir := t.TempDir()
 
-	if err := os.MkdirAll(filepath.Join(tmpDir, ".github", "workflows"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".github", "workflows"), 0o750); err != nil {
 		t.Fatal(err)
 	}
 

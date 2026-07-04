@@ -87,6 +87,8 @@ func (t *rawOnTrigger) UnmarshalYAML(node *yaml.Node) error {
 		}
 
 		t.Dispatch = m.Dispatch
+	case yaml.DocumentNode, yaml.AliasNode:
+		// not valid shapes for the "on" field; nothing to decode
 	}
 
 	return nil
@@ -111,37 +113,44 @@ func parseInputComments(data []byte) (map[string][]string, error) {
 		keyNode := inputsNode.Content[i]
 		valueNode := inputsNode.Content[i+1]
 
-		inputName := keyNode.Value
-
-		var comments []string
-
-		if keyNode.HeadComment != "" {
-			comments = append(comments, splitCommentLines(keyNode.HeadComment)...)
-		}
-
-		if keyNode.LineComment != "" {
-			comments = append(comments, splitCommentLines(keyNode.LineComment)...)
-		}
-
-		if valueNode.Kind == yaml.MappingNode {
-			for j := 0; j < len(valueNode.Content)-1; j += 2 {
-				propNode := valueNode.Content[j]
-				if propNode.HeadComment != "" {
-					comments = append(comments, splitCommentLines(propNode.HeadComment)...)
-				}
-
-				if propNode.LineComment != "" {
-					comments = append(comments, splitCommentLines(propNode.LineComment)...)
-				}
-			}
-		}
-
+		comments := commentsForInput(keyNode, valueNode)
 		if len(comments) > 0 {
-			result[inputName] = comments
+			result[keyNode.Value] = comments
 		}
 	}
 
 	return result, nil
+}
+
+// commentsForInput collects all comments attached to a single workflow input:
+// the input key's own head/line comments, plus any on its mapping properties.
+func commentsForInput(keyNode, valueNode *yaml.Node) []string {
+	var comments []string
+
+	comments = append(comments, nodeComments(keyNode)...)
+
+	if valueNode.Kind == yaml.MappingNode {
+		for j := 0; j < len(valueNode.Content)-1; j += 2 {
+			comments = append(comments, nodeComments(valueNode.Content[j])...)
+		}
+	}
+
+	return comments
+}
+
+// nodeComments returns a node's head and line comments, split into individual lines.
+func nodeComments(node *yaml.Node) []string {
+	var comments []string
+
+	if node.HeadComment != "" {
+		comments = append(comments, splitCommentLines(node.HeadComment)...)
+	}
+
+	if node.LineComment != "" {
+		comments = append(comments, splitCommentLines(node.LineComment)...)
+	}
+
+	return comments
 }
 
 func findInputsNode(node *yaml.Node) *yaml.Node {

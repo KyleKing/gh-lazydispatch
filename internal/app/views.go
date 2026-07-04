@@ -359,6 +359,8 @@ func (m Model) viewHistoryConfigPane(width, height int) string {
 				content.WriteString(ui.SubtitleStyle.Render("("))
 
 				switch err.Status {
+				case validation.StatusValid:
+					// unreachable: errorMap only contains entries with a non-valid status
 				case validation.StatusMissing:
 					content.WriteString(ui.SubtitleStyle.Render("missing"))
 				case validation.StatusTypeChanged:

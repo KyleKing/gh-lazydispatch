@@ -358,31 +358,39 @@ func TestExecuteWithExecutor(t *testing.T) {
 			}
 
 			err := ExecuteWithExecutor(tt.cfg, mock)
-
-			if (err != nil) != tt.expectError {
-				t.Errorf("ExecuteWithExecutor() error = %v, expectError %v", err, tt.expectError)
-			}
-
-			if len(mock.executedCommands) != tt.wantCommands {
-				t.Errorf("ExecuteWithExecutor() executed %d commands, want %d",
-					len(mock.executedCommands), tt.wantCommands)
-			}
-
-			if len(mock.executedCommands) > 0 {
-				firstCmd := mock.executedCommands[0]
-				if firstCmd.name != "gh" {
-					t.Errorf("ExecuteWithExecutor() first command name = %q, want %q", firstCmd.name, "gh")
-				}
-			}
-
-			if tt.cfg.Watch && len(mock.executedCommands) == 2 {
-				watchCmd := mock.executedCommands[1]
-				if watchCmd.name != "gh" || len(watchCmd.args) < 2 ||
-					watchCmd.args[0] != "run" || watchCmd.args[1] != "watch" {
-					t.Errorf("ExecuteWithExecutor() watch command = %v, want [gh run watch]", watchCmd)
-				}
-			}
+			checkExecuteWithExecutorResult(t, mock, err, tt.cfg, tt.expectError, tt.wantCommands)
 		})
+	}
+}
+
+// checkExecuteWithExecutorResult asserts the result of ExecuteWithExecutor against expectations.
+func checkExecuteWithExecutorResult(
+	t *testing.T, mock *mockCommandExecutor, err error, cfg RunConfig, expectError bool, wantCommands int,
+) {
+	t.Helper()
+
+	if (err != nil) != expectError {
+		t.Errorf("ExecuteWithExecutor() error = %v, expectError %v", err, expectError)
+	}
+
+	if len(mock.executedCommands) != wantCommands {
+		t.Errorf("ExecuteWithExecutor() executed %d commands, want %d", len(mock.executedCommands), wantCommands)
+	}
+
+	if len(mock.executedCommands) > 0 {
+		firstCmd := mock.executedCommands[0]
+		if firstCmd.name != "gh" {
+			t.Errorf("ExecuteWithExecutor() first command name = %q, want %q", firstCmd.name, "gh")
+		}
+	}
+
+	if !cfg.Watch || len(mock.executedCommands) != 2 {
+		return
+	}
+
+	watchCmd := mock.executedCommands[1]
+	if watchCmd.name != "gh" || len(watchCmd.args) < 2 || watchCmd.args[0] != "run" || watchCmd.args[1] != "watch" {
+		t.Errorf("ExecuteWithExecutor() watch command = %v, want [gh run watch]", watchCmd)
 	}
 }
 
@@ -480,15 +488,21 @@ func TestExecuteAndGetRunIDWithExecutor(t *testing.T) {
 			}
 
 			runID, err := ExecuteAndGetRunIDWithExecutor(tt.cfg, mockClient, mockExec)
-
-			if (err != nil) != tt.expectError {
-				t.Errorf("ExecuteAndGetRunIDWithExecutor() error = %v, expectError %v", err, tt.expectError)
-			}
-
-			if runID != tt.expectRunID {
-				t.Errorf("ExecuteAndGetRunIDWithExecutor() runID = %d, want %d", runID, tt.expectRunID)
-			}
+			checkExecuteAndGetRunIDResult(t, runID, err, tt.expectError, tt.expectRunID)
 		})
+	}
+}
+
+// checkExecuteAndGetRunIDResult asserts the result of ExecuteAndGetRunIDWithExecutor against expectations.
+func checkExecuteAndGetRunIDResult(t *testing.T, runID int64, err error, expectError bool, expectRunID int64) {
+	t.Helper()
+
+	if (err != nil) != expectError {
+		t.Errorf("ExecuteAndGetRunIDWithExecutor() error = %v, expectError %v", err, expectError)
+	}
+
+	if runID != expectRunID {
+		t.Errorf("ExecuteAndGetRunIDWithExecutor() runID = %d, want %d", runID, expectRunID)
 	}
 }
 
@@ -528,26 +542,31 @@ func TestWatchLatestRunWithExecutor(t *testing.T) {
 			}
 
 			err := watchLatestRunWithExecutor(tt.workflow, mockExec)
-
-			if (err != nil) != tt.expectError {
-				t.Errorf("watchLatestRunWithExecutor() error = %v, expectError %v", err, tt.expectError)
-			}
-
-			if len(mockExec.executedCommands) != 1 {
-				t.Errorf("watchLatestRunWithExecutor() executed %d commands, want 1", len(mockExec.executedCommands))
-			}
-
-			if len(mockExec.executedCommands) > 0 {
-				cmd := mockExec.executedCommands[0]
-				if cmd.name != "gh" {
-					t.Errorf("watchLatestRunWithExecutor() command name = %q, want %q", cmd.name, "gh")
-				}
-
-				if len(cmd.args) != 2 || cmd.args[0] != "run" || cmd.args[1] != "watch" {
-					t.Errorf("watchLatestRunWithExecutor() args = %v, want [run watch]", cmd.args)
-				}
-			}
+			checkWatchLatestRunResult(t, mockExec, err, tt.expectError)
 		})
+	}
+}
+
+// checkWatchLatestRunResult asserts the result of watchLatestRunWithExecutor against expectations.
+func checkWatchLatestRunResult(t *testing.T, mockExec *mockCommandExecutor, err error, expectError bool) {
+	t.Helper()
+
+	if (err != nil) != expectError {
+		t.Errorf("watchLatestRunWithExecutor() error = %v, expectError %v", err, expectError)
+	}
+
+	if len(mockExec.executedCommands) != 1 {
+		t.Errorf("watchLatestRunWithExecutor() executed %d commands, want 1", len(mockExec.executedCommands))
+		return
+	}
+
+	cmd := mockExec.executedCommands[0]
+	if cmd.name != "gh" {
+		t.Errorf("watchLatestRunWithExecutor() command name = %q, want %q", cmd.name, "gh")
+	}
+
+	if len(cmd.args) != 2 || cmd.args[0] != "run" || cmd.args[1] != "watch" {
+		t.Errorf("watchLatestRunWithExecutor() args = %v, want [run watch]", cmd.args)
 	}
 }
 

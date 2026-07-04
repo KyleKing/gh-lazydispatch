@@ -98,7 +98,7 @@ func (m *ChainStatusModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 			}
 		case key.Matches(msg, m.keys.Copy):
 			script := m.buildBashScript()
-			//nolint:errcheck // best-effort clipboard write; no error-surfacing UI hook exists for this action
+			//nolint:errcheck,gosec // best-effort clipboard write; no error-surfacing UI hook exists for this action
 			clipboard.WriteAll(script)
 
 			m.copied = true
@@ -118,7 +118,7 @@ func (m *ChainStatusModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 			}
 		case key.Matches(msg, m.keys.OpenBrowser):
 			if url := m.GetFailedStepRunURL(); url != "" {
-				//nolint:errcheck // best-effort browser launch; no error-surfacing UI hook exists for this action
+				//nolint:errcheck,gosec // best-effort browser launch; no error-surfacing UI hook exists for this action
 				browser.Open(url)
 			}
 		}
@@ -166,55 +166,10 @@ func (m *ChainStatusModal) View() string {
 	s.WriteString("\n")
 
 	for i, status := range m.state.StepStatuses {
-		icon := stepStatusIcon(status)
-
-		prefix := "  "
-		if i == m.state.CurrentStep && m.state.Status == chain.ChainRunning {
-			prefix = "> "
-		}
-
-		var stepName string
-		if result, ok := m.state.StepResults[i]; ok {
-			stepName = result.Workflow
-		} else {
-			stepName = fmt.Sprintf("Step %d", i+1)
-		}
-
-		line := fmt.Sprintf("%s%s %s (%s)", prefix, icon, stepName, status)
-
-		if i == m.state.CurrentStep && m.state.Status == chain.ChainRunning {
-			s.WriteString(ui.SelectedStyle.Render(line))
-		} else {
-			s.WriteString(line)
-		}
-
-		s.WriteString("\n")
-
-		if i < len(m.commands) && m.commands[i] != "" {
-			s.WriteString(ui.CLIPreviewStyle.Render("     " + m.commands[i]))
-			s.WriteString("\n")
-		}
+		m.renderStepLine(&s, i, status)
 	}
 
-	if m.state.Error != nil {
-		s.WriteString("\n")
-		s.WriteString(ui.ErrorTitleStyle.Render("Error:"))
-		s.WriteString("\n")
-		s.WriteString(ui.ErrorStyle.Render("  " + m.state.Error.Error()))
-		s.WriteString("\n")
-
-		if url := chainerr.GetRunURL(m.state.Error); url != "" {
-			s.WriteString(ui.SubtitleStyle.Render("  Run: "))
-			s.WriteString(ui.LinkStyle.Render(url))
-			s.WriteString("\n")
-		}
-
-		if suggestion := chainerr.GetSuggestion(m.state.Error); suggestion != "" {
-			s.WriteString(ui.SubtitleStyle.Render("  Hint: "))
-			s.WriteString(ui.NormalStyle.Render(suggestion))
-			s.WriteString("\n")
-		}
-	}
+	m.renderError(&s)
 
 	s.WriteString("\n")
 
@@ -237,6 +192,66 @@ func (m *ChainStatusModal) View() string {
 	}
 
 	return s.String()
+}
+
+// renderStepLine writes a single chain step's status line, plus its preview
+// command if one was recorded, to s.
+func (m *ChainStatusModal) renderStepLine(s *strings.Builder, i int, status chain.StepStatus) {
+	icon := stepStatusIcon(status)
+
+	isCurrent := i == m.state.CurrentStep && m.state.Status == chain.ChainRunning
+
+	prefix := "  "
+	if isCurrent {
+		prefix = "> "
+	}
+
+	var stepName string
+	if result, ok := m.state.StepResults[i]; ok {
+		stepName = result.Workflow
+	} else {
+		stepName = fmt.Sprintf("Step %d", i+1)
+	}
+
+	line := fmt.Sprintf("%s%s %s (%s)", prefix, icon, stepName, status)
+
+	if isCurrent {
+		s.WriteString(ui.SelectedStyle.Render(line))
+	} else {
+		s.WriteString(line)
+	}
+
+	s.WriteString("\n")
+
+	if i < len(m.commands) && m.commands[i] != "" {
+		s.WriteString(ui.CLIPreviewStyle.Render("     " + m.commands[i]))
+		s.WriteString("\n")
+	}
+}
+
+// renderError writes the chain's error, run URL, and suggestion (if any) to s.
+func (m *ChainStatusModal) renderError(s *strings.Builder) {
+	if m.state.Error == nil {
+		return
+	}
+
+	s.WriteString("\n")
+	s.WriteString(ui.ErrorTitleStyle.Render("Error:"))
+	s.WriteString("\n")
+	s.WriteString(ui.ErrorStyle.Render("  " + m.state.Error.Error()))
+	s.WriteString("\n")
+
+	if url := chainerr.GetRunURL(m.state.Error); url != "" {
+		s.WriteString(ui.SubtitleStyle.Render("  Run: "))
+		s.WriteString(ui.LinkStyle.Render(url))
+		s.WriteString("\n")
+	}
+
+	if suggestion := chainerr.GetSuggestion(m.state.Error); suggestion != "" {
+		s.WriteString(ui.SubtitleStyle.Render("  Hint: "))
+		s.WriteString(ui.NormalStyle.Render(suggestion))
+		s.WriteString("\n")
+	}
 }
 
 // IsDone returns true if the modal is finished.

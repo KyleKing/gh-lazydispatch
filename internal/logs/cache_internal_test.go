@@ -340,7 +340,7 @@ func TestCache_InvalidJSON(t *testing.T) {
 	invalidJSON := []byte("{invalid json}")
 	filename := filepath.Join(cacheDir, "test_123.json")
 
-	err := os.WriteFile(filename, invalidJSON, 0o644)
+	err := os.WriteFile(filename, invalidJSON, 0o600)
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
@@ -427,7 +427,7 @@ func TestCache_PersistEntry(t *testing.T) {
 	// Verify file contents
 	filename := files[0].Name()
 
-	data, err := os.ReadFile(filepath.Join(cacheDir, filename))
+	data, err := os.ReadFile(filepath.Join(cacheDir, filename)) //nolint:gosec // test-only, filename from ReadDir
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}

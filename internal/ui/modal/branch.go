@@ -159,51 +159,77 @@ func _pinBranches(branches []string, current, defaultBranch string) []string {
 
 // Update handles input for the branch modal.
 func (m *BranchModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	if msg, ok := msg.(tea.KeyPressMsg); ok {
-		switch msg.String() {
-		case "enter":
-			if item, ok := m.list.SelectedItem().(BranchItem); ok {
-				m.result = item.name
-				m.done = true
-
-				return m, func() tea.Msg {
-					return BranchResultMsg{Value: m.result}
-				}
-			}
-		case "esc":
-			if m.list.FilterState() == list.Filtering {
-				m.list.ResetFilter()
-				return m, nil
-			}
-
-			m.done = true
-
-			return m, nil
+	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+		if model, cmd, handled := m.handleBranchKey(keyMsg); handled {
+			return model, cmd
 		}
 	}
 
-	isFiltering := m.list.FilterState() == list.Filtering || m.list.FilterState() == list.FilterApplied
-
-	if !m.wasFiltering && isFiltering {
-		m.wasFiltering = true
-	} else if m.wasFiltering && !isFiltering {
-		m.wasFiltering = false
-		m.list.SetItems(m.originalItems)
-
-		if m.currentBranch != "" {
-			for i, item := range m.originalItems {
-				if branchItem, ok := item.(BranchItem); ok && branchItem.name == m.currentBranch {
-					m.list.Select(i)
-					break
-				}
-			}
-		}
-	}
+	m.syncFilterState()
 
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
 
 	return m, cmd
+}
+
+// handleBranchKey handles the enter/esc keys for confirming or canceling selection.
+func (m *BranchModal) handleBranchKey(msg tea.KeyPressMsg) (Context, tea.Cmd, bool) {
+	switch msg.String() {
+	case "enter":
+		item, ok := m.list.SelectedItem().(BranchItem)
+		if !ok {
+			return m, nil, false
+		}
+
+		m.result = item.name
+		m.done = true
+
+		return m, func() tea.Msg {
+			return BranchResultMsg{Value: m.result}
+		}, true
+
+	case "esc":
+		if m.list.FilterState() == list.Filtering {
+			m.list.ResetFilter()
+			return m, nil, true
+		}
+
+		m.done = true
+
+		return m, nil, true
+	}
+
+	return m, nil, false
+}
+
+// syncFilterState resets the list to its unfiltered items and re-selects the
+// current branch when filtering just ended.
+func (m *BranchModal) syncFilterState() {
+	isFiltering := m.list.FilterState() == list.Filtering || m.list.FilterState() == list.FilterApplied
+
+	switch {
+	case !m.wasFiltering && isFiltering:
+		m.wasFiltering = true
+	case m.wasFiltering && !isFiltering:
+		m.wasFiltering = false
+		m.list.SetItems(m.originalItems)
+		m.reselectCurrentBranch()
+	}
+}
+
+// reselectCurrentBranch selects the current branch's item in the list, if present.
+func (m *BranchModal) reselectCurrentBranch() {
+	if m.currentBranch == "" {
+		return
+	}
+
+	for i, item := range m.originalItems {
+		if branchItem, ok := item.(BranchItem); ok && branchItem.name == m.currentBranch {
+			m.list.Select(i)
+			return
+		}
+	}
 }
 
 // View renders the branch modal.

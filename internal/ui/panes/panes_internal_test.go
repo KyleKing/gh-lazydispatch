@@ -393,37 +393,40 @@ func TestConfigModel_BuildCommand_EdgeCases(t *testing.T) {
 			tt.setupFunc(&m)
 
 			cmd := m.BuildCommand()
-			cmdStr := fmt.Sprintf("%v", cmd)
-
-			hasRef := false
-
-			for i, arg := range cmd {
-				if arg == "--ref" && i+1 < len(cmd) {
-					hasRef = true
-					break
-				}
-			}
-
-			if hasRef != tt.expectBranch {
-				t.Errorf("expected branch in command = %v, got %v", tt.expectBranch, hasRef)
-			}
-
-			if tt.expectInput != "" {
-				found := false
-
-				for _, arg := range cmd {
-					if arg == tt.expectInput {
-						found = true
-						break
-					}
-				}
-
-				if !found {
-					t.Errorf("expected input %q in command: %s", tt.expectInput, cmdStr)
-				}
-			}
+			checkBuildCommandEdgeCase(t, cmd, tt.expectBranch, tt.expectInput)
 		})
 	}
+}
+
+// checkBuildCommandEdgeCase asserts BuildCommand's output includes/omits a
+// --ref flag and a given input argument as expected.
+func checkBuildCommandEdgeCase(t *testing.T, cmd []string, expectBranch bool, expectInput string) {
+	t.Helper()
+
+	hasRef := false
+
+	for i, arg := range cmd {
+		if arg == "--ref" && i+1 < len(cmd) {
+			hasRef = true
+			break
+		}
+	}
+
+	if hasRef != expectBranch {
+		t.Errorf("expected branch in command = %v, got %v", expectBranch, hasRef)
+	}
+
+	if expectInput == "" {
+		return
+	}
+
+	for _, arg := range cmd {
+		if arg == expectInput {
+			return
+		}
+	}
+
+	t.Errorf("expected input %q in command: %s", expectInput, fmt.Sprintf("%v", cmd))
 }
 
 func TestConfigModel_SetInputs_Nil(t *testing.T) {

@@ -50,7 +50,7 @@ func Discover(repoRoot string) ([]File, error) {
 }
 
 func parseWorkflowFile(path string) (File, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path from walking repo's .github/workflows dir
 	if err != nil {
 		return File{}, fmt.Errorf("reading workflow file %s: %w", path, err)
 	}

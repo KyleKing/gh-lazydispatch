@@ -7,59 +7,74 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
-func TestValidateHistoryConfig(t *testing.T) {
+// validateHistoryConfigCase is a single ValidateHistoryConfig table-test case,
+// shared across the TestValidateHistoryConfig_* functions.
+type validateHistoryConfigCase struct {
+	name       string
+	entry      *frecency.HistoryEntry
+	wf         *workflow.File
+	wantErrors int
+	checkError func(t *testing.T, errs []ConfigValidationError)
+}
+
+// runValidateHistoryConfigCases runs ValidateHistoryConfig against each case
+// and checks the error count plus any case-specific assertions.
+func runValidateHistoryConfigCases(t *testing.T, tests []validateHistoryConfigCase) {
+	t.Helper()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			errs := ValidateHistoryConfig(tt.entry, tt.wf)
+
+			if len(errs) != tt.wantErrors {
+				t.Errorf("ValidateHistoryConfig() errors = %d, want %d", len(errs), tt.wantErrors)
+			}
+
+			if tt.checkError != nil && len(errs) > 0 {
+				tt.checkError(t, errs)
+			}
+		})
+	}
+}
+
+func TestValidateHistoryConfig_NilInputsAndValid(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name       string
-		entry      *frecency.HistoryEntry
-		wf         *workflow.File
-		wantErrors int
-		checkError func(t *testing.T, errs []ConfigValidationError)
-	}{
-		{
-			name:       "nil entry",
-			entry:      nil,
-			wf:         &workflow.File{},
-			wantErrors: 0,
-		},
-		{
-			name:       "nil workflow",
-			entry:      &frecency.HistoryEntry{},
-			wf:         nil,
-			wantErrors: 0,
-		},
+	runValidateHistoryConfigCases(t, []validateHistoryConfigCase{
+		{name: "nil entry", entry: nil, wf: &workflow.File{}, wantErrors: 0},
+		{name: "nil workflow", entry: &frecency.HistoryEntry{}, wf: nil, wantErrors: 0},
 		{
 			name: "valid config",
 			entry: &frecency.HistoryEntry{
-				Inputs: map[string]string{
-					"environment": "production",
-				},
+				Inputs: map[string]string{"environment": "production"},
 			},
 			wf: &workflow.File{
 				On: workflow.OnTrigger{
 					Dispatch: &workflow.Dispatch{
-						Inputs: map[string]workflow.Input{
-							"environment": {Type: "string"},
-						},
+						Inputs: map[string]workflow.Input{"environment": {Type: "string"}},
 					},
 				},
 			},
 			wantErrors: 0,
 		},
+	})
+}
+
+func TestValidateHistoryConfig_MissingInput(t *testing.T) {
+	t.Parallel()
+
+	runValidateHistoryConfigCases(t, []validateHistoryConfigCase{
 		{
 			name: "missing input name",
 			entry: &frecency.HistoryEntry{
-				Inputs: map[string]string{
-					"old_env": "production",
-				},
+				Inputs: map[string]string{"old_env": "production"},
 			},
 			wf: &workflow.File{
 				On: workflow.OnTrigger{
 					Dispatch: &workflow.Dispatch{
-						Inputs: map[string]workflow.Input{
-							"environment": {Type: "string"},
-						},
+						Inputs: map[string]workflow.Input{"environment": {Type: "string"}},
 					},
 				},
 			},
@@ -75,12 +90,17 @@ func TestValidateHistoryConfig(t *testing.T) {
 				}
 			},
 		},
+	})
+}
+
+func TestValidateHistoryConfig_ChoiceOptions(t *testing.T) {
+	t.Parallel()
+
+	runValidateHistoryConfigCases(t, []validateHistoryConfigCase{
 		{
 			name: "choice value not in options",
 			entry: &frecency.HistoryEntry{
-				Inputs: map[string]string{
-					"environment": "development",
-				},
+				Inputs: map[string]string{"environment": "development"},
 			},
 			wf: &workflow.File{
 				On: workflow.OnTrigger{
@@ -113,9 +133,7 @@ func TestValidateHistoryConfig(t *testing.T) {
 		{
 			name: "choice value in options",
 			entry: &frecency.HistoryEntry{
-				Inputs: map[string]string{
-					"environment": "production",
-				},
+				Inputs: map[string]string{"environment": "production"},
 			},
 			wf: &workflow.File{
 				On: workflow.OnTrigger{
@@ -131,6 +149,13 @@ func TestValidateHistoryConfig(t *testing.T) {
 			},
 			wantErrors: 0,
 		},
+	})
+}
+
+func TestValidateHistoryConfig_MultipleErrors(t *testing.T) {
+	t.Parallel()
+
+	runValidateHistoryConfigCases(t, []validateHistoryConfigCase{
 		{
 			name: "multiple errors",
 			entry: &frecency.HistoryEntry{
@@ -146,33 +171,14 @@ func TestValidateHistoryConfig(t *testing.T) {
 						Inputs: map[string]workflow.Input{
 							"environment": {Type: "string"},
 							"region":      {Type: "string"},
-							"version": {
-								Type:    "choice",
-								Options: []string{"v1", "v3"},
-							},
+							"version":     {Type: "choice", Options: []string{"v1", "v3"}},
 						},
 					},
 				},
 			},
 			wantErrors: 3,
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			errs := ValidateHistoryConfig(tt.entry, tt.wf)
-
-			if len(errs) != tt.wantErrors {
-				t.Errorf("ValidateHistoryConfig() errors = %d, want %d", len(errs), tt.wantErrors)
-			}
-
-			if tt.checkError != nil && len(errs) > 0 {
-				tt.checkError(t, errs)
-			}
-		})
-	}
+	})
 }
 
 func TestFindBestMatch(t *testing.T) {

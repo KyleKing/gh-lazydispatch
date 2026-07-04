@@ -104,47 +104,54 @@ func (m *LiveViewModal) View() string {
 	}
 
 	for i := range m.runs {
-		run := &m.runs[i]
-
-		prefix := "  "
-		if i == m.selected {
-			prefix = "> "
-		}
-
-		statusIcon := runStatusIcon(run.Status, run.Conclusion)
-		line := fmt.Sprintf("%s%s %s (%s)", prefix, statusIcon, run.Workflow, run.Status)
-
-		if i == m.selected {
-			s.WriteString(ui.SelectedStyle.Render(line))
-		} else {
-			s.WriteString(line)
-		}
-
-		s.WriteString("\n")
-
-		if i == m.selected {
-			if run.LastError != nil {
-				s.WriteString(ui.SelectedStyle.Render(fmt.Sprintf("    ! Error: %s\n", run.LastError.Error())))
-			}
-
-			if len(run.Jobs) > 0 {
-				for _, job := range run.Jobs {
-					jobIcon := runStatusIcon(job.Status, job.Conclusion)
-					s.WriteString(fmt.Sprintf("    %s %s\n", jobIcon, job.Name))
-
-					for _, step := range job.Steps {
-						stepIcon := runStatusIcon(step.Status, step.Conclusion)
-						s.WriteString(fmt.Sprintf("      %s %s\n", stepIcon, step.Name))
-					}
-				}
-			}
-		}
+		m.renderRunRow(&s, i)
 	}
 
 	s.WriteString("\n")
 	s.WriteString(ui.HelpStyle.Render("j/k navigate  d clear  D clear all  l/Esc close"))
 
 	return s.String()
+}
+
+// renderRunRow writes a single watched run's status line to s, plus its error
+// and job/step breakdown when it is the selected run.
+func (m *LiveViewModal) renderRunRow(s *strings.Builder, i int) {
+	run := &m.runs[i]
+	isSelected := i == m.selected
+
+	prefix := "  "
+	if isSelected {
+		prefix = "> "
+	}
+
+	statusIcon := runStatusIcon(run.Status, run.Conclusion)
+	line := fmt.Sprintf("%s%s %s (%s)", prefix, statusIcon, run.Workflow, run.Status)
+
+	if isSelected {
+		s.WriteString(ui.SelectedStyle.Render(line))
+	} else {
+		s.WriteString(line)
+	}
+
+	s.WriteString("\n")
+
+	if !isSelected {
+		return
+	}
+
+	if run.LastError != nil {
+		s.WriteString(ui.SelectedStyle.Render(fmt.Sprintf("    ! Error: %s\n", run.LastError.Error())))
+	}
+
+	for _, job := range run.Jobs {
+		jobIcon := runStatusIcon(job.Status, job.Conclusion)
+		fmt.Fprintf(s, "    %s %s\n", jobIcon, job.Name)
+
+		for _, step := range job.Steps {
+			stepIcon := runStatusIcon(step.Status, step.Conclusion)
+			fmt.Fprintf(s, "      %s %s\n", stepIcon, step.Name)
+		}
+	}
 }
 
 // IsDone returns true if the modal is finished.

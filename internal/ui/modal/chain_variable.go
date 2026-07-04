@@ -128,103 +128,120 @@ func (m *ChainVariableModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 }
 
 func (m *ChainVariableModal) updateNavigating(msg tea.Msg) (Context, tea.Cmd) {
-	if msg, ok := msg.(tea.KeyPressMsg); ok {
-		v := m.currentVariable()
-		name := m.currentName()
+	keyMsg, ok := msg.(tea.KeyPressMsg)
+	if !ok {
+		return m, nil
+	}
 
-		switch {
-		case key.Matches(msg, m.keys.Cancel):
-			m.done = true
-			m.result = ChainVariableResultMsg{Canceled: true}
+	switch {
+	case key.Matches(keyMsg, m.keys.Cancel):
+		m.done = true
+		m.result = ChainVariableResultMsg{Canceled: true}
 
-			return m, func() tea.Msg { return m.result }
+		return m, func() tea.Msg { return m.result }
 
-		case key.Matches(msg, m.keys.Up):
-			if m.selectedIndex > 0 {
-				m.selectedIndex--
-			}
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.Down):
-			if m.selectedIndex < len(m.variableOrder)-1 {
-				m.selectedIndex++
-			}
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.RestoreDefault):
-			if v != nil {
-				m.variables[name] = v.Default
-			}
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.Toggle):
-			if v != nil && v.Type == inputTypeBoolean {
-				if m.variables[name] == boolTrueValue {
-					m.variables[name] = "false"
-				} else {
-					m.variables[name] = boolTrueValue
-				}
-			}
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.NextOption):
-			if v != nil && v.Type == inputTypeChoice && len(v.Options) > 0 {
-				m.cycleOption(name, v.Options, 1)
-			}
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.PrevOption):
-			if v != nil && v.Type == inputTypeChoice && len(v.Options) > 0 {
-				m.cycleOption(name, v.Options, -1)
-			}
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.Edit), key.Matches(msg, m.keys.Confirm):
-			if v == nil {
-				return m, nil
-			}
-
-			switch v.Type {
-			case "string":
-				m.editing = true
-				m.editInput.SetValue(m.variables[name])
-				m.editInput.Focus()
-
-				return m, nil
-
-			case inputTypeBoolean:
-				if m.variables[name] == boolTrueValue {
-					m.variables[name] = "false"
-				} else {
-					m.variables[name] = boolTrueValue
-				}
-
-				return m.advanceOrConfirm()
-
-			case inputTypeChoice:
-				if len(v.Options) > 0 {
-					m.cycleOption(name, v.Options, 1)
-				}
-
-				return m.advanceOrConfirm()
-
-			default:
-				m.editing = true
-				m.editInput.SetValue(m.variables[name])
-				m.editInput.Focus()
-
-				return m, nil
-			}
+	case key.Matches(keyMsg, m.keys.Up):
+		if m.selectedIndex > 0 {
+			m.selectedIndex--
 		}
+
+		return m, nil
+
+	case key.Matches(keyMsg, m.keys.Down):
+		if m.selectedIndex < len(m.variableOrder)-1 {
+			m.selectedIndex++
+		}
+
+		return m, nil
+	}
+
+	return m.updateVariableValue(keyMsg)
+}
+
+// updateVariableValue handles keys that modify the currently selected variable's value.
+func (m *ChainVariableModal) updateVariableValue(keyMsg tea.KeyPressMsg) (Context, tea.Cmd) {
+	v := m.currentVariable()
+	name := m.currentName()
+
+	switch {
+	case key.Matches(keyMsg, m.keys.RestoreDefault):
+		if v != nil {
+			m.variables[name] = v.Default
+		}
+
+		return m, nil
+
+	case key.Matches(keyMsg, m.keys.Toggle):
+		if v != nil && v.Type == inputTypeBoolean {
+			m.toggleBoolVariable(name)
+		}
+
+		return m, nil
+
+	case key.Matches(keyMsg, m.keys.NextOption):
+		if v != nil && v.Type == inputTypeChoice && len(v.Options) > 0 {
+			m.cycleOption(name, v.Options, 1)
+		}
+
+		return m, nil
+
+	case key.Matches(keyMsg, m.keys.PrevOption):
+		if v != nil && v.Type == inputTypeChoice && len(v.Options) > 0 {
+			m.cycleOption(name, v.Options, -1)
+		}
+
+		return m, nil
+
+	case key.Matches(keyMsg, m.keys.Edit), key.Matches(keyMsg, m.keys.Confirm):
+		return m.handleEditOrConfirm(v, name)
 	}
 
 	return m, nil
+}
+
+// toggleBoolVariable flips a boolean-typed variable between "true" and "false".
+func (m *ChainVariableModal) toggleBoolVariable(name string) {
+	if m.variables[name] == boolTrueValue {
+		m.variables[name] = "false"
+	} else {
+		m.variables[name] = boolTrueValue
+	}
+}
+
+// startEditing switches the modal into free-text editing mode for the given variable.
+func (m *ChainVariableModal) startEditing(name string) (Context, tea.Cmd) {
+	m.editing = true
+	m.editInput.SetValue(m.variables[name])
+	m.editInput.Focus()
+
+	return m, nil
+}
+
+// handleEditOrConfirm dispatches the Edit/Confirm key based on the current variable's type.
+func (m *ChainVariableModal) handleEditOrConfirm(v *config.ChainVariable, name string) (Context, tea.Cmd) {
+	if v == nil {
+		return m, nil
+	}
+
+	switch v.Type {
+	case "string":
+		return m.startEditing(name)
+
+	case inputTypeBoolean:
+		m.toggleBoolVariable(name)
+
+		return m.advanceOrConfirm()
+
+	case inputTypeChoice:
+		if len(v.Options) > 0 {
+			m.cycleOption(name, v.Options, 1)
+		}
+
+		return m.advanceOrConfirm()
+
+	default:
+		return m.startEditing(name)
+	}
 }
 
 func (m *ChainVariableModal) cycleOption(name string, options []string, delta int) {
@@ -309,53 +326,7 @@ func (m *ChainVariableModal) View() string {
 	s.WriteString("\n\n")
 
 	for i, v := range m.chain.Variables {
-		indicator := "  "
-		if i == m.selectedIndex {
-			indicator = "> "
-		}
-
-		name := v.Name
-		if v.Required {
-			name += "*"
-		}
-
-		value := m.variables[v.Name]
-		if value == "" {
-			value = `("")`
-		}
-
-		rowStyle := ui.TableRowStyle
-		if i == m.selectedIndex {
-			rowStyle = ui.TableSelectedStyle
-		}
-
-		typeHint := ""
-
-		switch v.Type {
-		case inputTypeBoolean:
-			typeHint = " [space: toggle]"
-		case inputTypeChoice:
-			typeHint = " [←→: cycle]"
-		}
-
-		row := fmt.Sprintf("%s%-15s = %s", indicator, name, value)
-		s.WriteString(rowStyle.Render(row))
-
-		if i == m.selectedIndex && !m.editing {
-			s.WriteString(ui.TableDimmedStyle.Render(typeHint))
-		}
-
-		s.WriteString("\n")
-
-		if v.Description != "" && i == m.selectedIndex {
-			s.WriteString(ui.SubtitleStyle.Render("   " + v.Description))
-			s.WriteString("\n")
-		}
-
-		if v.Type == inputTypeChoice && len(v.Options) > 0 && i == m.selectedIndex {
-			s.WriteString(ui.TableDimmedStyle.Render("   Options: " + strings.Join(v.Options, ", ")))
-			s.WriteString("\n")
-		}
+		m.renderVariableRow(&s, i, v)
 	}
 
 	s.WriteString("\n")
@@ -377,6 +348,58 @@ func (m *ChainVariableModal) View() string {
 	}
 
 	return s.String()
+}
+
+// renderVariableRow writes a single chain variable's row (name/value, type
+// hint, description, and options) to s.
+func (m *ChainVariableModal) renderVariableRow(s *strings.Builder, i int, v config.ChainVariable) {
+	indicator := "  "
+	if i == m.selectedIndex {
+		indicator = "> "
+	}
+
+	name := v.Name
+	if v.Required {
+		name += "*"
+	}
+
+	value := m.variables[v.Name]
+	if value == "" {
+		value = `("")`
+	}
+
+	rowStyle := ui.TableRowStyle
+	if i == m.selectedIndex {
+		rowStyle = ui.TableSelectedStyle
+	}
+
+	typeHint := ""
+
+	switch v.Type {
+	case inputTypeBoolean:
+		typeHint = " [space: toggle]"
+	case inputTypeChoice:
+		typeHint = " [←→: cycle]"
+	}
+
+	row := fmt.Sprintf("%s%-15s = %s", indicator, name, value)
+	s.WriteString(rowStyle.Render(row))
+
+	if i == m.selectedIndex && !m.editing {
+		s.WriteString(ui.TableDimmedStyle.Render(typeHint))
+	}
+
+	s.WriteString("\n")
+
+	if v.Description != "" && i == m.selectedIndex {
+		s.WriteString(ui.SubtitleStyle.Render("   " + v.Description))
+		s.WriteString("\n")
+	}
+
+	if v.Type == inputTypeChoice && len(v.Options) > 0 && i == m.selectedIndex {
+		s.WriteString(ui.TableDimmedStyle.Render("   Options: " + strings.Join(v.Options, ", ")))
+		s.WriteString("\n")
+	}
 }
 
 // IsDone returns true if the modal is finished.

@@ -37,160 +37,222 @@ var ErrLogManagerNotInitialized = errors.New("log manager not initialized")
 var ErrNoChainStateOrRunID = errors.New("no chain state or run ID provided")
 
 func (m Model) handleKeyMsg(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if model, cmd, handled := m.handleGlobalKey(msg); handled {
+		return model, cmd
+	}
+
+	if model, cmd, handled := m.handlePaneKey(msg); handled {
+		return model, cmd
+	}
+
+	return m.handleKeyMsgFallback(msg)
+}
+
+// handleGlobalKey handles keys with behavior independent of the focused pane.
+func (m Model) handleGlobalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
-		return m, tea.Quit
+		return m, tea.Quit, true
 
 	case key.Matches(msg, m.keys.Help):
 		m.modalStack.Push(modal.NewHelpModal())
-		return m, nil
+		return m, nil, true
 
 	case key.Matches(msg, m.keys.Escape):
-		if m.viewMode != WorkflowListMode {
-			m.viewMode = WorkflowListMode
-			m.selectedInput = -1
-			m.previewingHistoryEntry = nil
-
-			return m, nil
-		}
-
-		return m, nil
+		m.handleEscapeKey()
+		return m, nil, true
 
 	case key.Matches(msg, m.keys.Tab):
 		m.focused = (m.focused + 1) % paneCount
-		return m, nil
+		return m, nil, true
 
 	case key.Matches(msg, m.keys.ShiftTab):
 		m.focused = (m.focused + paneCount - 1) % paneCount
-		return m, nil
+		return m, nil, true
 
 	case key.Matches(msg, m.keys.Up):
 		m.handleUp()
-		return m, nil
+		return m, nil, true
 
 	case key.Matches(msg, m.keys.Down):
 		m.handleDown()
-		return m, nil
+		return m, nil, true
 
 	case key.Matches(msg, m.keys.Enter):
-		return m.handleEnter()
-
-	case key.Matches(msg, m.keys.Space):
-		if m.focused == PaneWorkflows {
-			m.focused = PaneConfig
-			return m, nil
-		}
-
-		return m, nil
-
-	case key.Matches(msg, m.keys.Edit):
-		if m.viewMode == InputDetailMode && m.selectedInput >= 0 {
-			return m.openInputModalFiltered(m.selectedInput)
-		}
-
-		return m, nil
+		model, cmd := m.handleEnter()
+		return model, cmd, true
 
 	case key.Matches(msg, m.keys.Watch):
 		m.watchRun = !m.watchRun
-		return m, nil
+		return m, nil, true
 
 	case key.Matches(msg, m.keys.Branch):
-		return m.openBranchModal()
-
-	case key.Matches(msg, m.keys.Filter):
-		if m.focused == PaneConfig {
-			return m.openFilterModal()
-		}
-
-		return m, nil
-
-	case key.Matches(msg, m.keys.Copy):
-		if m.focused == PaneConfig {
-			return m.copyCommandToClipboard()
-		}
-
-		return m, nil
-
-	case key.Matches(msg, m.keys.Reset):
-		if m.focused == PaneConfig {
-			return m.openResetModal()
-		}
-
-		return m, nil
-
-	case key.Matches(msg, m.keys.TabNext):
-		if m.focused == PaneHistory {
-			m.rightPanel.NextTab()
-			return m, nil
-		}
-
-		return m, nil
-
-	case key.Matches(msg, m.keys.TabPrev):
-		if m.focused == PaneHistory {
-			m.rightPanel.PrevTab()
-			return m, nil
-		}
-
-		return m, nil
-
-	case key.Matches(msg, m.keys.Clear):
-		if m.focused == PaneHistory && m.rightPanel.ActiveTab() == panes.TabLive {
-			if run, ok := m.rightPanel.SelectedRun(); ok {
-				if m.watcher != nil {
-					m.watcher.Unwatch(run.RunID)
-					m.rightPanel.SetRuns(m.watcher.GetRuns())
-				}
-			}
-
-			return m, nil
-		}
-
-		return m, nil
-
-	case key.Matches(msg, m.keys.ClearAll):
-		if m.focused == PaneHistory && m.rightPanel.ActiveTab() == panes.TabLive {
-			if m.watcher != nil {
-				m.watcher.ClearCompleted()
-				m.rightPanel.SetRuns(m.watcher.GetRuns())
-			}
-
-			return m, nil
-		}
-
-		return m, nil
+		model, cmd := m.openBranchModal()
+		return model, cmd, true
 
 	case key.Matches(msg, m.keys.LiveView):
-		return m.openLiveViewModal()
+		model, cmd := m.openLiveViewModal()
+		return model, cmd, true
 
 	case key.Matches(msg, m.keys.Chain):
-		return m.openChainSelectModal()
+		model, cmd := m.openChainSelectModal()
+		return model, cmd, true
+	}
+
+	return m, nil, false
+}
+
+// handlePaneKey handles keys whose behavior depends on the focused pane or active tab.
+func (m Model) handlePaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	switch {
+	case key.Matches(msg, m.keys.Space):
+		m.focusConfigFromWorkflows()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.Edit):
+		model, cmd := m.handleEditKey()
+		return model, cmd, true
+
+	case key.Matches(msg, m.keys.Filter):
+		model, cmd := m.handleConfigPaneAction(m.openFilterModal)
+		return model, cmd, true
+
+	case key.Matches(msg, m.keys.Copy):
+		model, cmd := m.handleConfigPaneAction(m.copyCommandToClipboard)
+		return model, cmd, true
+
+	case key.Matches(msg, m.keys.Reset):
+		model, cmd := m.handleConfigPaneAction(m.openResetModal)
+		return model, cmd, true
+	}
+
+	return m.handleHistoryPaneKey(msg)
+}
+
+// handleHistoryPaneKey handles keys specific to the history pane's tabs (History/Chains/Live).
+func (m Model) handleHistoryPaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	switch {
+	case key.Matches(msg, m.keys.TabNext):
+		m.cycleHistoryTab(m.rightPanel.NextTab)
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.TabPrev):
+		m.cycleHistoryTab(m.rightPanel.PrevTab)
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.Clear):
+		m.clearSelectedLiveRun()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.ClearAll):
+		m.clearCompletedLiveRuns()
+		return m, nil, true
 
 	case msg.String() == "a":
-		if m.viewMode == HistoryPreviewMode && m.previewingHistoryEntry != nil {
-			return m.openRemapModal()
+		if m.viewMode != HistoryPreviewMode || m.previewingHistoryEntry == nil {
+			return m, nil, true
 		}
 
-		return m, nil
+		model, cmd := m.openRemapModal()
+
+		return model, cmd, true
 
 	case msg.String() == "l":
-		if m.focused == PaneHistory && m.rightPanel.ActiveTab() == panes.TabHistory {
-			return m, m.rightPanel.History().HandleViewLogs()
+		if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabHistory {
+			return m, nil, true
 		}
 
+		return m, m.rightPanel.History().HandleViewLogs(), true
+	}
+
+	return m, nil, false
+}
+
+// focusConfigFromWorkflows moves focus to the config pane when Space is pressed
+// while the workflows pane is focused.
+func (m *Model) focusConfigFromWorkflows() {
+	if m.focused == PaneWorkflows {
+		m.focused = PaneConfig
+	}
+}
+
+// handleEditKey opens the input modal when a config input is selected for editing.
+func (m Model) handleEditKey() (tea.Model, tea.Cmd) {
+	if m.viewMode == InputDetailMode && m.selectedInput >= 0 {
+		return m.openInputModalFiltered(m.selectedInput)
+	}
+
+	return m, nil
+}
+
+// handleConfigPaneAction runs action only when the config pane is focused.
+func (m Model) handleConfigPaneAction(action func() (tea.Model, tea.Cmd)) (tea.Model, tea.Cmd) {
+	if m.focused != PaneConfig {
 		return m, nil
+	}
 
-	default:
-		for i, k := range m.keys.InputKeys() {
-			if key.Matches(msg, k) {
-				return m.handleInputKey(i)
-			}
+	return action()
+}
+
+// cycleHistoryTab runs cycle (NextTab/PrevTab) only when the history pane is focused.
+func (m *Model) cycleHistoryTab(cycle func()) {
+	if m.focused == PaneHistory {
+		cycle()
+	}
+}
+
+// handleEscapeKey returns to the workflow list view, if not already there.
+func (m *Model) handleEscapeKey() {
+	if m.viewMode == WorkflowListMode {
+		return
+	}
+
+	m.viewMode = WorkflowListMode
+	m.selectedInput = -1
+	m.previewingHistoryEntry = nil
+}
+
+// clearSelectedLiveRun stops watching the currently selected run in the Live tab.
+func (m *Model) clearSelectedLiveRun() {
+	if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabLive {
+		return
+	}
+
+	run, ok := m.rightPanel.SelectedRun()
+	if !ok || m.watcher == nil {
+		return
+	}
+
+	m.watcher.Unwatch(run.RunID)
+	m.rightPanel.SetRuns(m.watcher.GetRuns())
+}
+
+// clearCompletedLiveRuns stops watching all completed runs in the Live tab.
+func (m *Model) clearCompletedLiveRuns() {
+	if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabLive {
+		return
+	}
+
+	if m.watcher == nil {
+		return
+	}
+
+	m.watcher.ClearCompleted()
+	m.rightPanel.SetRuns(m.watcher.GetRuns())
+}
+
+// handleKeyMsgFallback handles keys not covered by a named binding: dynamic
+// input-select and workflow-select shortcuts.
+func (m Model) handleKeyMsgFallback(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	for i, k := range m.keys.InputKeys() {
+		if key.Matches(msg, k) {
+			return m.handleInputKey(i)
 		}
+	}
 
-		for i, k := range m.keys.WorkflowKeys() {
-			if key.Matches(msg, k) {
-				return m.handleWorkflowKey(i)
-			}
+	for i, k := range m.keys.WorkflowKeys() {
+		if key.Matches(msg, k) {
+			return m.handleWorkflowKey(i)
 		}
 	}
 
@@ -294,8 +356,10 @@ func (m *Model) handleDown() {
 
 func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	switch m.focused {
+	case PaneWorkflows:
 	case PaneHistory:
 		switch m.rightPanel.ActiveTab() {
+		case panes.TabLive:
 		case panes.TabHistory:
 			entry := m.rightPanel.SelectedHistoryEntry()
 			if entry != nil {
@@ -343,6 +407,7 @@ func (m Model) startChainFlow(name string, chainDef config.Chain) (tea.Model, te
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleChainVariableResult(msg modal.ChainVariableResultMsg) (tea.Model, tea.Cmd) {
 	if msg.Canceled || m.pendingChain == nil {
 		m.pendingChainName = ""
@@ -397,7 +462,7 @@ func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Mo
 	m.executingChainVariables = variables
 
 	m.history.RecordChain(m.repo, chainName, branch, variables, nil)
-	//nolint:errcheck // best-effort persistence; a failed history write does not block dispatching the chain
+	//nolint:errcheck,gosec // best-effort persistence; a failed history write does not block dispatching the chain
 	m.history.Save()
 
 	statusModal := modal.NewChainStatusModalWithCommands(executor.State(), commands, branch)
@@ -442,6 +507,7 @@ func (Model) buildChainCommands(chainDef *config.Chain, variables map[string]str
 	return commands
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleChainStatusStop() (tea.Model, tea.Cmd) {
 	if m.chainExecutor != nil {
 		m.chainExecutor.Stop()
@@ -495,6 +561,7 @@ type executionDoneMsg struct {
 	err error
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
 	ctx := context.Background()
 
@@ -516,6 +583,7 @@ func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) openLiveViewModal() (tea.Model, tea.Cmd) {
 	if m.watcher == nil {
 		return m, nil
@@ -527,6 +595,7 @@ func (m Model) openLiveViewModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) openChainSelectModal() (tea.Model, tea.Cmd) {
 	if m.wfdConfig == nil || !m.wfdConfig.HasChains() {
 		return m, nil
@@ -613,6 +682,7 @@ func (m Model) openResetModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) openRemapModal() (tea.Model, tea.Cmd) {
 	if m.previewingHistoryEntry == nil {
 		return m, nil
@@ -636,6 +706,7 @@ func (m Model) openRemapModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleSelectResult(msg modal.SelectResultMsg) (tea.Model, tea.Cmd) {
 	if m.pendingInputName != "" {
 		m.inputs[m.pendingInputName] = msg.Value
@@ -645,11 +716,13 @@ func (m Model) handleSelectResult(msg modal.SelectResultMsg) (tea.Model, tea.Cmd
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleBranchResult(msg modal.BranchResultMsg) (tea.Model, tea.Cmd) {
 	m.branch = msg.Value
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleInputResult(msg modal.InputResultMsg) (tea.Model, tea.Cmd) {
 	if m.pendingInputName != "" {
 		m.inputs[m.pendingInputName] = msg.Value
@@ -659,6 +732,7 @@ func (m Model) handleInputResult(msg modal.InputResultMsg) (tea.Model, tea.Cmd) 
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleConfirmResult(msg modal.ConfirmResultMsg) (tea.Model, tea.Cmd) {
 	if m.pendingInputName != "" {
 		if msg.Value {
@@ -673,6 +747,7 @@ func (m Model) handleConfirmResult(msg modal.ConfirmResultMsg) (tea.Model, tea.C
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleFilterResult(msg modal.FilterResultMsg) (tea.Model, tea.Cmd) {
 	if !msg.Canceled {
 		m.filterText = msg.Value
@@ -682,6 +757,7 @@ func (m Model) handleFilterResult(msg modal.FilterResultMsg) (tea.Model, tea.Cmd
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleResetResult(msg modal.ResetResultMsg) (tea.Model, tea.Cmd) {
 	if msg.Confirmed {
 		m.resetAllInputs()
@@ -698,6 +774,7 @@ func (m Model) handleRunConfirmResult(msg modal.RunConfirmResultMsg) (tea.Model,
 	return m, nil
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleRemapResult(msg modal.RemapResultMsg) (tea.Model, tea.Cmd) {
 	if m.previewingHistoryEntry == nil || len(msg.Decisions) == 0 {
 		return m, nil
@@ -745,7 +822,7 @@ func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {
 		m.history.RecordChain(
 			m.repo, m.executingChainName, m.executingChainBranch, m.executingChainVariables, stepResults,
 		)
-		//nolint:errcheck // best-effort persistence; a failed history write does not affect the completed chain run
+		//nolint:errcheck,gosec // best-effort persistence; failed history write doesn't affect the completed run
 		m.history.Save()
 
 		// Clear executing chain metadata
@@ -791,6 +868,7 @@ func convertToFrecencyStepResults(stepResults map[int]*chain.StepResult) []frece
 	return results
 }
 
+//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) handleValidationErrorResult(msg modal.ValidationErrorResultMsg) (tea.Model, tea.Cmd) {
 	if msg.Override {
 		if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
@@ -812,10 +890,13 @@ func (m Model) handleValidationErrorResult(msg modal.ValidationErrorResultMsg) (
 
 func (m Model) doExecuteWorkflow(cfg runner.RunConfig) (tea.Model, tea.Cmd) {
 	m.history.Record(m.repo, cfg.Workflow, cfg.Branch, cfg.Inputs)
-	//nolint:errcheck // best-effort persistence; a failed history write does not block dispatching the workflow
+	//nolint:errcheck,gosec // best-effort persistence; failed history write doesn't block dispatching the workflow
 	m.history.Save()
 
-	return m, tea.ExecProcess(exec.Command("gh", runner.BuildArgs(cfg)...), func(err error) tea.Msg {
+	//nolint:gosec,noctx // shells out to trusted gh CLI by design; tea.ExecProcess has no context to thread through
+	cmd := exec.Command("gh", runner.BuildArgs(cfg)...)
+
+	return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
 		return executionDoneMsg{err: err}
 	})
 }
@@ -851,7 +932,7 @@ func (m Model) copyCommandToClipboard() (tea.Model, tea.Cmd) {
 	}
 
 	cmd := m.buildCLIString()
-	//nolint:errcheck // best-effort clipboard write; no error-surfacing UI hook exists for this action
+	//nolint:errcheck,gosec // best-effort clipboard write; no error-surfacing UI hook exists for this action
 	clipboard.WriteAll(cmd)
 
 	return m, nil

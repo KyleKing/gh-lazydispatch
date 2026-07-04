@@ -87,7 +87,7 @@ func (f *Filter) matchesEntry(entry *LogEntry) bool {
 		if entry.Level != LogLevelWarning && entry.Level != LogLevelError {
 			return false
 		}
-	case FilterAll:
+	case FilterAll, FilterCustom:
 		// No level filtering
 	}
 

@@ -172,70 +172,8 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 			return m.handleSearchInput(msg)
 		}
 
-		switch {
-		case key.Matches(msg, m.keys.Close):
-			m.done = true
-			return m, nil
-
-		case key.Matches(msg, m.keys.Search):
-			m.searchMode = true
-			m.searchInput.Focus()
-
-			return m, textinput.Blink
-
-		case key.Matches(msg, m.keys.ToggleFilter):
-			m.cycleFilterLevel()
-			return m, nil
-
-		case key.Matches(msg, m.keys.QuickFilterAll):
-			m.filterCfg.Level = logs.FilterAll
-			m.applyFilter()
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.QuickFilterWarnings):
-			m.filterCfg.Level = logs.FilterWarnings
-			m.applyFilter()
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.QuickFilterErrors):
-			m.filterCfg.Level = logs.FilterErrors
-			m.applyFilter()
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.ToggleCaseSensitive):
-			m.filterCfg.CaseSensitive = !m.filterCfg.CaseSensitive
-			if m.filterCfg.SearchTerm != "" {
-				m.applyFilter()
-			}
-
-			return m, nil
-
-		case key.Matches(msg, m.keys.NextMatch):
-			m.jumpToNextMatch()
-			return m, nil
-
-		case key.Matches(msg, m.keys.PrevMatch):
-			m.jumpToPrevMatch()
-			return m, nil
-
-		case key.Matches(msg, m.keys.ToggleStep):
-			m.toggleStepAtCursor()
-			return m, nil
-
-		case key.Matches(msg, m.keys.ExpandAll):
-			m.expandAll()
-			return m, nil
-
-		case key.Matches(msg, m.keys.CollapseAll):
-			m.collapseAll()
-			return m, nil
-
-		case key.Matches(msg, m.keys.ToggleAutoScroll):
-			m.toggleAutoScroll()
-			return m, nil
+		if model, cmd, handled := m.handleViewerKey(msg); handled {
+			return model, cmd
 		}
 	}
 
@@ -243,6 +181,77 @@ func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	m.viewport, cmd = m.viewport.Update(msg)
 
 	return m, cmd
+}
+
+// handleViewerKey handles the logs viewer's non-search key bindings.
+func (m *LogsViewerModal) handleViewerKey(msg tea.KeyPressMsg) (Context, tea.Cmd, bool) {
+	switch {
+	case key.Matches(msg, m.keys.Close):
+		m.done = true
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.Search):
+		m.searchMode = true
+		m.searchInput.Focus()
+
+		return m, textinput.Blink, true
+
+	case key.Matches(msg, m.keys.ToggleFilter):
+		m.cycleFilterLevel()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.QuickFilterAll):
+		m.filterCfg.Level = logs.FilterAll
+		m.applyFilter()
+
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.QuickFilterWarnings):
+		m.filterCfg.Level = logs.FilterWarnings
+		m.applyFilter()
+
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.QuickFilterErrors):
+		m.filterCfg.Level = logs.FilterErrors
+		m.applyFilter()
+
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.ToggleCaseSensitive):
+		m.filterCfg.CaseSensitive = !m.filterCfg.CaseSensitive
+		if m.filterCfg.SearchTerm != "" {
+			m.applyFilter()
+		}
+
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.NextMatch):
+		m.jumpToNextMatch()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.PrevMatch):
+		m.jumpToPrevMatch()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.ToggleStep):
+		m.toggleStepAtCursor()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.ExpandAll):
+		m.expandAll()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.CollapseAll):
+		m.collapseAll()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.ToggleAutoScroll):
+		m.toggleAutoScroll()
+		return m, nil, true
+	}
+
+	return m, nil, false
 }
 
 // handleSearchInput processes input when in search mode.
@@ -298,7 +307,7 @@ func (m *LogsViewerModal) collapseAll() {
 // cycleFilterLevel cycles through filter levels: all -> errors -> warnings -> all.
 func (m *LogsViewerModal) cycleFilterLevel() {
 	switch m.filterCfg.Level {
-	case logs.FilterAll:
+	case logs.FilterAll, logs.FilterCustom:
 		m.filterCfg.Level = logs.FilterErrors
 	case logs.FilterErrors:
 		m.filterCfg.Level = logs.FilterWarnings

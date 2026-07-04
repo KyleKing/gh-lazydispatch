@@ -113,10 +113,14 @@ func TestOpen_InvalidURL(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
-func TestOpen_Darwin(t *testing.T) {
-	if runtime.GOOS != goosDarwin {
-		t.Skip("skipping macOS-specific test")
+// checkOpenSingleArgCommand runs Open(url) on the given OS (skipping if the
+// current runtime.GOOS doesn't match) and asserts it invoked wantCmdName with
+// the URL as its sole argument.
+func checkOpenSingleArgCommand(t *testing.T, goos, osLabel, wantCmdName string) {
+	t.Helper()
+
+	if runtime.GOOS != goos {
+		t.Skipf("skipping %s-specific test", osLabel)
 	}
 
 	originalExecCommand := execCommand
@@ -133,15 +137,15 @@ func TestOpen_Darwin(t *testing.T) {
 	url := testExampleURL
 	err := Open(url)
 	if err != nil {
-		t.Errorf("Open on macOS failed: %v", err)
+		t.Errorf("Open on %s failed: %v", osLabel, err)
 	}
 
 	if capturedCmd == nil {
 		t.Fatal("expected command to be executed")
 	}
 
-	if capturedCmd.name != cmdOpen {
-		t.Errorf("expected command 'open' on macOS, got '%s'", capturedCmd.name)
+	if capturedCmd.name != wantCmdName {
+		t.Errorf("expected command '%s' on %s, got '%s'", wantCmdName, osLabel, capturedCmd.name)
 	}
 
 	if len(capturedCmd.args) != 1 || capturedCmd.args[0] != url {
@@ -150,39 +154,13 @@ func TestOpen_Darwin(t *testing.T) {
 }
 
 //nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
+func TestOpen_Darwin(t *testing.T) {
+	checkOpenSingleArgCommand(t, goosDarwin, "macOS", cmdOpen)
+}
+
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
 func TestOpen_Linux(t *testing.T) {
-	if runtime.GOOS != goosLinux {
-		t.Skip("skipping Linux-specific test")
-	}
-
-	originalExecCommand := execCommand
-	defer func() { execCommand = originalExecCommand }()
-
-	var capturedCmd *mockCmd
-	execCommand = func(name string, args ...string) cmdRunner {
-		cmd := &mockCmd{name: name, args: args}
-		capturedCmd = cmd
-
-		return cmd
-	}
-
-	url := testExampleURL
-	err := Open(url)
-	if err != nil {
-		t.Errorf("Open on Linux failed: %v", err)
-	}
-
-	if capturedCmd == nil {
-		t.Fatal("expected command to be executed")
-	}
-
-	if capturedCmd.name != cmdXdgOpen {
-		t.Errorf("expected command 'xdg-open' on Linux, got '%s'", capturedCmd.name)
-	}
-
-	if len(capturedCmd.args) != 1 || capturedCmd.args[0] != url {
-		t.Errorf("expected args [%s], got %v", url, capturedCmd.args)
-	}
+	checkOpenSingleArgCommand(t, goosLinux, "Linux", cmdXdgOpen)
 }
 
 //nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests

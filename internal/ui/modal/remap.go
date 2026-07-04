@@ -132,50 +132,58 @@ func (m *RemapModal) buildOptions() {
 
 // Update handles input for the remap modal.
 func (m *RemapModal) Update(msg tea.Msg) (Context, tea.Cmd) {
-	if msg, ok := msg.(tea.KeyPressMsg); ok {
-		switch {
-		case key.Matches(msg, m.keys.Up):
-			if m.selected > 0 {
-				m.selected--
-			}
-		case key.Matches(msg, m.keys.Down):
-			if m.selected < len(m.options)-1 {
-				m.selected++
-			}
-		case key.Matches(msg, m.keys.Enter):
-			if m.selected < len(m.options) {
-				opt := m.options[m.selected]
-				err := m.errors[m.currentErrorIdx]
+	keyMsg, ok := msg.(tea.KeyPressMsg)
+	if !ok {
+		return m, nil
+	}
 
-				decision := RemapDecision{
-					OriginalName: err.HistoricalName,
-					Action:       opt.action,
-					NewName:      opt.targetName,
-				}
-				m.decisions = append(m.decisions, decision)
+	switch {
+	case key.Matches(keyMsg, m.keys.Up):
+		if m.selected > 0 {
+			m.selected--
+		}
+	case key.Matches(keyMsg, m.keys.Down):
+		if m.selected < len(m.options)-1 {
+			m.selected++
+		}
+	case key.Matches(keyMsg, m.keys.Enter):
+		return m.selectOption()
+	case key.Matches(keyMsg, m.keys.Escape):
+		m.canceled = true
+		m.done = true
 
-				// Move to next error or finish
-				m.currentErrorIdx++
-				if m.currentErrorIdx >= len(m.errors) {
-					m.done = true
+		return m, nil
+	}
 
-					return m, func() tea.Msg {
-						return RemapResultMsg{Decisions: m.decisions}
-					}
-				}
+	return m, nil
+}
 
-				// Build options for next error
-				m.buildOptions()
-			}
+// selectOption records a decision for the currently selected remap option,
+// then either advances to the next error or finishes the wizard.
+func (m *RemapModal) selectOption() (Context, tea.Cmd) {
+	if m.selected >= len(m.options) {
+		return m, nil
+	}
 
-			return m, nil
-		case key.Matches(msg, m.keys.Escape):
-			m.canceled = true
-			m.done = true
+	opt := m.options[m.selected]
+	err := m.errors[m.currentErrorIdx]
 
-			return m, nil
+	m.decisions = append(m.decisions, RemapDecision{
+		OriginalName: err.HistoricalName,
+		Action:       opt.action,
+		NewName:      opt.targetName,
+	})
+
+	m.currentErrorIdx++
+	if m.currentErrorIdx >= len(m.errors) {
+		m.done = true
+
+		return m, func() tea.Msg {
+			return RemapResultMsg{Decisions: m.decisions}
 		}
 	}
+
+	m.buildOptions()
 
 	return m, nil
 }

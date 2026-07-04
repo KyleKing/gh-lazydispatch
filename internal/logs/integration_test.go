@@ -14,6 +14,24 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 )
 
+// mockJobsAPI registers a "gh api .../runs/<runID>/jobs" response for a single
+// job with the given steps.
+func mockJobsAPI(
+	t *testing.T, mockExec *exec.MockExecutor, runID, jobID int64, jobName, jobStatus, jobConclusion string,
+	steps []github.Step,
+) {
+	t.Helper()
+
+	resp := github.JobsResponse{
+		Jobs: []github.Job{
+			{ID: jobID, Name: jobName, Status: jobStatus, Conclusion: jobConclusion, Steps: steps},
+		},
+	}
+	jobsJSON := testutil.MustMarshalJSON(t, resp)
+	path := fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs", runID)
+	mockExec.AddCommand("gh", []string{"api", path}, jobsJSON, "", nil)
+}
+
 // TestIntegration_SuccessfulWorkflowRun tests fetching logs for a successful workflow run.
 func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 	t.Parallel()
@@ -26,44 +44,15 @@ func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Mock gh api response for GetWorkflowRunJobs
-	jobsResp := github.JobsResponse{
-		Jobs: []github.Job{
-			{
-				ID:         jobID,
-				Name:       "build",
-				Status:     github.StatusCompleted,
-				Conclusion: github.ConclusionSuccess,
-				Steps: []github.Step{
-					{
-						Name:       "Run actions/checkout@v4",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     1,
-					},
-					{
-						Name:       "Set up Python 3.11",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     2,
-					},
-					{
-						Name:       "Install dependencies",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     3,
-					},
-					{
-						Name:       "Run tests",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     4,
-					},
-				},
-			},
+	mockJobsAPI(t, mockExec, runID, jobID, "build", github.StatusCompleted, github.ConclusionSuccess, []github.Step{
+		{
+			Name: "Run actions/checkout@v4", Status: github.StatusCompleted,
+			Conclusion: github.ConclusionSuccess, Number: 1,
 		},
-	}
-	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12345/jobs"}, jobsJSON, "", nil)
+		{Name: "Set up Python 3.11", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
+		{Name: "Install dependencies", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 3},
+		{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 4},
+	})
 
 	// Mock gh run view for log fetching
 	logOutput := loadFixture(t, "successful_run.txt")
@@ -83,12 +72,19 @@ func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 		t.Fatalf("FetchStepLogsReal failed: %v", err)
 	}
 
-	// Assert: Verify results
+	checkSuccessfulWorkflowRunSteps(t, stepLogs)
+	checkSuccessfulWorkflowRunCommands(t, mockExec.ExecutedCommands)
+}
+
+// checkSuccessfulWorkflowRunSteps asserts the fetched step logs for
+// TestIntegration_SuccessfulWorkflowRun match the mocked job/step data.
+func checkSuccessfulWorkflowRunSteps(t *testing.T, stepLogs []*logs.StepLogs) {
+	t.Helper()
+
 	if len(stepLogs) != 4 {
 		t.Errorf("expected 4 steps, got %d", len(stepLogs))
 	}
 
-	// Verify first step
 	if stepLogs[0].StepName != "Run actions/checkout@v4" {
 		t.Errorf("step 0 name: got %q, want %q", stepLogs[0].StepName, "Run actions/checkout@v4")
 	}
@@ -97,33 +93,30 @@ func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 		t.Errorf("step 0 conclusion: got %q, want %q", stepLogs[0].Conclusion, github.ConclusionSuccess)
 	}
 
-	// Verify logs contain expected content
 	if len(stepLogs[0].Entries) == 0 {
 		t.Error("step 0 should have log entries")
 	}
 
-	foundCheckout := false
-
 	for _, entry := range stepLogs[0].Entries {
 		if entry.Content == "##[group]Run actions/checkout@v4" {
-			foundCheckout = true
-			break
+			return
 		}
 	}
 
-	if !foundCheckout {
-		t.Error("expected to find checkout log entry")
+	t.Error("expected to find checkout log entry")
+}
+
+// checkSuccessfulWorkflowRunCommands asserts the mock executor received the
+// expected "gh api" (jobs) and "gh run view" (logs) commands, in order.
+func checkSuccessfulWorkflowRunCommands(t *testing.T, cmds []exec.ExecutedCommand) {
+	t.Helper()
+
+	if len(cmds) != 2 {
+		t.Errorf("expected 2 gh commands, got %d", len(cmds))
 	}
 
-	// Verify mock executor was called correctly
-	// Should have 2 commands: gh api (for jobs) + gh run view (for logs)
-	if len(mockExec.ExecutedCommands) != 2 {
-		t.Errorf("expected 2 gh commands, got %d", len(mockExec.ExecutedCommands))
-	}
-
-	// First command should be gh api for getting jobs
-	if len(mockExec.ExecutedCommands) >= 1 {
-		apiCmd := mockExec.ExecutedCommands[0]
+	if len(cmds) >= 1 {
+		apiCmd := cmds[0]
 		if apiCmd.Name != "gh" {
 			t.Errorf("command 0 name: got %q, want %q", apiCmd.Name, "gh")
 		}
@@ -133,9 +126,8 @@ func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 		}
 	}
 
-	// Second command should be gh run view for getting logs
-	if len(mockExec.ExecutedCommands) >= 2 {
-		runCmd := mockExec.ExecutedCommands[1]
+	if len(cmds) >= 2 {
+		runCmd := cmds[1]
 		if runCmd.Name != "gh" {
 			t.Errorf("command 1 name: got %q, want %q", runCmd.Name, "gh")
 		}
@@ -157,44 +149,15 @@ func TestIntegration_FailedWorkflowRun(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Mock gh api response with failed job
-	jobsResp := github.JobsResponse{
-		Jobs: []github.Job{
-			{
-				ID:         jobID,
-				Name:       "build",
-				Status:     github.StatusCompleted,
-				Conclusion: github.ConclusionFailure,
-				Steps: []github.Step{
-					{
-						Name:       "Run actions/checkout@v4",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     1,
-					},
-					{
-						Name:       "Set up Python 3.11",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     2,
-					},
-					{
-						Name:       "Install dependencies",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionFailure,
-						Number:     3,
-					},
-					{
-						Name:       "Run tests",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSkipped,
-						Number:     4,
-					},
-				},
-			},
+	mockJobsAPI(t, mockExec, runID, jobID, "build", github.StatusCompleted, github.ConclusionFailure, []github.Step{
+		{
+			Name: "Run actions/checkout@v4", Status: github.StatusCompleted,
+			Conclusion: github.ConclusionSuccess, Number: 1,
 		},
-	}
-	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12346/jobs"}, jobsJSON, "", nil)
+		{Name: "Set up Python 3.11", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
+		{Name: "Install dependencies", Status: github.StatusCompleted, Conclusion: github.ConclusionFailure, Number: 3},
+		{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSkipped, Number: 4},
+	})
 
 	// Mock gh run view for log fetching
 	logOutput := loadFixture(t, "failed_run.txt")
@@ -264,50 +227,16 @@ func TestIntegration_WorkflowWithWarnings(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Mock gh api response
-	jobsResp := github.JobsResponse{
-		Jobs: []github.Job{
-			{
-				ID:         jobID,
-				Name:       "lint",
-				Status:     github.StatusCompleted,
-				Conclusion: github.ConclusionSuccess,
-				Steps: []github.Step{
-					{
-						Name:       "Run actions/checkout@v4",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     1,
-					},
-					{
-						Name:       "Set up Python 3.11",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     2,
-					},
-					{
-						Name:       "Install dependencies",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     3,
-					},
-					{
-						Name:       "Run linter",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     4,
-					},
-					{
-						Name:       "Run tests",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     5,
-					},
-				},
-			},
+	mockJobsAPI(t, mockExec, runID, jobID, "lint", github.StatusCompleted, github.ConclusionSuccess, []github.Step{
+		{
+			Name: "Run actions/checkout@v4", Status: github.StatusCompleted,
+			Conclusion: github.ConclusionSuccess, Number: 1,
 		},
-	}
-	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12347/jobs"}, jobsJSON, "", nil)
+		{Name: "Set up Python 3.11", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
+		{Name: "Install dependencies", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 3},
+		{Name: "Run linter", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 4},
+		{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 5},
+	})
 
 	// Mock gh run view for log fetching
 	logOutput := loadFixture(t, "run_with_warnings.txt")
@@ -611,29 +540,16 @@ func TestIntegration_LogStreaming(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Mock job structure (3 steps)
-	jobsResp := github.JobsResponse{
-		Jobs: []github.Job{
-			{
-				ID:         jobID,
-				Name:       "ci",
-				Status:     github.StatusInProgress,
-				Conclusion: "",
-				Steps: []github.Step{
-					{
-						Name:       "Run actions/checkout@v4",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     1,
-					},
-					{Name: "Set up Go 1.21", Status: github.StatusInProgress, Conclusion: "", Number: 2},
-					{Name: "Build application", Status: github.StatusQueued, Conclusion: "", Number: 3},
-					{Name: "Run tests", Status: github.StatusQueued, Conclusion: "", Number: 4},
-				},
-			},
+	goCISteps := []github.Step{
+		{
+			Name: "Run actions/checkout@v4", Status: github.StatusCompleted,
+			Conclusion: github.ConclusionSuccess, Number: 1,
 		},
+		{Name: "Set up Go 1.21", Status: github.StatusInProgress, Conclusion: "", Number: 2},
+		{Name: "Build application", Status: github.StatusQueued, Conclusion: "", Number: 3},
+		{Name: "Run tests", Status: github.StatusQueued, Conclusion: "", Number: 4},
 	}
-	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"}, jobsJSON, "", nil)
+	mockJobsAPI(t, mockExec, runID, jobID, "ci", github.StatusInProgress, "", goCISteps)
 
 	// Mock workflow run status - initially in_progress
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999"},
@@ -658,28 +574,11 @@ func TestIntegration_LogStreaming(t *testing.T) {
 		t.Fatalf("first poll failed: %v", err)
 	}
 
-	// Verify poll 1 results (only 2 steps have logs at this point)
-	if len(stepLogs1) < 2 {
-		t.Fatalf("poll 1: expected at least 2 steps, got %d", len(stepLogs1))
-	}
-
-	// Count entries in step 0 and 1 from poll 1
-	step0Entries := len(stepLogs1[0].Entries)
-	step1Entries := len(stepLogs1[1].Entries)
-
-	if step0Entries == 0 {
-		t.Error("poll 1: step 0 should have log entries")
-	}
-
-	if step1Entries == 0 {
-		t.Error("poll 1: step 1 should have log entries")
-	}
-
-	t.Logf("Poll 1: step 0 has %d entries, step 1 has %d entries", step0Entries, step1Entries)
+	step0Entries, step1Entries := checkLogStreamingPoll1(t, stepLogs1)
 
 	// Reset mock executor for poll 2
 	mockExec.Reset()
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"}, jobsJSON, "", nil)
+	mockJobsAPI(t, mockExec, runID, jobID, "ci", github.StatusInProgress, "", goCISteps)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999"},
 		`{"id":99999,"name":"CI","status":"in_progress","conclusion":"",`+
 			`"html_url":"https://github.com/owner/repo/actions/runs/99999","updated_at":"2024-01-01T12:00:05Z"}`,
@@ -695,75 +594,22 @@ func TestIntegration_LogStreaming(t *testing.T) {
 		t.Fatalf("second poll failed: %v", err)
 	}
 
-	// Verify poll 2 has more steps and more content
-	if len(stepLogs2) < 3 {
-		t.Fatalf("poll 2: expected at least 3 steps, got %d", len(stepLogs2))
-	}
-
-	step0Entries2 := len(stepLogs2[0].Entries)
-	step1Entries2 := len(stepLogs2[1].Entries)
-	step2Entries2 := len(stepLogs2[2].Entries)
-
-	t.Logf("Poll 2: step 0 has %d entries, step 1 has %d entries, step 2 has %d entries",
-		step0Entries2, step1Entries2, step2Entries2)
-
-	// Step 0 should remain the same (checkout doesn't change)
-	if step0Entries2 != step0Entries {
-		t.Logf("poll 2: step 0 entries changed: was %d, now %d (may be expected)", step0Entries, step0Entries2)
-	}
-
-	// Step 1 should have more entries (Go setup progressed)
-	if step1Entries2 <= step1Entries {
-		t.Logf("poll 2: step 1 entries: was %d, now %d (expected more)", step1Entries, step1Entries2)
-	}
-
-	// Step 2 is new in poll 2
-	if step2Entries2 == 0 {
-		t.Error("poll 2: step 2 should now have log entries")
-	}
+	checkLogStreamingPoll2(t, stepLogs2, step0Entries, step1Entries)
 
 	// Reset for poll 3 (completed run)
 	mockExec.Reset()
 
 	// Update job status to completed
-	jobsCompletedResp := github.JobsResponse{
-		Jobs: []github.Job{
-			{
-				ID:         jobID,
-				Name:       "ci",
-				Status:     github.StatusCompleted,
-				Conclusion: github.ConclusionSuccess,
-				Steps: []github.Step{
-					{
-						Name:       "Run actions/checkout@v4",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     1,
-					},
-					{
-						Name:       "Set up Go 1.21",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     2,
-					},
-					{
-						Name:       "Build application",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     3,
-					},
-					{
-						Name:       "Run tests",
-						Status:     github.StatusCompleted,
-						Conclusion: github.ConclusionSuccess,
-						Number:     4,
-					},
-				},
-			},
+	completedGoCISteps := []github.Step{
+		{
+			Name: "Run actions/checkout@v4", Status: github.StatusCompleted,
+			Conclusion: github.ConclusionSuccess, Number: 1,
 		},
+		{Name: "Set up Go 1.21", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
+		{Name: "Build application", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 3},
+		{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 4},
 	}
-	jobsCompletedJSON := testutil.MustMarshalJSON(t, jobsCompletedResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"}, jobsCompletedJSON, "", nil)
+	mockJobsAPI(t, mockExec, runID, jobID, "ci", github.StatusCompleted, github.ConclusionSuccess, completedGoCISteps)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999"},
 		`{"id":99999,"name":"CI","status":"completed","conclusion":"success",`+
 			`"html_url":"https://github.com/owner/repo/actions/runs/99999","updated_at":"2024-01-01T12:00:10Z"}`,
@@ -779,13 +625,75 @@ func TestIntegration_LogStreaming(t *testing.T) {
 		t.Fatalf("third poll failed: %v", err)
 	}
 
-	// Verify poll 3 has complete logs
+	checkLogStreamingPoll3(t, stepLogs3)
+}
+
+// checkLogStreamingPoll1 verifies the first poll has log entries for the first
+// two (in-progress) steps and returns their entry counts for later comparison.
+//
+//nolint:gocritic // unnamedResult wants named returns, but nonamedreturns forbids them
+func checkLogStreamingPoll1(t *testing.T, stepLogs1 []*logs.StepLogs) (int, int) {
+	t.Helper()
+
+	if len(stepLogs1) < 2 {
+		t.Fatalf("poll 1: expected at least 2 steps, got %d", len(stepLogs1))
+	}
+
+	step0Entries := len(stepLogs1[0].Entries)
+	step1Entries := len(stepLogs1[1].Entries)
+
+	if step0Entries == 0 {
+		t.Error("poll 1: step 0 should have log entries")
+	}
+
+	if step1Entries == 0 {
+		t.Error("poll 1: step 1 should have log entries")
+	}
+
+	t.Logf("Poll 1: step 0 has %d entries, step 1 has %d entries", step0Entries, step1Entries)
+
+	return step0Entries, step1Entries
+}
+
+// checkLogStreamingPoll2 verifies the second poll picked up a new step and logs
+// progress deltas relative to the first poll's entry counts.
+func checkLogStreamingPoll2(t *testing.T, stepLogs2 []*logs.StepLogs, step0Entries, step1Entries int) {
+	t.Helper()
+
+	if len(stepLogs2) < 3 {
+		t.Fatalf("poll 2: expected at least 3 steps, got %d", len(stepLogs2))
+	}
+
+	step0Entries2 := len(stepLogs2[0].Entries)
+	step1Entries2 := len(stepLogs2[1].Entries)
+	step2Entries2 := len(stepLogs2[2].Entries)
+
+	t.Logf("Poll 2: step 0 has %d entries, step 1 has %d entries, step 2 has %d entries",
+		step0Entries2, step1Entries2, step2Entries2)
+
+	if step0Entries2 != step0Entries {
+		t.Logf("poll 2: step 0 entries changed: was %d, now %d (may be expected)", step0Entries, step0Entries2)
+	}
+
+	if step1Entries2 <= step1Entries {
+		t.Logf("poll 2: step 1 entries: was %d, now %d (expected more)", step1Entries, step1Entries2)
+	}
+
+	if step2Entries2 == 0 {
+		t.Error("poll 2: step 2 should now have log entries")
+	}
+}
+
+// checkLogStreamingPoll3 verifies the third (final) poll has complete logs and
+// that every step is marked completed/successful.
+func checkLogStreamingPoll3(t *testing.T, stepLogs3 []*logs.StepLogs) {
+	t.Helper()
+
 	step3Entries3 := len(stepLogs3[3].Entries)
 	if step3Entries3 == 0 {
 		t.Error("poll 3: step 3 (Run tests) should have log entries")
 	}
 
-	// Verify all steps are now marked as completed
 	for i, step := range stepLogs3 {
 		if step.Status != github.StatusCompleted {
 			t.Errorf("poll 3: step %d status: got %q, want %q", i, step.Status, github.StatusCompleted)
@@ -993,6 +901,7 @@ func TestIntegration_UnicodeCharacters(t *testing.T) {
 
 	for _, step := range stepLogs {
 		for _, entry := range step.Entries {
+			//nolint:gosmopolitan // intentional non-ASCII test fixture verifying unicode log handling
 			if strings.Contains(entry.Content, "🚀") ||
 				strings.Contains(entry.Content, "テスト") ||
 				strings.Contains(entry.Content, "测试") {
@@ -1259,6 +1168,8 @@ func TestIntegration_MixedLogContent(t *testing.T) {
 				hasWarning = true
 			case logs.LogLevelInfo:
 				hasInfo = true
+			case logs.LogLevelDebug, logs.LogLevelUnknown:
+				// not asserted on in this test
 			}
 		}
 	}
@@ -1282,7 +1193,7 @@ func TestIntegration_MixedLogContent(t *testing.T) {
 func loadFixture(t *testing.T, filename string) string {
 	t.Helper()
 
-	data, err := os.ReadFile("../../testdata/logs/" + filename)
+	data, err := os.ReadFile("../../testdata/logs/" + filename) //nolint:gosec // test-only, fixed testdata directory
 	if err != nil {
 		t.Fatalf("failed to load fixture %s: %v", filename, err)
 	}

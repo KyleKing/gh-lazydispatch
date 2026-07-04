@@ -35,7 +35,8 @@ type StreamUpdate struct {
 
 // LogStreamer polls for incremental log updates from active workflow runs.
 type LogStreamer struct {
-	client   GitHubClient
+	client GitHubClient
+	//nolint:containedctx // ctx's lifetime is the poller's lifetime; paired with cancel for Stop()
 	ctx      context.Context
 	fetcher  *GHFetcher
 	state    *StreamState

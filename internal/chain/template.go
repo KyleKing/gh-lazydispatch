@@ -26,6 +26,8 @@ const decimalBase = 10
 //   - {{ var.key }} - Value from chain-level variables
 //   - {{ previous.inputs.key }} - Value from previous step's inputs
 //   - {{ steps.N.inputs.key }} - Value from step N's inputs (0-indexed)
+//
+//nolint:unparam // error is part of the public API for forward compatibility (e.g. future strict-mode validation)
 func Interpolate(template string, ctx *InterpolationContext) (string, error) {
 	if ctx == nil {
 		return template, nil
@@ -41,30 +43,16 @@ func Interpolate(template string, ctx *InterpolationContext) (string, error) {
 
 		switch parts[0] {
 		case "var":
-			if len(parts) >= 2 && ctx.Var != nil {
-				key := strings.Join(parts[1:], ".")
-				if val, ok := ctx.Var[key]; ok {
-					return val
-				}
+			if val, ok := resolveVarExpr(ctx, parts); ok {
+				return val
 			}
 		case "previous":
-			if ctx.Previous != nil && len(parts) >= 3 && parts[1] == "inputs" {
-				key := strings.Join(parts[2:], ".")
-				if val, ok := ctx.Previous.Inputs[key]; ok {
-					return val
-				}
+			if val, ok := resolvePreviousExpr(ctx, parts); ok {
+				return val
 			}
 		case "steps":
-			if ctx.Steps != nil && len(parts) >= 4 && parts[2] == "inputs" {
-				var stepNum int
-				if parseStepIndex(parts[1], &stepNum) {
-					if step, ok := ctx.Steps[stepNum]; ok {
-						key := strings.Join(parts[3:], ".")
-						if val, ok := step.Inputs[key]; ok {
-							return val
-						}
-					}
-				}
+			if val, ok := resolveStepsExpr(ctx, parts); ok {
+				return val
 			}
 		}
 
@@ -72,6 +60,52 @@ func Interpolate(template string, ctx *InterpolationContext) (string, error) {
 	})
 
 	return result, nil
+}
+
+// resolveVarExpr resolves a "var.key" expression against chain-level variables.
+func resolveVarExpr(ctx *InterpolationContext, parts []string) (string, bool) {
+	if len(parts) < 2 || ctx.Var == nil {
+		return "", false
+	}
+
+	key := strings.Join(parts[1:], ".")
+	val, ok := ctx.Var[key]
+
+	return val, ok
+}
+
+// resolvePreviousExpr resolves a "previous.inputs.key" expression against the previous step's inputs.
+func resolvePreviousExpr(ctx *InterpolationContext, parts []string) (string, bool) {
+	if ctx.Previous == nil || len(parts) < 3 || parts[1] != "inputs" {
+		return "", false
+	}
+
+	key := strings.Join(parts[2:], ".")
+	val, ok := ctx.Previous.Inputs[key]
+
+	return val, ok
+}
+
+// resolveStepsExpr resolves a "steps.N.inputs.key" expression against a specific step's inputs.
+func resolveStepsExpr(ctx *InterpolationContext, parts []string) (string, bool) {
+	if ctx.Steps == nil || len(parts) < 4 || parts[2] != "inputs" {
+		return "", false
+	}
+
+	var stepNum int
+	if !parseStepIndex(parts[1], &stepNum) {
+		return "", false
+	}
+
+	step, ok := ctx.Steps[stepNum]
+	if !ok {
+		return "", false
+	}
+
+	key := strings.Join(parts[3:], ".")
+	val, ok := step.Inputs[key]
+
+	return val, ok
 }
 
 func parseStepIndex(s string, n *int) bool {

@@ -126,7 +126,7 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 		logCacheDir := filepath.Join(cacheDir, "lazydispatch", "logs")
 		m.logManager = logs.NewManager(ghClient, logCacheDir)
 
-		//nolint:errcheck // best-effort: New() has no error return; a missing/corrupt cache just starts empty
+		//nolint:errcheck,gosec // best-effort: New() has no error return; a missing/corrupt cache just starts empty
 		m.logManager.LoadCache()
 	}
 
@@ -158,75 +158,123 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.modalStack.SetSize(msg.Width, msg.Height)
-		leftWidth := (m.width * leftPaneWidthNumerator) / leftPaneWidthDenominator
-		rightWidth := m.width - leftWidth
-		topHeight := (m.height - 1) / panesHeightDivisor
-		m.rightPanel.SetSize(rightWidth, topHeight)
+		return m.handleWindowSize(msg), nil
 
-		return m, nil
+	case tea.KeyPressMsg:
+		return m.handleKeyMsg(msg)
+	}
 
+	if model, cmd, handled := m.handleModalResultMsg(msg); handled {
+		return model, cmd
+	}
+
+	if model, cmd, handled := m.handleChainMsg(msg); handled {
+		return model, cmd
+	}
+
+	if model, cmd, handled := m.handleLogMsg(msg); handled {
+		return model, cmd
+	}
+
+	return m, nil
+}
+
+// handleWindowSize applies a terminal resize to the model's layout.
+func (m Model) handleWindowSize(msg tea.WindowSizeMsg) Model {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.modalStack.SetSize(msg.Width, msg.Height)
+	leftWidth := (m.width * leftPaneWidthNumerator) / leftPaneWidthDenominator
+	rightWidth := m.width - leftWidth
+	topHeight := (m.height - 1) / panesHeightDivisor
+	m.rightPanel.SetSize(rightWidth, topHeight)
+
+	return m
+}
+
+// handleModalResultMsg dispatches messages carrying the result of a closed modal.
+func (m Model) handleModalResultMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
+	switch msg := msg.(type) {
 	case modal.SelectResultMsg:
-		return m.handleSelectResult(msg)
+		model, cmd := m.handleSelectResult(msg)
+		return model, cmd, true
 
 	case modal.BranchResultMsg:
-		return m.handleBranchResult(msg)
+		model, cmd := m.handleBranchResult(msg)
+		return model, cmd, true
 
 	case modal.InputResultMsg:
-		return m.handleInputResult(msg)
+		model, cmd := m.handleInputResult(msg)
+		return model, cmd, true
 
 	case modal.ConfirmResultMsg:
-		return m.handleConfirmResult(msg)
+		model, cmd := m.handleConfirmResult(msg)
+		return model, cmd, true
 
 	case modal.FilterResultMsg:
-		return m.handleFilterResult(msg)
+		model, cmd := m.handleFilterResult(msg)
+		return model, cmd, true
 
 	case modal.ResetResultMsg:
-		return m.handleResetResult(msg)
+		model, cmd := m.handleResetResult(msg)
+		return model, cmd, true
 
 	case modal.RunConfirmResultMsg:
-		return m.handleRunConfirmResult(msg)
+		model, cmd := m.handleRunConfirmResult(msg)
+		return model, cmd, true
 
 	case modal.RemapResultMsg:
-		return m.handleRemapResult(msg)
+		model, cmd := m.handleRemapResult(msg)
+		return model, cmd, true
 
+	case modal.ValidationErrorResultMsg:
+		model, cmd := m.handleValidationErrorResult(msg)
+		return model, cmd, true
+	}
+
+	return m, nil, false
+}
+
+// handleChainMsg dispatches messages related to chain execution and its modals.
+func (m Model) handleChainMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
+	switch msg := msg.(type) {
 	case modal.LiveViewClearMsg:
 		if m.watcher != nil {
 			m.watcher.Unwatch(msg.RunID)
 		}
 
-		return m, nil
+		return m, nil, true
 
 	case modal.LiveViewClearAllMsg:
 		if m.watcher != nil {
 			m.watcher.ClearCompleted()
 		}
 
-		return m, nil
+		return m, nil, true
 
 	case RunUpdateMsg:
-		if m.watcher != nil {
-			m.rightPanel.SetRuns(m.watcher.GetRuns())
-		}
-
-		return m, m.watcherSubscription()
+		m.refreshWatchedRuns()
+		return m, m.watcherSubscription(), true
 
 	case ChainUpdateMsg:
-		return m.handleChainUpdate(msg)
+		model, cmd := m.handleChainUpdate(msg)
+		return model, cmd, true
 
 	case modal.ChainSelectResultMsg:
-		return m.handleChainSelectResult(msg)
+		model, cmd := m.handleChainSelectResult(msg)
+		return model, cmd, true
 
 	case modal.ChainVariableResultMsg:
-		return m.handleChainVariableResult(msg)
+		model, cmd := m.handleChainVariableResult(msg)
+		return model, cmd, true
 
 	case modal.ChainConfirmResultMsg:
-		return m.handleChainConfirmResult(msg)
+		model, cmd := m.handleChainConfirmResult(msg)
+		return model, cmd, true
 
 	case modal.ChainStatusStopMsg:
-		return m.handleChainStatusStop()
+		model, cmd := m.handleChainStatusStop()
+		return model, cmd, true
 
 	case modal.ChainStatusViewLogsMsg:
 		return m, func() tea.Msg {
@@ -235,18 +283,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Branch:     msg.Branch,
 				ErrorsOnly: msg.ErrorsOnly,
 			}
-		}
+		}, true
+	}
 
-	case modal.ValidationErrorResultMsg:
-		return m.handleValidationErrorResult(msg)
+	return m, nil, false
+}
 
+// handleLogMsg dispatches messages related to fetching, viewing, and streaming workflow logs.
+func (m Model) handleLogMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
+	switch msg := msg.(type) {
 	case FetchLogsMsg:
-		return m, m.fetchLogs(msg)
+		return m, m.fetchLogs(msg), true
 
 	case LogsFetchedMsg:
 		if msg.Error != nil {
 			m.modalStack.Push(modal.NewErrorModal("Failed to Fetch Logs", msg.Error.Error()))
-			return m, nil
+			return m, nil, true
 		}
 
 		return m, func() tea.Msg {
@@ -256,38 +308,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				RunID:      msg.RunID,
 				Workflow:   msg.Workflow,
 			}
-		}
+		}, true
 
 	case ShowLogsViewerMsg:
 		m = m.showLogsViewer(msg.Logs, msg.ErrorsOnly, msg.RunID, msg.Workflow)
 
-		// Start streaming if the modal enabled it
-		if topModal := m.modalStack.Current(); topModal != nil {
-			if viewer, ok := topModal.(*modal.LogsViewerModal); ok && viewer.IsStreaming() {
-				cmd := m.startLogStream(msg.RunID, msg.Workflow)
-				return m, cmd
-			}
+		if !m.topLogsViewerIsStreaming() {
+			return m, nil, true
 		}
 
-		return m, nil
+		cmd := m.startLogStream(msg.RunID, msg.Workflow)
+
+		return m, cmd, true
 
 	case StartLogStreamMsg:
 		cmd := m.startLogStream(msg.RunID, msg.Workflow)
-		return m, cmd
+
+		return m, cmd, true
 
 	case LogStreamUpdateMsg:
-		// Update the logs viewer modal if it's on top
-		if topModal := m.modalStack.Current(); topModal != nil {
-			if viewer, ok := topModal.(*modal.LogsViewerModal); ok && viewer.IsStreaming() {
-				viewer.AppendStreamUpdate(msg.Update)
-			}
-		}
-
-		return m, m.logStreamSubscription()
+		m.appendStreamUpdateToTopViewer(msg.Update)
+		return m, m.logStreamSubscription(), true
 
 	case StopLogStreamMsg:
 		m.stopLogStream()
-		return m, nil
+		return m, nil, true
 
 	case panes.HistoryViewLogsMsg:
 		return m, func() tea.Msg {
@@ -299,13 +344,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Branch:     msg.Entry.Branch,
 				ErrorsOnly: false,
 			}
-		}
-
-	case tea.KeyPressMsg:
-		return m.handleKeyMsg(msg)
+		}, true
 	}
 
-	return m, nil
+	return m, nil, false
+}
+
+// refreshWatchedRuns syncs the Live tab's run list from the watcher, if any.
+func (m *Model) refreshWatchedRuns() {
+	if m.watcher != nil {
+		m.rightPanel.SetRuns(m.watcher.GetRuns())
+	}
+}
+
+// topLogsViewerIsStreaming reports whether the topmost modal is a streaming logs viewer.
+func (m Model) topLogsViewerIsStreaming() bool {
+	viewer, ok := m.topLogsViewer()
+	return ok && viewer.IsStreaming()
+}
+
+// appendStreamUpdateToTopViewer forwards a log stream update to the topmost
+// modal, if it is a streaming logs viewer.
+func (m Model) appendStreamUpdateToTopViewer(update logs.StreamUpdate) {
+	if viewer, ok := m.topLogsViewer(); ok && viewer.IsStreaming() {
+		viewer.AppendStreamUpdate(update)
+	}
+}
+
+// topLogsViewer returns the topmost modal as a *modal.LogsViewerModal, if that's what it is.
+func (m Model) topLogsViewer() (*modal.LogsViewerModal, bool) {
+	topModal := m.modalStack.Current()
+	if topModal == nil {
+		return nil, false
+	}
+
+	viewer, ok := topModal.(*modal.LogsViewerModal)
+
+	return viewer, ok
 }
 
 func (m Model) updateModal(msg tea.Msg) (tea.Model, tea.Cmd) {

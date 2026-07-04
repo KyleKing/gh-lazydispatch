@@ -2,6 +2,7 @@ package github_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -75,33 +76,41 @@ func TestNewClientWithExecutor(t *testing.T) {
 	}
 }
 
+// mockWorkflowRunSuccess registers a successful "gh api .../runs/<runID>" response for run.
+func mockWorkflowRunSuccess(t *testing.T, m *exec.MockExecutor, runID int64, run github.WorkflowRun) {
+	t.Helper()
+
+	runJSON, err := json.Marshal(run)
+	if err != nil {
+		t.Fatalf("failed to marshal run: %v", err)
+	}
+
+	path := fmt.Sprintf("repos/owner/repo/actions/runs/%d", runID)
+	m.AddCommand("gh", []string{"api", path}, string(runJSON), "", nil)
+}
+
 func TestClient_GetWorkflowRun(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name        string
 		runID       int64
-		setupMock   func(*exec.MockExecutor)
+		setupMock   func(*testing.T, *exec.MockExecutor)
 		expectError bool
 		wantStatus  string
 	}{
 		{
 			name:  "successful fetch",
 			runID: 12345,
-			setupMock: func(m *exec.MockExecutor) {
-				run := github.WorkflowRun{
+			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+				t.Helper()
+				mockWorkflowRunSuccess(t, m, 12345, github.WorkflowRun{
 					ID:         12345,
 					Name:       "CI",
 					Status:     github.StatusCompleted,
 					Conclusion: github.ConclusionSuccess,
 					HTMLURL:    "https://github.com/owner/repo/actions/runs/12345",
-				}
-				runJSON, err := json.Marshal(run)
-				if err != nil {
-					t.Fatalf("failed to marshal run: %v", err)
-				}
-
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12345"}, string(runJSON), "", nil)
+				})
 			},
 			expectError: false,
 			wantStatus:  github.StatusCompleted,
@@ -109,19 +118,14 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 		{
 			name:  "run in progress",
 			runID: 67890,
-			setupMock: func(m *exec.MockExecutor) {
-				run := github.WorkflowRun{
+			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+				t.Helper()
+				mockWorkflowRunSuccess(t, m, 67890, github.WorkflowRun{
 					ID:        67890,
 					Name:      "Deploy",
 					Status:    github.StatusInProgress,
 					UpdatedAt: time.Now(),
-				}
-				runJSON, err := json.Marshal(run)
-				if err != nil {
-					t.Fatalf("failed to marshal run: %v", err)
-				}
-
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/67890"}, string(runJSON), "", nil)
+				})
 			},
 			expectError: false,
 			wantStatus:  github.StatusInProgress,
@@ -129,7 +133,7 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 		{
 			name:  "API error",
 			runID: 99999,
-			setupMock: func(m *exec.MockExecutor) {
+			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
 				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999"},
 					"", "HTTP 404: Not Found", exec.ErrMockExitStatus1)
 			},
@@ -138,7 +142,7 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 		{
 			name:  "invalid JSON response",
 			runID: 11111,
-			setupMock: func(m *exec.MockExecutor) {
+			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
 				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/11111"},
 					"invalid json", "", nil)
 			},
@@ -151,7 +155,7 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 			t.Parallel()
 
 			mockExec := exec.NewMockExecutor()
-			tt.setupMock(mockExec)
+			tt.setupMock(t, mockExec)
 
 			client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 			if err != nil {
@@ -159,28 +163,49 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 			}
 
 			run, err := client.GetWorkflowRun(tt.runID)
-
-			if tt.expectError {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
-
-				return
-			}
-
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if run.ID != tt.runID {
-				t.Errorf("run.ID = %d, want %d", run.ID, tt.runID)
-			}
-
-			if run.Status != tt.wantStatus {
-				t.Errorf("run.Status = %q, want %q", run.Status, tt.wantStatus)
-			}
+			checkWorkflowRunResult(t, run, err, tt.expectError, tt.runID, tt.wantStatus)
 		})
 	}
+}
+
+// checkWorkflowRunResult asserts the result of GetWorkflowRun against expectations.
+func checkWorkflowRunResult(
+	t *testing.T, run *github.WorkflowRun, err error, expectError bool, wantRunID int64, wantStatus string,
+) {
+	t.Helper()
+
+	if expectError {
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
+
+		return
+	}
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if run.ID != wantRunID {
+		t.Errorf("run.ID = %d, want %d", run.ID, wantRunID)
+	}
+
+	if run.Status != wantStatus {
+		t.Errorf("run.Status = %q, want %q", run.Status, wantStatus)
+	}
+}
+
+// mockWorkflowRunJobs registers a successful "gh api .../runs/<runID>/jobs" response for jobs.
+func mockWorkflowRunJobs(t *testing.T, m *exec.MockExecutor, runID int64, jobs []github.Job) {
+	t.Helper()
+
+	respJSON, err := json.Marshal(github.JobsResponse{Jobs: jobs})
+	if err != nil {
+		t.Fatalf("failed to marshal resp: %v", err)
+	}
+
+	path := fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs", runID)
+	m.AddCommand("gh", []string{"api", path}, string(respJSON), "", nil)
 }
 
 func TestClient_GetWorkflowRunJobs(t *testing.T) {
@@ -189,41 +214,33 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 	tests := []struct {
 		name        string
 		runID       int64
-		setupMock   func(*exec.MockExecutor)
+		setupMock   func(*testing.T, *exec.MockExecutor)
 		expectError bool
 		wantJobs    int
 	}{
 		{
 			name:  "single job",
 			runID: 12345,
-			setupMock: func(m *exec.MockExecutor) {
-				resp := github.JobsResponse{
-					Jobs: []github.Job{
-						{
-							ID:         1,
-							Name:       "build",
-							Status:     github.StatusCompleted,
-							Conclusion: github.ConclusionSuccess,
-							Steps: []github.Step{
-								{
-									Name: "Checkout", Number: 1,
-									Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
-								},
-								{
-									Name: "Build", Number: 2,
-									Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
-								},
+			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+				t.Helper()
+				mockWorkflowRunJobs(t, m, 12345, []github.Job{
+					{
+						ID:         1,
+						Name:       "build",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Steps: []github.Step{
+							{
+								Name: "Checkout", Number: 1,
+								Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
+							},
+							{
+								Name: "Build", Number: 2,
+								Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
 							},
 						},
 					},
-				}
-				respJSON, err := json.Marshal(resp)
-				if err != nil {
-					t.Fatalf("failed to marshal resp: %v", err)
-				}
-
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12345/jobs"},
-					string(respJSON), "", nil)
+				})
 			},
 			expectError: false,
 			wantJobs:    1,
@@ -231,21 +248,13 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 		{
 			name:  "multiple jobs",
 			runID: 67890,
-			setupMock: func(m *exec.MockExecutor) {
-				resp := github.JobsResponse{
-					Jobs: []github.Job{
-						{ID: 1, Name: "lint", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
-						{ID: 2, Name: "test", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
-						{ID: 3, Name: "build", Status: github.StatusInProgress},
-					},
-				}
-				respJSON, err := json.Marshal(resp)
-				if err != nil {
-					t.Fatalf("failed to marshal resp: %v", err)
-				}
-
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/67890/jobs"},
-					string(respJSON), "", nil)
+			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+				t.Helper()
+				mockWorkflowRunJobs(t, m, 67890, []github.Job{
+					{ID: 1, Name: "lint", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
+					{ID: 2, Name: "test", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
+					{ID: 3, Name: "build", Status: github.StatusInProgress},
+				})
 			},
 			expectError: false,
 			wantJobs:    3,
@@ -253,15 +262,9 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 		{
 			name:  "no jobs",
 			runID: 11111,
-			setupMock: func(m *exec.MockExecutor) {
-				resp := github.JobsResponse{Jobs: []github.Job{}}
-				respJSON, err := json.Marshal(resp)
-				if err != nil {
-					t.Fatalf("failed to marshal resp: %v", err)
-				}
-
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/11111/jobs"},
-					string(respJSON), "", nil)
+			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+				t.Helper()
+				mockWorkflowRunJobs(t, m, 11111, []github.Job{})
 			},
 			expectError: false,
 			wantJobs:    0,
@@ -269,7 +272,7 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 		{
 			name:  "API error",
 			runID: 99999,
-			setupMock: func(m *exec.MockExecutor) {
+			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
 				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"},
 					"", "HTTP 500: Internal Server Error", exec.ErrMockExitStatus1)
 			},
@@ -282,7 +285,7 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 			t.Parallel()
 
 			mockExec := exec.NewMockExecutor()
-			tt.setupMock(mockExec)
+			tt.setupMock(t, mockExec)
 
 			client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 			if err != nil {
@@ -290,24 +293,42 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 			}
 
 			jobs, err := client.GetWorkflowRunJobs(tt.runID)
-
-			if tt.expectError {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
-
-				return
-			}
-
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if len(jobs) != tt.wantJobs {
-				t.Errorf("got %d jobs, want %d", len(jobs), tt.wantJobs)
-			}
+			checkWorkflowRunJobsResult(t, jobs, err, tt.expectError, tt.wantJobs)
 		})
 	}
+}
+
+// checkWorkflowRunJobsResult asserts the result of GetWorkflowRunJobs against expectations.
+func checkWorkflowRunJobsResult(t *testing.T, jobs []github.Job, err error, expectError bool, wantJobs int) {
+	t.Helper()
+
+	if expectError {
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
+
+		return
+	}
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(jobs) != wantJobs {
+		t.Errorf("got %d jobs, want %d", len(jobs), wantJobs)
+	}
+}
+
+// mockLatestRunResponse registers a "gh api .../runs?..." response listing runs for a workflow query.
+func mockLatestRunResponse(t *testing.T, m *exec.MockExecutor, query string, runs []github.WorkflowRun) {
+	t.Helper()
+
+	respJSON, err := json.Marshal(github.RunsResponse{WorkflowRuns: runs})
+	if err != nil {
+		t.Fatalf("failed to marshal resp: %v", err)
+	}
+
+	m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?" + query}, string(respJSON), "", nil)
 }
 
 func TestClient_GetLatestRun(t *testing.T) {
@@ -316,7 +337,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 	tests := []struct {
 		name         string
 		workflowName string
-		setupMock    func(*exec.MockExecutor)
+		setupMock    func(*testing.T, *exec.MockExecutor)
 		expectError  bool
 		expectNil    bool
 		wantRunID    int64
@@ -324,19 +345,11 @@ func TestClient_GetLatestRun(t *testing.T) {
 		{
 			name:         "latest run found",
 			workflowName: "ci.yml",
-			setupMock: func(m *exec.MockExecutor) {
-				resp := github.RunsResponse{
-					WorkflowRuns: []github.WorkflowRun{
-						{ID: 12345, Name: "CI", Status: github.StatusQueued},
-					},
-				}
-				respJSON, err := json.Marshal(resp)
-				if err != nil {
-					t.Fatalf("failed to marshal resp: %v", err)
-				}
-
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=ci.yml"},
-					string(respJSON), "", nil)
+			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+				t.Helper()
+				mockLatestRunResponse(t, m, "per_page=1&workflow=ci.yml", []github.WorkflowRun{
+					{ID: 12345, Name: "CI", Status: github.StatusQueued},
+				})
 			},
 			expectError: false,
 			wantRunID:   12345,
@@ -344,19 +357,11 @@ func TestClient_GetLatestRun(t *testing.T) {
 		{
 			name:         "no workflow filter",
 			workflowName: "",
-			setupMock: func(m *exec.MockExecutor) {
-				resp := github.RunsResponse{
-					WorkflowRuns: []github.WorkflowRun{
-						{ID: 99999, Name: "Any", Status: github.StatusInProgress},
-					},
-				}
-				respJSON, err := json.Marshal(resp)
-				if err != nil {
-					t.Fatalf("failed to marshal resp: %v", err)
-				}
-
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1"},
-					string(respJSON), "", nil)
+			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+				t.Helper()
+				mockLatestRunResponse(t, m, "per_page=1", []github.WorkflowRun{
+					{ID: 99999, Name: "Any", Status: github.StatusInProgress},
+				})
 			},
 			expectError: false,
 			wantRunID:   99999,
@@ -364,22 +369,16 @@ func TestClient_GetLatestRun(t *testing.T) {
 		{
 			name:         "no runs found",
 			workflowName: "nonexistent.yml",
-			setupMock: func(m *exec.MockExecutor) {
-				resp := github.RunsResponse{WorkflowRuns: []github.WorkflowRun{}}
-				respJSON, err := json.Marshal(resp)
-				if err != nil {
-					t.Fatalf("failed to marshal response: %v", err)
-				}
-
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=nonexistent.yml"},
-					string(respJSON), "", nil)
+			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+				t.Helper()
+				mockLatestRunResponse(t, m, "per_page=1&workflow=nonexistent.yml", []github.WorkflowRun{})
 			},
 			expectError: true,
 		},
 		{
 			name:         "API rate limit",
 			workflowName: "ci.yml",
-			setupMock: func(m *exec.MockExecutor) {
+			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
 				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=ci.yml"},
 					"", "HTTP 403: rate limit exceeded", exec.ErrMockExitStatus1)
 			},
@@ -392,7 +391,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 			t.Parallel()
 
 			mockExec := exec.NewMockExecutor()
-			tt.setupMock(mockExec)
+			tt.setupMock(t, mockExec)
 
 			client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 			if err != nil {
@@ -400,31 +399,39 @@ func TestClient_GetLatestRun(t *testing.T) {
 			}
 
 			run, err := client.GetLatestRun(tt.workflowName)
-
-			if tt.expectError {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
-
-				return
-			}
-
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if tt.expectNil {
-				if run != nil {
-					t.Errorf("expected nil run, got %+v", run)
-				}
-
-				return
-			}
-
-			if run.ID != tt.wantRunID {
-				t.Errorf("run.ID = %d, want %d", run.ID, tt.wantRunID)
-			}
+			checkLatestRunResult(t, run, err, tt.expectError, tt.expectNil, tt.wantRunID)
 		})
+	}
+}
+
+// checkLatestRunResult asserts the result of GetLatestRun against expectations.
+func checkLatestRunResult(
+	t *testing.T, run *github.WorkflowRun, err error, expectError, expectNil bool, wantRunID int64,
+) {
+	t.Helper()
+
+	if expectError {
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
+
+		return
+	}
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if expectNil {
+		if run != nil {
+			t.Errorf("expected nil run, got %+v", run)
+		}
+
+		return
+	}
+
+	if run.ID != wantRunID {
+		t.Errorf("run.ID = %d, want %d", run.ID, wantRunID)
 	}
 }
 

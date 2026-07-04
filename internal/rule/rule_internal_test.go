@@ -95,49 +95,58 @@ func TestParseValidationComment(t *testing.T) {
 			t.Parallel()
 
 			rule, _, err := ParseValidationComment(tt.comment)
-
-			if tt.wantError {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
-
-				return
-			}
-
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
-			}
-
-			if tt.wantRule == nil {
-				if rule != nil {
-					t.Errorf("expected nil rule, got %+v", rule)
-				}
-
-				return
-			}
-
-			if rule == nil {
-				t.Error("expected rule, got nil")
-				return
-			}
-
-			if rule.Type != tt.wantRule.Type {
-				t.Errorf("type = %v, want %v", rule.Type, tt.wantRule.Type)
-			}
-
-			if rule.Pattern != tt.wantRule.Pattern {
-				t.Errorf("pattern = %q, want %q", rule.Pattern, tt.wantRule.Pattern)
-			}
-
-			if rule.Min != tt.wantRule.Min {
-				t.Errorf("min = %d, want %d", rule.Min, tt.wantRule.Min)
-			}
-
-			if rule.Max != tt.wantRule.Max {
-				t.Errorf("max = %d, want %d", rule.Max, tt.wantRule.Max)
-			}
+			checkParseValidationCommentResult(t, rule, err, tt.wantRule, tt.wantError)
 		})
+	}
+}
+
+// checkParseValidationCommentResult asserts the result of ParseValidationComment
+// against the expected rule/error for a single test case.
+func checkParseValidationCommentResult(
+	t *testing.T, rule *ValidationRule, err error, wantRule *ValidationRule, wantError bool,
+) {
+	t.Helper()
+
+	if wantError {
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
+
+		return
+	}
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+		return
+	}
+
+	if wantRule == nil {
+		if rule != nil {
+			t.Errorf("expected nil rule, got %+v", rule)
+		}
+
+		return
+	}
+
+	if rule == nil {
+		t.Error("expected rule, got nil")
+		return
+	}
+
+	if rule.Type != wantRule.Type {
+		t.Errorf("type = %v, want %v", rule.Type, wantRule.Type)
+	}
+
+	if rule.Pattern != wantRule.Pattern {
+		t.Errorf("pattern = %q, want %q", rule.Pattern, wantRule.Pattern)
+	}
+
+	if rule.Min != wantRule.Min {
+		t.Errorf("min = %d, want %d", rule.Min, wantRule.Min)
+	}
+
+	if rule.Max != wantRule.Max {
+		t.Errorf("max = %d, want %d", rule.Max, wantRule.Max)
 	}
 }
 
@@ -168,150 +177,18 @@ func TestParseValidationComments(t *testing.T) {
 	}
 }
 
-func TestValidateValue(t *testing.T) {
-	t.Parallel()
+// validateValueCase is a single ValidateValue table-test case, shared across
+// the TestValidateValue_* functions split by rule type.
+type validateValueCase struct {
+	name       string
+	value      string
+	rules      []ValidationRule
+	wantErrors int
+}
 
-	tests := []struct {
-		name       string
-		value      string
-		rules      []ValidationRule
-		wantErrors int
-	}{
-		{
-			name:       "no rules",
-			value:      "anything",
-			rules:      nil,
-			wantErrors: 0,
-		},
-		{
-			name:       "required with value",
-			value:      "something",
-			rules:      []ValidationRule{{Type: RuleRequired}},
-			wantErrors: 0,
-		},
-		{
-			name:       "required without value",
-			value:      "",
-			rules:      []ValidationRule{{Type: RuleRequired}},
-			wantErrors: 1,
-		},
-		{
-			name:       "required with whitespace only",
-			value:      "   ",
-			rules:      []ValidationRule{{Type: RuleRequired}},
-			wantErrors: 1,
-		},
-		{
-			name:       "regex match",
-			value:      "v1.2.3",
-			rules:      []ValidationRule{{Type: RuleRegex, Pattern: "^v\\d+\\.\\d+\\.\\d+$"}},
-			wantErrors: 0,
-		},
-		{
-			name:       "regex no match",
-			value:      "1.2.3",
-			rules:      []ValidationRule{{Type: RuleRegex, Pattern: "^v\\d+\\.\\d+\\.\\d+$"}},
-			wantErrors: 1,
-		},
-		{
-			name:       "range valid",
-			value:      "8080",
-			rules:      []ValidationRule{{Type: RuleRange, Min: 1024, Max: 65535}},
-			wantErrors: 0,
-		},
-		{
-			name:       "range below min",
-			value:      "80",
-			rules:      []ValidationRule{{Type: RuleRange, Min: 1024, Max: 65535}},
-			wantErrors: 1,
-		},
-		{
-			name:       "range above max",
-			value:      "70000",
-			rules:      []ValidationRule{{Type: RuleRange, Min: 1024, Max: 65535}},
-			wantErrors: 1,
-		},
-		{
-			name:       "range not a number",
-			value:      "abc",
-			rules:      []ValidationRule{{Type: RuleRange, Min: 1, Max: 100}},
-			wantErrors: 1,
-		},
-		{
-			name:       "range empty value",
-			value:      "",
-			rules:      []ValidationRule{{Type: RuleRange, Min: 1, Max: 100}},
-			wantErrors: 0,
-		},
-		{
-			name:       "prefix match",
-			value:      "release-1.0",
-			rules:      []ValidationRule{{Type: RulePrefix, Pattern: "release-"}},
-			wantErrors: 0,
-		},
-		{
-			name:       "prefix no match",
-			value:      "feature-1.0",
-			rules:      []ValidationRule{{Type: RulePrefix, Pattern: "release-"}},
-			wantErrors: 1,
-		},
-		{
-			name:       "prefix empty value",
-			value:      "",
-			rules:      []ValidationRule{{Type: RulePrefix, Pattern: "release-"}},
-			wantErrors: 0,
-		},
-		{
-			name:       "suffix match",
-			value:      "config.json",
-			rules:      []ValidationRule{{Type: RuleSuffix, Pattern: ".json"}},
-			wantErrors: 0,
-		},
-		{
-			name:       "suffix no match",
-			value:      "config.yaml",
-			rules:      []ValidationRule{{Type: RuleSuffix, Pattern: ".json"}},
-			wantErrors: 1,
-		},
-		{
-			name:       "length valid",
-			value:      "hello",
-			rules:      []ValidationRule{{Type: RuleLength, Min: 3, Max: 10}},
-			wantErrors: 0,
-		},
-		{
-			name:       "length too short",
-			value:      "hi",
-			rules:      []ValidationRule{{Type: RuleLength, Min: 3, Max: 10}},
-			wantErrors: 1,
-		},
-		{
-			name:       "length too long",
-			value:      "hello world!",
-			rules:      []ValidationRule{{Type: RuleLength, Min: 3, Max: 10}},
-			wantErrors: 1,
-		},
-		{
-			name:  "multiple rules all pass",
-			value: "release-v1.0.0",
-			rules: []ValidationRule{
-				{Type: RuleRequired},
-				{Type: RulePrefix, Pattern: "release-"},
-				{Type: RuleLength, Min: 5, Max: 50},
-			},
-			wantErrors: 0,
-		},
-		{
-			name:  "multiple rules some fail",
-			value: "feature-v1.0.0",
-			rules: []ValidationRule{
-				{Type: RuleRequired},
-				{Type: RulePrefix, Pattern: "release-"},
-				{Type: RuleLength, Min: 5, Max: 50},
-			},
-			wantErrors: 1,
-		},
-	}
+// runValidateValueCases runs ValidateValue against each case and checks the error count.
+func runValidateValueCases(t *testing.T, tests []validateValueCase) {
+	t.Helper()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -324,6 +201,138 @@ func TestValidateValue(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateValue_NoRules(t *testing.T) {
+	t.Parallel()
+
+	runValidateValueCases(t, []validateValueCase{
+		{name: "no rules", value: "anything", rules: nil, wantErrors: 0},
+	})
+}
+
+func TestValidateValue_Required(t *testing.T) {
+	t.Parallel()
+
+	runValidateValueCases(t, []validateValueCase{
+		{name: "required with value", value: "something", rules: []ValidationRule{{Type: RuleRequired}}, wantErrors: 0},
+		{name: "required without value", value: "", rules: []ValidationRule{{Type: RuleRequired}}, wantErrors: 1},
+		{
+			name: "required with whitespace only", value: "   ",
+			rules: []ValidationRule{{Type: RuleRequired}}, wantErrors: 1,
+		},
+	})
+}
+
+func TestValidateValue_Regex(t *testing.T) {
+	t.Parallel()
+
+	pattern := "^v\\d+\\.\\d+\\.\\d+$"
+	runValidateValueCases(t, []validateValueCase{
+		{
+			name: "regex match", value: "v1.2.3",
+			rules: []ValidationRule{{Type: RuleRegex, Pattern: pattern}}, wantErrors: 0,
+		},
+		{
+			name: "regex no match", value: "1.2.3",
+			rules: []ValidationRule{{Type: RuleRegex, Pattern: pattern}}, wantErrors: 1,
+		},
+	})
+}
+
+func TestValidateValue_Range(t *testing.T) {
+	t.Parallel()
+
+	runValidateValueCases(t, []validateValueCase{
+		{
+			name: "range valid", value: "8080",
+			rules: []ValidationRule{{Type: RuleRange, Min: 1024, Max: 65535}}, wantErrors: 0,
+		},
+		{
+			name: "range below min", value: "80",
+			rules: []ValidationRule{{Type: RuleRange, Min: 1024, Max: 65535}}, wantErrors: 1,
+		},
+		{
+			name: "range above max", value: "70000",
+			rules: []ValidationRule{{Type: RuleRange, Min: 1024, Max: 65535}}, wantErrors: 1,
+		},
+		{
+			name: "range not a number", value: "abc",
+			rules: []ValidationRule{{Type: RuleRange, Min: 1, Max: 100}}, wantErrors: 1,
+		},
+		{
+			name: "range empty value", value: "",
+			rules: []ValidationRule{{Type: RuleRange, Min: 1, Max: 100}}, wantErrors: 0,
+		},
+	})
+}
+
+func TestValidateValue_Prefix(t *testing.T) {
+	t.Parallel()
+
+	runValidateValueCases(t, []validateValueCase{
+		{
+			name: "prefix match", value: "release-1.0",
+			rules: []ValidationRule{{Type: RulePrefix, Pattern: "release-"}}, wantErrors: 0,
+		},
+		{
+			name: "prefix no match", value: "feature-1.0",
+			rules: []ValidationRule{{Type: RulePrefix, Pattern: "release-"}}, wantErrors: 1,
+		},
+		{
+			name: "prefix empty value", value: "",
+			rules: []ValidationRule{{Type: RulePrefix, Pattern: "release-"}}, wantErrors: 0,
+		},
+	})
+}
+
+func TestValidateValue_Suffix(t *testing.T) {
+	t.Parallel()
+
+	runValidateValueCases(t, []validateValueCase{
+		{
+			name: "suffix match", value: "config.json",
+			rules: []ValidationRule{{Type: RuleSuffix, Pattern: ".json"}}, wantErrors: 0,
+		},
+		{
+			name: "suffix no match", value: "config.yaml",
+			rules: []ValidationRule{{Type: RuleSuffix, Pattern: ".json"}}, wantErrors: 1,
+		},
+	})
+}
+
+func TestValidateValue_Length(t *testing.T) {
+	t.Parallel()
+
+	runValidateValueCases(t, []validateValueCase{
+		{
+			name: "length valid", value: "hello",
+			rules: []ValidationRule{{Type: RuleLength, Min: 3, Max: 10}}, wantErrors: 0,
+		},
+		{
+			name: "length too short", value: "hi",
+			rules: []ValidationRule{{Type: RuleLength, Min: 3, Max: 10}}, wantErrors: 1,
+		},
+		{
+			name: "length too long", value: "hello world!",
+			rules: []ValidationRule{{Type: RuleLength, Min: 3, Max: 10}}, wantErrors: 1,
+		},
+	})
+}
+
+func TestValidateValue_MultipleRules(t *testing.T) {
+	t.Parallel()
+
+	multiRules := []ValidationRule{
+		{Type: RuleRequired},
+		{Type: RulePrefix, Pattern: "release-"},
+		{Type: RuleLength, Min: 5, Max: 50},
+	}
+
+	runValidateValueCases(t, []validateValueCase{
+		{name: "multiple rules all pass", value: "release-v1.0.0", rules: multiRules, wantErrors: 0},
+		{name: "multiple rules some fail", value: "feature-v1.0.0", rules: multiRules, wantErrors: 1},
+	})
 }
 
 func TestParseRange(t *testing.T) {

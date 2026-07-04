@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	dirPerm  = 0o750
+	filePerm = 0o600
+)
+
 // CachePath returns the path to the frecency cache file.
 // Migrates from old gh-wfd directory to lazydispatch if needed.
 func CachePath() string {
@@ -25,21 +30,34 @@ func CachePath() string {
 		oldPath = filepath.Join(home, ".cache", "gh-wfd", "history.json")
 	}
 
-	// Migrate from old path if it exists and new path doesn't
-	if _, err := os.Stat(oldPath); err == nil {
-		if _, err := os.Stat(newPath); os.IsNotExist(err) {
-			// Create new directory
-			if err := os.MkdirAll(filepath.Dir(newPath), 0o755); err == nil {
-				// Copy old history to new location
-				if data, err := os.ReadFile(oldPath); err == nil {
-					//nolint:errcheck // best-effort cache migration; no error return to propagate failure to
-					_ = os.WriteFile(newPath, data, 0o644)
-				}
-			}
-		}
-	}
+	migrateOldCache(oldPath, newPath)
 
 	return newPath
+}
+
+// migrateOldCache best-effort copies the cache file from oldPath to newPath if
+// oldPath exists and newPath does not. Both paths are derived internally from
+// XDG_CACHE_HOME/the user's home directory, never from external input.
+func migrateOldCache(oldPath, newPath string) {
+	if _, err := os.Stat(oldPath); err != nil {
+		return
+	}
+
+	if _, err := os.Stat(newPath); !os.IsNotExist(err) {
+		return
+	}
+
+	if err := os.MkdirAll(filepath.Dir(newPath), dirPerm); err != nil {
+		return
+	}
+
+	data, err := os.ReadFile(oldPath) //nolint:gosec // path derived from XDG_CACHE_HOME/home dir, not external input
+	if err != nil {
+		return
+	}
+
+	//nolint:errcheck // best-effort cache migration; no error return to propagate failure to
+	_ = os.WriteFile(newPath, data, filePerm)
 }
 
 // Load reads the store from disk, returning empty store if not found.
@@ -49,7 +67,7 @@ func Load() (*Store, error) {
 
 // LoadFrom reads the store from a specific path.
 func LoadFrom(path string) (*Store, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path derived from CachePath (XDG cache dir), not external input
 	if err != nil {
 		if os.IsNotExist(err) {
 			return NewStore(), nil
@@ -77,7 +95,7 @@ func (s *Store) Save() error {
 
 // SaveTo writes the store to a specific path.
 func (s *Store) SaveTo(path string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), dirPerm); err != nil {
 		return fmt.Errorf("creating directory for frecency store %s: %w", path, err)
 	}
 
@@ -86,7 +104,7 @@ func (s *Store) SaveTo(path string) error {
 		return fmt.Errorf("marshaling frecency store: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, filePerm); err != nil {
 		return fmt.Errorf("writing frecency store %s: %w", path, err)
 	}
 

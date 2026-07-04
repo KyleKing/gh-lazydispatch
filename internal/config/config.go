@@ -82,7 +82,7 @@ func Load(repoRoot string) (*WfdConfig, error) {
 // LoadFrom loads the configuration from a specific path.
 // Returns ErrConfigNotFound if no file exists at path.
 func LoadFrom(path string) (*WfdConfig, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path built from repo root + fixed config filename
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("%s: %w", path, ErrConfigNotFound)
