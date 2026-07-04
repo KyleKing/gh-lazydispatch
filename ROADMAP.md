@@ -4,14 +4,14 @@ Phased plan for gh-lazydispatch after the v1.0.0 release (2026-07-04). Consolida
 
 Status legend: [ ] not started, [~] in progress, [x] done.
 
-## Phase 0: Housekeeping (in progress)
+## Phase 0: Housekeeping (done)
 
-Close out the template-adoption follow-ups and tidy stray notes now that v1.0.0 shipped.
+Closed out the template-adoption follow-ups and tidied stray notes now that v1.0.0 shipped.
 
 - [x] Clear the golangci v2 lint backlog (was 572 findings, now 0)
 - [x] Fix the gsa build failure (installed via brew, dropped from mise pin)
 - [x] Resolve the dual bump-workflow risk (`bump_version.yml` is the sole release path; `version-bump.yml`/`ci-gate.yml` remain dispatch-only demo content)
-- [ ] Run `copier update` to adopt template v0.3.0, replacing the manual v0.2.2 adoption in `c24db4a` (`.copier-answers.yml` is still pinned to `_commit: v0.2.2`). Template v0.3.0 was tagged 2026-07-04 and includes the `conf.d` fix. Do this as an isolated commit after the housekeeping cleanup lands, so any conflict resolution is easy to review.
+- [x] Run `copier update` to adopt the current template, replacing the manual v0.2.2 adoption in `c24db4a`. Landed as an isolated commit pinning `.copier-answers.yml` to `_commit: v0.3.1`; the only net change was the version bump because the `conf.d` layout the template formalizes in v0.3.x had already been adopted manually.
 
 ## Phase 1: Markdown log export (next)
 
