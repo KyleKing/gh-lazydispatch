@@ -16,17 +16,17 @@ Adopting golangci v2 also means lint has effectively never run on this repo: the
 
 ## Open decisions / follow-ups
 
-### Dual bump workflow risk
+### Dual bump workflow risk — resolved
 
-The new `bump_version.yml` auto-bumps and tags a release on the next push to main. Confirm this is wanted before the next push, since it will fire alongside the existing `version-bump.yml`/`ci-gate.yml` demo flow. If the auto-bump isn't wanted yet, disable or gate it before pushing.
+`bump_version.yml` (commitizen, auto-triggered on push to main) is the sole actual release mechanism. `version-bump.yml`/`ci-gate.yml` stay as workflow_dispatch-only demo content for the app's own chain-dispatch feature (docs/chain-examples.md, testdata/.github/lazydispatch-release.yml) — neither has a push trigger, so they never fire automatically and don't compete with `bump_version.yml`. No further action needed here.
 
 ### Template release and copier update
 
 `.copier-answers.yml` is still pinned to `_commit: v0.2.2`, which predates the conf.d fix. Once my_go_template tags a new release, run `copier update` here to pick it up cleanly instead of the manual adoption done in c24db4a.
 
-### go-size-analyzer (gsa) build failure
+### go-size-analyzer (gsa) build failure — resolved
 
-`mise run ci`/`mise run lint` fail locally because `go:github.com/Zxilly/go-size-analyzer/cmd/gsa@latest` (pinned to 1.13.0 in the template's `mise.hk.toml`) doesn't build on Go 1.26.4 (needs `GOEXPERIMENT=jsonv2` for `encoding/json/v2`). Workaround until upstream fixes it or the template pins/drops it: `MISE_ENV=ci mise run ci` skips hk tool bootstrap entirely, or invoke `golangci-lint` directly.
+`go:github.com/Zxilly/go-size-analyzer/cmd/gsa@latest` didn't build on Go 1.26.4 (needs `GOEXPERIMENT=jsonv2` for `encoding/json/v2`), blocking local `mise run ci`/`mise run lint` tool bootstrap. Fixed by dropping the mise-managed pin from the template's `.config/mise.hk.toml.jinja` entirely; `gsa` is now installed via `brew` as a standalone dev tool instead of a project-managed mise tool. `MISE_ENV=ci` is no longer needed as a gsa workaround (though it may still be useful for other hk-tool bootstrap issues).
 
 ### Lint debt (572 findings)
 
