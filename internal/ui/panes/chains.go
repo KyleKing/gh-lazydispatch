@@ -136,7 +136,8 @@ func (m ChainListModel) ViewContent() string {
 			indicator = "> "
 		}
 
-		row := indicator + ui.PadRight(displayName, 15) + "  " + ui.PadRight(steps, 5) + "  " + ui.PadRight(vars, 4) + "  " + desc
+		row := indicator + ui.PadRight(displayName, 15) + "  " + ui.PadRight(steps, 5) + "  " +
+			ui.PadRight(vars, 4) + "  " + desc
 
 		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {

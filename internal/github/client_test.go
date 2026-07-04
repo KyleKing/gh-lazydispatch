@@ -198,14 +198,21 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 							Status:     github.StatusCompleted,
 							Conclusion: github.ConclusionSuccess,
 							Steps: []github.Step{
-								{Name: "Checkout", Number: 1, Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
-								{Name: "Build", Number: 2, Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
+								{
+									Name: "Checkout", Number: 1,
+									Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
+								},
+								{
+									Name: "Build", Number: 2,
+									Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
+								},
 							},
 						},
 					},
 				}
 				respJSON, _ := json.Marshal(resp)
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12345/jobs"}, string(respJSON), "", nil)
+				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12345/jobs"},
+					string(respJSON), "", nil)
 			},
 			expectError: false,
 			wantJobs:    1,
@@ -222,7 +229,8 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 					},
 				}
 				respJSON, _ := json.Marshal(resp)
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/67890/jobs"}, string(respJSON), "", nil)
+				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/67890/jobs"},
+					string(respJSON), "", nil)
 			},
 			expectError: false,
 			wantJobs:    3,
@@ -233,7 +241,8 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 			setupMock: func(m *exec.MockExecutor) {
 				resp := github.JobsResponse{Jobs: []github.Job{}}
 				respJSON, _ := json.Marshal(resp)
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/11111/jobs"}, string(respJSON), "", nil)
+				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/11111/jobs"},
+					string(respJSON), "", nil)
 			},
 			expectError: false,
 			wantJobs:    0,
@@ -303,7 +312,8 @@ func TestClient_GetLatestRun(t *testing.T) {
 					},
 				}
 				respJSON, _ := json.Marshal(resp)
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=ci.yml"}, string(respJSON), "", nil)
+				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=ci.yml"},
+					string(respJSON), "", nil)
 			},
 			expectError: false,
 			wantRunID:   12345,
@@ -318,7 +328,8 @@ func TestClient_GetLatestRun(t *testing.T) {
 					},
 				}
 				respJSON, _ := json.Marshal(resp)
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1"}, string(respJSON), "", nil)
+				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1"},
+					string(respJSON), "", nil)
 			},
 			expectError: false,
 			wantRunID:   99999,
@@ -329,7 +340,8 @@ func TestClient_GetLatestRun(t *testing.T) {
 			setupMock: func(m *exec.MockExecutor) {
 				resp := github.RunsResponse{WorkflowRuns: []github.WorkflowRun{}}
 				respJSON, _ := json.Marshal(resp)
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=nonexistent.yml"}, string(respJSON), "", nil)
+				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=nonexistent.yml"},
+					string(respJSON), "", nil)
 			},
 			expectError: false,
 			expectNil:   true,
@@ -395,7 +407,8 @@ func TestClient_CommandsExecuted(t *testing.T) {
 		WorkflowRuns: []github.WorkflowRun{{ID: 1, Name: "CI"}},
 	}
 	respJSON, _ := json.Marshal(resp)
-	mockExec.AddCommand("gh", []string{"api", "repos/test/project/actions/runs?per_page=1&workflow=build.yml"}, string(respJSON), "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/test/project/actions/runs?per_page=1&workflow=build.yml"},
+		string(respJSON), "", nil)
 
 	client, _ := github.NewClientWithExecutor("test/project", mockExec)
 	_, _ = client.GetLatestRun("build.yml")

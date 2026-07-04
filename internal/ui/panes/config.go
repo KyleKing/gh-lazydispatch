@@ -271,7 +271,9 @@ func (m ConfigModel) View() string {
 	content.WriteString(" ")
 	content.WriteString(ui.HelpStyle.Render("[c]"))
 
-	helpLine := "\n\n" + ui.HelpStyle.Render("[Tab] pane  [Enter] run  [j/k] select  [0-9] edit  [/] filter  [?] help  [q] quit")
+	helpLine := "\n\n" + ui.HelpStyle.Render(
+		"[Tab] pane  [Enter] run  [j/k] select  [0-9] edit  [/] filter  [?] help  [q] quit",
+	)
 	content.WriteString(helpLine)
 
 	return style.Render(content.String())

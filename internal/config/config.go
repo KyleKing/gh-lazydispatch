@@ -38,10 +38,12 @@ type Chain struct {
 
 // ChainStep represents a single step in a workflow chain.
 type ChainStep struct {
-	Workflow  string            `yaml:"workflow"`
-	WaitFor   WaitCondition     `yaml:"wait_for"` //nolint:tagliatelle // documented chain config key, changing breaks existing user YAML
-	Inputs    map[string]string `yaml:"inputs"`
-	OnFailure FailureAction     `yaml:"on_failure"` //nolint:tagliatelle // documented chain config key, changing breaks existing user YAML
+	Workflow string `yaml:"workflow"`
+	//nolint:tagliatelle // documented config key, changing breaks user YAML
+	WaitFor WaitCondition     `yaml:"wait_for"`
+	Inputs  map[string]string `yaml:"inputs"`
+	//nolint:tagliatelle // documented config key, changing breaks user YAML
+	OnFailure FailureAction `yaml:"on_failure"`
 }
 
 // WaitCondition specifies when to proceed to the next step.

@@ -49,7 +49,9 @@ type ChainConfirmModal struct {
 }
 
 // NewChainConfirmModal creates a chain confirmation modal.
-func NewChainConfirmModal(chainName string, chainDef *config.Chain, variables map[string]string, branch string, watch bool) *ChainConfirmModal {
+func NewChainConfirmModal(
+	chainName string, chainDef *config.Chain, variables map[string]string, branch string, watch bool,
+) *ChainConfirmModal {
 	m := &ChainConfirmModal{
 		chainName: chainName,
 		chain:     chainDef,

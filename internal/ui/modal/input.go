@@ -52,7 +52,9 @@ func defaultInputKeyMap() inputKeyMap {
 }
 
 // NewInputModal creates a new text input modal.
-func NewInputModal(title, description, defaultVal, inputType, current string, options []string, rules []rule.ValidationRule) *InputModal {
+func NewInputModal(
+	title, description, defaultVal, inputType, current string, options []string, rules []rule.ValidationRule,
+) *InputModal {
 	ti := textinput.New()
 	ti.SetValue(current)
 	ti.Focus()

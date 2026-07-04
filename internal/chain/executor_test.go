@@ -48,7 +48,7 @@ func TestNewExecutor(t *testing.T) {
 // TestChainExecutor_Stop mutates the package-level runner.SetExecutor mock,
 // so it cannot run concurrently with other tests that do the same.
 //
-//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // mutates the package-level runner.SetExecutor mock, see comment above
 func TestChainExecutor_Stop(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 	runner.SetExecutor(mockExec)

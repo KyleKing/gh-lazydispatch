@@ -555,7 +555,9 @@ func (m Model) openInputModalForName(name string) (tea.Model, tea.Cmd) {
 	case "choice":
 		m.modalStack.Push(modal.NewSelectModal(name, input.Options, currentVal, input.Default))
 	default:
-		m.modalStack.Push(modal.NewInputModal(name, input.Description, input.Default, input.InputType(), currentVal, input.Options, input.ValidationRules))
+		m.modalStack.Push(modal.NewInputModal(
+			name, input.Description, input.Default, input.InputType(), currentVal, input.Options, input.ValidationRules,
+		))
 	}
 
 	return m, nil
@@ -734,7 +736,9 @@ func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {
 		stepResults := convertToFrecencyStepResults(state.StepResults)
 
 		// Update history with step results
-		m.history.RecordChain(m.repo, m.executingChainName, m.executingChainBranch, m.executingChainVariables, stepResults)
+		m.history.RecordChain(
+			m.repo, m.executingChainName, m.executingChainBranch, m.executingChainVariables, stepResults,
+		)
 		//nolint:errcheck // best-effort persistence; a failed history write does not affect the completed chain run
 		m.history.Save()
 

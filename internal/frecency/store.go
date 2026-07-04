@@ -31,7 +31,7 @@ func CachePath() string {
 			if err := os.MkdirAll(filepath.Dir(newPath), 0o755); err == nil {
 				// Copy old history to new location
 				if data, err := os.ReadFile(oldPath); err == nil {
-					//nolint:errcheck // best-effort cache migration; CachePath has no error return to propagate a failure to
+					//nolint:errcheck // best-effort cache migration; no error return to propagate failure to
 					_ = os.WriteFile(newPath, data, 0o644)
 				}
 			}

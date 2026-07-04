@@ -11,6 +11,11 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
+const (
+	testValueStaging = "staging"
+	testChainAlpha   = "alpha"
+)
+
 func testWorkflows() []workflow.WorkflowFile {
 	return []workflow.WorkflowFile{
 		{
@@ -21,8 +26,8 @@ func testWorkflows() []workflow.WorkflowFile {
 					Inputs: map[string]workflow.WorkflowInput{
 						"environment": {
 							Type:    "choice",
-							Default: "staging",
-							Options: []string{"production", "staging"},
+							Default: testValueStaging,
+							Options: []string{"production", testValueStaging},
 						},
 						"dry_run": {
 							Type:    "boolean",
@@ -134,7 +139,7 @@ func TestConfigModel_SetWorkflow(t *testing.T) {
 	}
 
 	envVal := m.GetInputValue("environment")
-	if envVal != "staging" {
+	if envVal != testValueStaging {
 		t.Errorf("expected default 'staging', got %q", envVal)
 	}
 }
@@ -296,7 +301,8 @@ func TestConfigModel_SetFilter_FuzzyMatching(t *testing.T) {
 
 			if tt.expectMinCount > 0 && tt.expectSelected >= 0 {
 				if m.selectedRow >= len(m.filteredOrder) {
-					t.Errorf("selectedRow %d out of bounds for filtered list length %d", m.selectedRow, len(m.filteredOrder))
+					t.Errorf("selectedRow %d out of bounds for filtered list length %d",
+						m.selectedRow, len(m.filteredOrder))
 				}
 			}
 
@@ -326,7 +332,7 @@ func TestConfigModel_GetModifiedInputs(t *testing.T) {
 		t.Errorf("expected 1 modification, got %d", len(modified))
 	}
 
-	if mod, ok := modified["environment"]; !ok || mod.Current != "production" || mod.Default != "staging" {
+	if mod, ok := modified["environment"]; !ok || mod.Current != "production" || mod.Default != testValueStaging {
 		t.Errorf("unexpected modification: %+v", modified["environment"])
 	}
 
@@ -430,7 +436,7 @@ func TestConfigModel_SetInputs_Nil(t *testing.T) {
 	m.SetInputs(nil)
 
 	val := m.GetInputValue("environment")
-	if val != "staging" {
+	if val != testValueStaging {
 		t.Errorf("expected default value after nil SetInputs, got %q", val)
 	}
 }
@@ -970,9 +976,9 @@ func TestChainListModel_SetChains(t *testing.T) {
 	m.SetSize(80, 24)
 
 	chains := map[string]config.Chain{
-		"alpha": {Description: "Alpha chain"},
-		"beta":  {Description: "Beta chain"},
-		"gamma": {Description: "Gamma chain"},
+		testChainAlpha: {Description: "Alpha chain"},
+		"beta":         {Description: "Beta chain"},
+		"gamma":        {Description: "Gamma chain"},
 	}
 
 	m.SetChains(chains)
@@ -982,7 +988,7 @@ func TestChainListModel_SetChains(t *testing.T) {
 		t.Fatal("expected chain to be selected")
 	}
 
-	if name != "alpha" {
+	if name != testChainAlpha {
 		t.Errorf("expected first chain alphabetically 'alpha', got %q", name)
 	}
 }
@@ -994,14 +1000,14 @@ func TestChainListModel_Navigation(t *testing.T) {
 	m.SetSize(80, 24)
 
 	chains := map[string]config.Chain{
-		"alpha": {Description: "Alpha"},
-		"beta":  {Description: "Beta"},
-		"gamma": {Description: "Gamma"},
+		testChainAlpha: {Description: "Alpha"},
+		"beta":         {Description: "Beta"},
+		"gamma":        {Description: "Gamma"},
 	}
 	m.SetChains(chains)
 
 	name, _, _ := m.SelectedChain()
-	if name != "alpha" {
+	if name != testChainAlpha {
 		t.Errorf("expected 'alpha', got %q", name)
 	}
 
@@ -1037,7 +1043,7 @@ func TestChainListModel_Navigation(t *testing.T) {
 	m.MoveUp()
 
 	name, _, _ = m.SelectedChain()
-	if name != "alpha" {
+	if name != testChainAlpha {
 		t.Error("expected to stay at 'alpha' at upper boundary")
 	}
 }

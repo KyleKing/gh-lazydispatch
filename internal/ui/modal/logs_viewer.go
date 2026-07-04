@@ -106,7 +106,9 @@ func NewLogsViewerModal(runLogs *logs.RunLogs, width, height int) *LogsViewerMod
 	filter, _ := logs.NewFilter(filterCfg)
 	filtered := filter.Apply(runLogs)
 
-	vp := viewport.New(viewport.WithWidth(width-logsViewportWidthMargin), viewport.WithHeight(height-logsViewportHeightMargin))
+	vp := viewport.New(
+		viewport.WithWidth(width-logsViewportWidthMargin), viewport.WithHeight(height-logsViewportHeightMargin),
+	)
 	vp.SetContent("")
 
 	searchInput := textinput.New()

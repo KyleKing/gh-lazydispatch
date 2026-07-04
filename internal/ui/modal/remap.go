@@ -37,7 +37,7 @@ type RemapModal struct {
 	selected        int
 	options         []remapOption
 	done            bool
-	canceled       bool
+	canceled        bool
 	keys            remapKeyMap
 }
 
@@ -65,7 +65,9 @@ func defaultRemapKeyMap() remapKeyMap {
 }
 
 // NewRemapModal creates a new remapping wizard modal.
-func NewRemapModal(errors []validation.ConfigValidationError, currentInputs map[string]workflow.WorkflowInput) *RemapModal {
+func NewRemapModal(
+	errors []validation.ConfigValidationError, currentInputs map[string]workflow.WorkflowInput,
+) *RemapModal {
 	m := &RemapModal{
 		errors:          errors,
 		currentInputs:   currentInputs,

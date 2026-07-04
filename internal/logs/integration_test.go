@@ -34,10 +34,30 @@ func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionSuccess,
 				Steps: []github.Step{
-					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
-					{Name: "Set up Python 3.11", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
-					{Name: "Install dependencies", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 3},
-					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 4},
+					{
+						Name:       "Run actions/checkout@v4",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
+					{
+						Name:       "Set up Python 3.11",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     2,
+					},
+					{
+						Name:       "Install dependencies",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     3,
+					},
+					{
+						Name:       "Run tests",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     4,
+					},
 				},
 			},
 		},
@@ -145,10 +165,30 @@ func TestIntegration_FailedWorkflowRun(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionFailure,
 				Steps: []github.Step{
-					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
-					{Name: "Set up Python 3.11", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
-					{Name: "Install dependencies", Status: github.StatusCompleted, Conclusion: github.ConclusionFailure, Number: 3},
-					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSkipped, Number: 4},
+					{
+						Name:       "Run actions/checkout@v4",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
+					{
+						Name:       "Set up Python 3.11",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     2,
+					},
+					{
+						Name:       "Install dependencies",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionFailure,
+						Number:     3,
+					},
+					{
+						Name:       "Run tests",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSkipped,
+						Number:     4,
+					},
 				},
 			},
 		},
@@ -232,11 +272,36 @@ func TestIntegration_WorkflowWithWarnings(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionSuccess,
 				Steps: []github.Step{
-					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
-					{Name: "Set up Python 3.11", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
-					{Name: "Install dependencies", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 3},
-					{Name: "Run linter", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 4},
-					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 5},
+					{
+						Name:       "Run actions/checkout@v4",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
+					{
+						Name:       "Set up Python 3.11",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     2,
+					},
+					{
+						Name:       "Install dependencies",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     3,
+					},
+					{
+						Name:       "Run linter",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     4,
+					},
+					{
+						Name:       "Run tests",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     5,
+					},
 				},
 			},
 		},
@@ -297,7 +362,12 @@ func TestIntegration_GHCLIError(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionSuccess,
 				Steps: []github.Step{
-					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+					{
+						Name:       "Run tests",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
 				},
 			},
 		},
@@ -440,11 +510,36 @@ func TestIntegration_MultiJobWorkflowRun(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionSuccess,
 				Steps: []github.Step{
-					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
-					{Name: "Set up Go 1.21", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
-					{Name: "Build application", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 3},
-					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 4},
-					{Name: "Upload coverage", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 5},
+					{
+						Name:       "Run actions/checkout@v4",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
+					{
+						Name:       "Set up Go 1.21",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     2,
+					},
+					{
+						Name:       "Build application",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     3,
+					},
+					{
+						Name:       "Run tests",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     4,
+					},
+					{
+						Name:       "Upload coverage",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     5,
+					},
 				},
 			},
 		},
@@ -499,7 +594,8 @@ func TestIntegration_MultiJobWorkflowRun(t *testing.T) {
 	// Verify all steps are marked as success
 	for _, step := range stepLogs {
 		if step.Conclusion != github.ConclusionSuccess {
-			t.Errorf("step %q has wrong conclusion: got %q, want %q", step.StepName, step.Conclusion, github.ConclusionSuccess)
+			t.Errorf("step %q has wrong conclusion: got %q, want %q",
+				step.StepName, step.Conclusion, github.ConclusionSuccess)
 		}
 	}
 }
@@ -523,7 +619,12 @@ func TestIntegration_LogStreaming(t *testing.T) {
 				Status:     github.StatusInProgress,
 				Conclusion: "",
 				Steps: []github.Step{
-					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+					{
+						Name:       "Run actions/checkout@v4",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
 					{Name: "Set up Go 1.21", Status: github.StatusInProgress, Conclusion: "", Number: 2},
 					{Name: "Build application", Status: github.StatusQueued, Conclusion: "", Number: 3},
 					{Name: "Run tests", Status: github.StatusQueued, Conclusion: "", Number: 4},
@@ -536,7 +637,8 @@ func TestIntegration_LogStreaming(t *testing.T) {
 
 	// Mock workflow run status - initially in_progress
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999"},
-		`{"id":99999,"name":"CI","status":"in_progress","conclusion":"","html_url":"https://github.com/owner/repo/actions/runs/99999","updated_at":"2024-01-01T12:00:00Z"}`,
+		`{"id":99999,"name":"CI","status":"in_progress","conclusion":"",`+
+			`"html_url":"https://github.com/owner/repo/actions/runs/99999","updated_at":"2024-01-01T12:00:00Z"}`,
 		"", nil)
 
 	// Poll 1: Initial logs (2 steps partially complete)
@@ -579,7 +681,8 @@ func TestIntegration_LogStreaming(t *testing.T) {
 	mockExec.Reset()
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"}, jobsJSON, "", nil)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999"},
-		`{"id":99999,"name":"CI","status":"in_progress","conclusion":"","html_url":"https://github.com/owner/repo/actions/runs/99999","updated_at":"2024-01-01T12:00:05Z"}`,
+		`{"id":99999,"name":"CI","status":"in_progress","conclusion":"",`+
+			`"html_url":"https://github.com/owner/repo/actions/runs/99999","updated_at":"2024-01-01T12:00:05Z"}`,
 		"", nil)
 
 	// Poll 2: More progress (step 2 now has logs, step 1 has more logs)
@@ -631,10 +734,30 @@ func TestIntegration_LogStreaming(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionSuccess,
 				Steps: []github.Step{
-					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
-					{Name: "Set up Go 1.21", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 2},
-					{Name: "Build application", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 3},
-					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 4},
+					{
+						Name:       "Run actions/checkout@v4",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
+					{
+						Name:       "Set up Go 1.21",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     2,
+					},
+					{
+						Name:       "Build application",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     3,
+					},
+					{
+						Name:       "Run tests",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     4,
+					},
 				},
 			},
 		},
@@ -642,7 +765,8 @@ func TestIntegration_LogStreaming(t *testing.T) {
 	jobsCompletedJSON := testutil.MustMarshalJSON(t, jobsCompletedResp)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"}, jobsCompletedJSON, "", nil)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999"},
-		`{"id":99999,"name":"CI","status":"completed","conclusion":"success","html_url":"https://github.com/owner/repo/actions/runs/99999","updated_at":"2024-01-01T12:00:10Z"}`,
+		`{"id":99999,"name":"CI","status":"completed","conclusion":"success",`+
+			`"html_url":"https://github.com/owner/repo/actions/runs/99999","updated_at":"2024-01-01T12:00:10Z"}`,
 		"", nil)
 
 	// Poll 3: All steps complete
@@ -692,7 +816,12 @@ func TestIntegration_LogStreamer_IncrementalDetection(t *testing.T) {
 				Status:     github.StatusInProgress,
 				Conclusion: "",
 				Steps: []github.Step{
-					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+					{
+						Name:       "Run actions/checkout@v4",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
 					{Name: "Set up Go 1.21", Status: github.StatusInProgress, Conclusion: "", Number: 2},
 				},
 			},
@@ -703,7 +832,8 @@ func TestIntegration_LogStreamer_IncrementalDetection(t *testing.T) {
 	// Setup initial poll
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/77777/jobs"}, jobsJSON, "", nil)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/77777"},
-		`{"id":77777,"name":"Test","status":"in_progress","conclusion":"","html_url":"https://github.com/owner/repo/actions/runs/77777","updated_at":"2024-01-01T12:00:00Z"}`,
+		`{"id":77777,"name":"Test","status":"in_progress","conclusion":"",`+
+			`"html_url":"https://github.com/owner/repo/actions/runs/77777","updated_at":"2024-01-01T12:00:00Z"}`,
 		"", nil)
 
 	poll1Logs := loadFixture(t, "streaming_poll_1.txt")
@@ -764,7 +894,12 @@ func TestIntegration_LargeLogFile(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionSuccess,
 				Steps: []github.Step{
-					{Name: "Run actions/checkout@v4", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+					{
+						Name:       "Run actions/checkout@v4",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
 				},
 			},
 		},
@@ -1016,7 +1151,12 @@ func TestIntegration_VeryLargeLogFile(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionSuccess,
 				Steps: []github.Step{
-					{Name: "Run tests", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+					{
+						Name:       "Run tests",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
 				},
 			},
 		},
@@ -1080,7 +1220,12 @@ func TestIntegration_MixedLogContent(t *testing.T) {
 				Status:     github.StatusCompleted,
 				Conclusion: github.ConclusionSuccess,
 				Steps: []github.Step{
-					{Name: "Mixed test", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess, Number: 1},
+					{
+						Name:       "Mixed test",
+						Status:     github.StatusCompleted,
+						Conclusion: github.ConclusionSuccess,
+						Number:     1,
+					},
 				},
 			},
 		},

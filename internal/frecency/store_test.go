@@ -8,12 +8,14 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 )
 
+const testWorkflowDeploy = "deploy.yml"
+
 func TestStore_Record(t *testing.T) {
 	t.Parallel()
 
 	store := frecency.NewStore()
 
-	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
+	store.Record("owner/repo", testWorkflowDeploy, "main", map[string]string{"env": "prod"})
 
 	entries := store.Entries["owner/repo"]
 	if len(entries) != 1 {
@@ -21,7 +23,7 @@ func TestStore_Record(t *testing.T) {
 	}
 
 	e := entries[0]
-	if e.Workflow != "deploy.yml" {
+	if e.Workflow != testWorkflowDeploy {
 		t.Errorf("expected workflow 'deploy.yml', got %q", e.Workflow)
 	}
 
@@ -39,9 +41,9 @@ func TestStore_Record_Increment(t *testing.T) {
 
 	store := frecency.NewStore()
 
-	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
-	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
-	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
+	store.Record("owner/repo", testWorkflowDeploy, "main", map[string]string{"env": "prod"})
+	store.Record("owner/repo", testWorkflowDeploy, "main", map[string]string{"env": "prod"})
+	store.Record("owner/repo", testWorkflowDeploy, "main", map[string]string{"env": "prod"})
 
 	entries := store.Entries["owner/repo"]
 	if len(entries) != 1 {
@@ -58,8 +60,8 @@ func TestStore_Record_DifferentInputs(t *testing.T) {
 
 	store := frecency.NewStore()
 
-	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
-	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "staging"})
+	store.Record("owner/repo", testWorkflowDeploy, "main", map[string]string{"env": "prod"})
+	store.Record("owner/repo", testWorkflowDeploy, "main", map[string]string{"env": "staging"})
 
 	entries := store.Entries["owner/repo"]
 	if len(entries) != 2 {
@@ -72,17 +74,17 @@ func TestStore_TopForRepo(t *testing.T) {
 
 	store := frecency.NewStore()
 
-	store.Record("owner/repo", "deploy.yml", "main", nil)
+	store.Record("owner/repo", testWorkflowDeploy, "main", nil)
 	store.Record("owner/repo", "ci.yml", "main", nil)
-	store.Record("owner/repo", "deploy.yml", "main", nil)
-	store.Record("owner/repo", "deploy.yml", "main", nil)
+	store.Record("owner/repo", testWorkflowDeploy, "main", nil)
+	store.Record("owner/repo", testWorkflowDeploy, "main", nil)
 
 	top := store.TopForRepo("owner/repo", "", 10)
 	if len(top) != 2 {
 		t.Fatalf("expected 2 entries, got %d", len(top))
 	}
 
-	if top[0].Workflow != "deploy.yml" {
+	if top[0].Workflow != testWorkflowDeploy {
 		t.Errorf("expected deploy.yml first (higher frecency), got %q", top[0].Workflow)
 	}
 }
@@ -92,15 +94,15 @@ func TestStore_TopForRepo_FilterByWorkflow(t *testing.T) {
 
 	store := frecency.NewStore()
 
-	store.Record("owner/repo", "deploy.yml", "main", nil)
+	store.Record("owner/repo", testWorkflowDeploy, "main", nil)
 	store.Record("owner/repo", "ci.yml", "main", nil)
 
-	top := store.TopForRepo("owner/repo", "deploy.yml", 10)
+	top := store.TopForRepo("owner/repo", testWorkflowDeploy, 10)
 	if len(top) != 1 {
 		t.Fatalf("expected 1 entry (filtered), got %d", len(top))
 	}
 
-	if top[0].Workflow != "deploy.yml" {
+	if top[0].Workflow != testWorkflowDeploy {
 		t.Errorf("expected deploy.yml, got %q", top[0].Workflow)
 	}
 }
@@ -111,7 +113,7 @@ func TestStore_TopForRepo_Limit(t *testing.T) {
 	store := frecency.NewStore()
 
 	for i := range 10 {
-		store.Record("owner/repo", "deploy.yml", "main", map[string]string{"i": string(rune('0' + i))})
+		store.Record("owner/repo", testWorkflowDeploy, "main", map[string]string{"i": string(rune('0' + i))})
 	}
 
 	top := store.TopForRepo("owner/repo", "", 5)
@@ -128,7 +130,7 @@ func TestStore_SaveLoad(t *testing.T) {
 	path := filepath.Join(tmpDir, "history.json")
 
 	store := frecency.NewStore()
-	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"env": "prod"})
+	store.Record("owner/repo", testWorkflowDeploy, "main", map[string]string{"env": "prod"})
 
 	if err := store.SaveTo(path); err != nil {
 		t.Fatalf("SaveTo failed: %v", err)
@@ -144,7 +146,7 @@ func TestStore_SaveLoad(t *testing.T) {
 		t.Fatalf("expected 1 entry after load, got %d", len(entries))
 	}
 
-	if entries[0].Workflow != "deploy.yml" {
+	if entries[0].Workflow != testWorkflowDeploy {
 		t.Errorf("expected workflow 'deploy.yml', got %q", entries[0].Workflow)
 	}
 }

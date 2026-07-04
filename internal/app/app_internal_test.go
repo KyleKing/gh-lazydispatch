@@ -10,6 +10,12 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
+const (
+	testInputEnvironment = "environment"
+	testValueStaging     = "staging"
+	testValueCustom      = "custom"
+)
+
 func testWorkflows() []workflow.WorkflowFile {
 	return []workflow.WorkflowFile{
 		{
@@ -18,10 +24,10 @@ func testWorkflows() []workflow.WorkflowFile {
 			On: workflow.OnTrigger{
 				WorkflowDispatch: &workflow.WorkflowDispatch{
 					Inputs: map[string]workflow.WorkflowInput{
-						"environment": {
+						testInputEnvironment: {
 							Type:    "choice",
-							Default: "staging",
-							Options: []string{"production", "staging"},
+							Default: testValueStaging,
+							Options: []string{"production", testValueStaging},
 						},
 					},
 				},
@@ -39,9 +45,9 @@ func testWorkflows() []workflow.WorkflowFile {
 
 func testHistory() *frecency.Store {
 	store := frecency.NewStore()
-	store.Record("owner/repo", "deploy.yml", "main", map[string]string{"environment": "prod"})
+	store.Record("owner/repo", "deploy.yml", "main", map[string]string{testInputEnvironment: "prod"})
 	store.Record("owner/repo", "ci.yml", "main", map[string]string{})
-	store.Record("owner/repo", "deploy.yml", "develop", map[string]string{"environment": "staging"})
+	store.Record("owner/repo", "deploy.yml", "develop", map[string]string{testInputEnvironment: testValueStaging})
 
 	return store
 }
@@ -62,8 +68,8 @@ func TestNew(t *testing.T) {
 		t.Errorf("expected selectedWorkflow 0, got %d", m.selectedWorkflow)
 	}
 
-	if m.inputs["environment"] != "staging" {
-		t.Errorf("expected environment default 'staging', got %q", m.inputs["environment"])
+	if m.inputs[testInputEnvironment] != testValueStaging {
+		t.Errorf("expected environment default 'staging', got %q", m.inputs[testInputEnvironment])
 	}
 }
 
@@ -278,13 +284,13 @@ func TestHandleSelectResult(t *testing.T) {
 	t.Parallel()
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")
-	m.pendingInputName = "environment"
+	m.pendingInputName = testInputEnvironment
 
 	result, _ := m.handleSelectResult(modal.SelectResultMsg{Value: "production"})
 	m = result.(Model)
 
-	if m.inputs["environment"] != "production" {
-		t.Errorf("expected environment=production, got %q", m.inputs["environment"])
+	if m.inputs[testInputEnvironment] != "production" {
+		t.Errorf("expected environment=production, got %q", m.inputs[testInputEnvironment])
 	}
 
 	if m.pendingInputName != "" {
@@ -309,13 +315,13 @@ func TestHandleInputResult(t *testing.T) {
 	t.Parallel()
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")
-	m.pendingInputName = "environment"
+	m.pendingInputName = testInputEnvironment
 
-	result, _ := m.handleInputResult(modal.InputResultMsg{Value: "staging"})
+	result, _ := m.handleInputResult(modal.InputResultMsg{Value: testValueStaging})
 	m = result.(Model)
 
-	if m.inputs["environment"] != "staging" {
-		t.Errorf("expected environment=staging, got %q", m.inputs["environment"])
+	if m.inputs[testInputEnvironment] != testValueStaging {
+		t.Errorf("expected environment=staging, got %q", m.inputs[testInputEnvironment])
 	}
 
 	if m.pendingInputName != "" {
@@ -391,13 +397,13 @@ func TestHandleResetResult(t *testing.T) {
 	t.Parallel()
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")
-	m.inputs["environment"] = "custom"
+	m.inputs[testInputEnvironment] = testValueCustom
 
 	result, _ := m.handleResetResult(modal.ResetResultMsg{Confirmed: true})
 	m = result.(Model)
 
-	if m.inputs["environment"] != "staging" {
-		t.Errorf("expected environment reset to staging, got %q", m.inputs["environment"])
+	if m.inputs[testInputEnvironment] != testValueStaging {
+		t.Errorf("expected environment reset to staging, got %q", m.inputs[testInputEnvironment])
 	}
 }
 
@@ -405,13 +411,13 @@ func TestHandleResetResult_Canceled(t *testing.T) {
 	t.Parallel()
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")
-	m.inputs["environment"] = "custom"
+	m.inputs[testInputEnvironment] = testValueCustom
 
 	result, _ := m.handleResetResult(modal.ResetResultMsg{Confirmed: false})
 	m = result.(Model)
 
-	if m.inputs["environment"] != "custom" {
-		t.Errorf("expected environment unchanged, got %q", m.inputs["environment"])
+	if m.inputs[testInputEnvironment] != testValueCustom {
+		t.Errorf("expected environment unchanged, got %q", m.inputs[testInputEnvironment])
 	}
 }
 
@@ -443,7 +449,7 @@ func TestBuildCLIString(t *testing.T) {
 			name:     "with inputs",
 			workflow: 0,
 			branch:   "main",
-			inputs:   map[string]string{"environment": "production"},
+			inputs:   map[string]string{testInputEnvironment: "production"},
 			wantContains: []string{
 				"gh workflow run deploy.yml",
 				"--ref main",
@@ -494,7 +500,7 @@ func TestHandleWorkflowKey(t *testing.T) {
 			keyNum:          1,
 			wantWorkflow:    0,
 			wantInputsSet:   true,
-			wantEnvironment: "staging",
+			wantEnvironment: testValueStaging,
 		},
 		{
 			name:            "key 2 selects second workflow",
@@ -508,7 +514,7 @@ func TestHandleWorkflowKey(t *testing.T) {
 			keyNum:          3,
 			wantWorkflow:    0,
 			wantInputsSet:   true,
-			wantEnvironment: "staging",
+			wantEnvironment: testValueStaging,
 		},
 	}
 
@@ -527,7 +533,7 @@ func TestHandleWorkflowKey(t *testing.T) {
 			}
 
 			if tt.wantInputsSet {
-				if env, ok := m.inputs["environment"]; ok {
+				if env, ok := m.inputs[testInputEnvironment]; ok {
 					if env != tt.wantEnvironment {
 						t.Errorf("expected environment=%q, got %q", tt.wantEnvironment, env)
 					}
@@ -570,7 +576,7 @@ func TestGetSelectedInputName(t *testing.T) {
 	m.selectedInput = 0
 
 	name := m.getSelectedInputName()
-	if name != "environment" {
+	if name != testInputEnvironment {
 		t.Errorf("expected 'environment', got %q", name)
 	}
 

@@ -164,7 +164,7 @@ func NewExecutorFromHistory(
 
 // Start begins executing the chain with the given variables.
 //
-//nolint:unparam // error return is part of the public API contract; kept for future validation without breaking callers - human call needed on whether to drop it
+//nolint:unparam // error return is part of the public API contract; kept for future validation without breaking callers
 func (e *ChainExecutor) Start(variables map[string]string, branch string) error {
 	e.mu.Lock()
 	e.variables = variables
@@ -272,7 +272,9 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 	if err != nil {
 		suggestion := ""
 		if e.branch != "" {
-			suggestion = fmt.Sprintf("Verify workflow %q exists and supports workflow_dispatch on branch %q", step.Workflow, e.branch)
+			suggestion = fmt.Sprintf(
+				"Verify workflow %q exists and supports workflow_dispatch on branch %q", step.Workflow, e.branch,
+			)
 		}
 
 		return nil, &chainerr.StepDispatchError{

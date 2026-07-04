@@ -20,7 +20,7 @@ var errMockCommand = errors.New("mock command failed")
 // including workflow dispatch, status watching, and log retrieval.
 // This covers Phases 1-3: Chain execution, log viewer, and real log fetching.
 //
-//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_ChainExecutionWithLogs(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 	setupChainExecutionMocks(mockExec)
@@ -67,7 +67,7 @@ func TestEndToEnd_ChainExecutionWithLogs(t *testing.T) {
 
 // TestEndToEnd_LogFetchingWithGHCLI tests log fetching via mocked gh CLI.
 //
-//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_LogFetchingWithGHCLI(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 	setupLogFetchingMocks(t, mockExec)
@@ -108,7 +108,7 @@ func TestEndToEnd_LogFetchingWithGHCLI(t *testing.T) {
 
 // TestEndToEnd_FailedRunWithErrorLogs tests error detection in logs.
 //
-//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_FailedRunWithErrorLogs(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 	setupFailedRunMocks(t, mockExec)
@@ -141,7 +141,7 @@ func TestEndToEnd_FailedRunWithErrorLogs(t *testing.T) {
 
 // TestEndToEnd_WatcherRegistration tests that chain execution registers runs with the watcher.
 //
-//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_WatcherRegistration(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 	mockExec.AddCommand("gh", []string{"workflow", "run", "test.yml", "--ref", "main"}, "", "", nil)
@@ -170,7 +170,7 @@ func TestEndToEnd_WatcherRegistration(t *testing.T) {
 
 // TestEndToEnd_ChainFailureHandling tests chain behavior when a step fails.
 //
-//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -183,7 +183,7 @@ func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other subtests that do the same
+		//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent subtests
 		t.Run(tt.name, func(t *testing.T) {
 			mockExec := exec.NewMockExecutor()
 			mockExec.AddCommand("gh", []string{"workflow", "run", "step1.yml", "--ref", "main"},
@@ -224,7 +224,8 @@ func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 
 func setupChainExecutionMocks(m *exec.MockExecutor) {
 	m.AddCommand("gh", []string{"workflow", "run", "ci.yml", "--ref", "main"}, "", "", nil)
-	m.AddCommand("gh", []string{"workflow", "run", "deploy.yml", "--ref", "main", "-f", "environment=staging"}, "", "", nil)
+	m.AddCommand("gh",
+		[]string{"workflow", "run", "deploy.yml", "--ref", "main", "-f", "environment=staging"}, "", "", nil)
 }
 
 func setupLogFetchingMocks(t *testing.T, m *exec.MockExecutor) {
@@ -240,7 +241,8 @@ func setupLogFetchingMocks(t *testing.T, m *exec.MockExecutor) {
 			},
 		}},
 	}
-	m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/1001/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
+	m.AddCommand("gh",
+		[]string{"api", "repos/owner/repo/actions/runs/1001/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
 
 	logOutput := `##[group]Checkout
 Cloning repository...
@@ -267,7 +269,8 @@ func setupFailedRunMocks(t *testing.T, m *exec.MockExecutor) {
 			},
 		}},
 	}
-	m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/1002/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
+	m.AddCommand("gh",
+		[]string{"api", "repos/owner/repo/actions/runs/1002/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
 
 	logOutput := `##[group]Checkout
 Cloning repository...
@@ -285,7 +288,7 @@ ERROR: Build failed
 // 3. Retrieve logs for each step's workflow run
 // 4. Verify log content and step results correlation
 //
-//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestIntegration_ChainExecutionWithLogViewing(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 	runner.SetExecutor(mockExec)
@@ -296,7 +299,8 @@ func TestIntegration_ChainExecutionWithLogViewing(t *testing.T) {
 	mockExec.AddCommand("gh", []string{"workflow", "run", "ci.yml", "--ref", "main"}, "", "", nil)
 
 	// Step 2: deploy.yml (runID 5002)
-	mockExec.AddCommand("gh", []string{"workflow", "run", "deploy.yml", "--ref", "main", "-f", "env=production"}, "", "", nil)
+	mockExec.AddCommand("gh",
+		[]string{"workflow", "run", "deploy.yml", "--ref", "main", "-f", "env=production"}, "", "", nil)
 
 	// Setup log fetching for step 1 (ci.yml)
 	jobsRespCI := github.JobsResponse{
@@ -326,7 +330,10 @@ All tests passed (42 tests)
 			ID: 6002, Name: "deploy", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
 			Steps: []github.Step{
 				{Name: "Checkout", Number: 1, Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
-				{Name: "Deploy to production", Number: 2, Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
+				{
+					Name: "Deploy to production", Number: 2,
+					Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
+				},
 			},
 		}},
 	}
@@ -517,7 +524,7 @@ Deployment successful!
 // TestIntegration_ChainWithErrorLogs tests log viewing for a chain with error-level logs.
 // This verifies that error logs are properly captured even when steps complete.
 //
-//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestIntegration_ChainWithErrorLogs(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 	runner.SetExecutor(mockExec)

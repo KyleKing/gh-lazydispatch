@@ -113,7 +113,9 @@ func placeCenter(background, modal string, width, height int) string {
 
 	styledModal := modalStyle.Render(modal)
 
-	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, styledModal, lipgloss.WithWhitespaceChars(" "))
+	return lipgloss.Place(
+		width, height, lipgloss.Center, lipgloss.Center, styledModal, lipgloss.WithWhitespaceChars(" "),
+	)
 }
 
 // ModalClosedMsg is sent when a modal is closed.

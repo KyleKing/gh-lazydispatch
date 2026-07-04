@@ -43,7 +43,9 @@ func TestBuildArgs(t *testing.T) {
 					"dry_run":     "false",
 				},
 			},
-			wantContains: []string{"workflow", "run", "deploy.yml", "-f", "environment=production", "-f", "dry_run=false"},
+			wantContains: []string{
+				"workflow", "run", "deploy.yml", "-f", "environment=production", "-f", "dry_run=false",
+			},
 		},
 		{
 			name: "empty inputs skipped",
@@ -67,7 +69,9 @@ func TestBuildArgs(t *testing.T) {
 					"verbose": "true",
 				},
 			},
-			wantContains: []string{"workflow", "run", "ci.yml", "--ref", "feature/test", "-f", "env=staging", "-f", "verbose=true"},
+			wantContains: []string{
+				"workflow", "run", "ci.yml", "--ref", "feature/test", "-f", "env=staging", "-f", "verbose=true",
+			},
 		},
 	}
 
@@ -351,7 +355,8 @@ func TestExecuteWithExecutor(t *testing.T) {
 			}
 
 			if len(mock.executedCommands) != tt.wantCommands {
-				t.Errorf("ExecuteWithExecutor() executed %d commands, want %d", len(mock.executedCommands), tt.wantCommands)
+				t.Errorf("ExecuteWithExecutor() executed %d commands, want %d",
+					len(mock.executedCommands), tt.wantCommands)
 			}
 
 			if len(mock.executedCommands) > 0 {
@@ -363,7 +368,8 @@ func TestExecuteWithExecutor(t *testing.T) {
 
 			if tt.cfg.Watch && len(mock.executedCommands) == 2 {
 				watchCmd := mock.executedCommands[1]
-				if watchCmd.name != "gh" || len(watchCmd.args) < 2 || watchCmd.args[0] != "run" || watchCmd.args[1] != "watch" {
+				if watchCmd.name != "gh" || len(watchCmd.args) < 2 ||
+					watchCmd.args[0] != "run" || watchCmd.args[1] != "watch" {
 					t.Errorf("ExecuteWithExecutor() watch command = %v, want [gh run watch]", watchCmd)
 				}
 			}

@@ -77,7 +77,8 @@ func (t *rawOnTrigger) UnmarshalYAML(node *yaml.Node) error {
 		}
 	case yaml.MappingNode:
 		var m struct {
-			WorkflowDispatch *WorkflowDispatch `yaml:"workflow_dispatch"` //nolint:tagliatelle // matches GitHub Actions workflow YAML schema
+			//nolint:tagliatelle // matches GitHub Actions workflow YAML schema
+			WorkflowDispatch *WorkflowDispatch `yaml:"workflow_dispatch"`
 		}
 
 		if err := node.Decode(&m); err != nil {

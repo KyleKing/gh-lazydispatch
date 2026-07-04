@@ -77,7 +77,12 @@ func (c *MockConfig) setupWorkflowRuns() {
 	})
 
 	c.addRunJobs(demoRunIDDeploy, []github.Job{
-		{ID: demoJobIDDeployStaging, Name: "deploy-staging", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
+		{
+			ID:         demoJobIDDeployStaging,
+			Name:       "deploy-staging",
+			Status:     github.StatusCompleted,
+			Conclusion: github.ConclusionSuccess,
+		},
 		{ID: demoJobIDDeployProduction, Name: "deploy-production", Status: github.StatusInProgress, Conclusion: ""},
 	})
 
@@ -137,8 +142,13 @@ func DemoWorkflows() []workflow.WorkflowFile {
 			On: workflow.OnTrigger{
 				WorkflowDispatch: &workflow.WorkflowDispatch{
 					Inputs: map[string]workflow.WorkflowInput{
-						"environment": {Type: "choice", Description: "Target environment", Required: true, Options: []string{"staging", "production"}, Default: "staging"},
-						"dry_run":     {Type: "boolean", Description: "Perform dry run only", Required: false, Default: "false"},
+						"environment": {
+							Type: "choice", Description: "Target environment", Required: true,
+							Options: []string{"staging", "production"}, Default: "staging",
+						},
+						"dry_run": {
+							Type: "boolean", Description: "Perform dry run only", Required: false, Default: "false",
+						},
 					},
 				},
 			},
@@ -149,8 +159,13 @@ func DemoWorkflows() []workflow.WorkflowFile {
 			On: workflow.OnTrigger{
 				WorkflowDispatch: &workflow.WorkflowDispatch{
 					Inputs: map[string]workflow.WorkflowInput{
-						"version":    {Type: "string", Description: "Version to release (e.g., 1.0.0)", Required: true, Default: ""},
-						"prerelease": {Type: "boolean", Description: "Mark as prerelease", Required: false, Default: "false"},
+						"version": {
+							Type: "string", Description: "Version to release (e.g., 1.0.0)",
+							Required: true, Default: "",
+						},
+						"prerelease": {
+							Type: "boolean", Description: "Mark as prerelease", Required: false, Default: "false",
+						},
 					},
 				},
 			},
@@ -161,8 +176,13 @@ func DemoWorkflows() []workflow.WorkflowFile {
 			On: workflow.OnTrigger{
 				WorkflowDispatch: &workflow.WorkflowDispatch{
 					Inputs: map[string]workflow.WorkflowInput{
-						"iterations": {Type: "string", Description: "Number of iterations", Required: false, Default: "100"},
-						"profile":    {Type: "choice", Description: "Performance profile", Required: false, Options: []string{"quick", "standard", "thorough"}, Default: "standard"},
+						"iterations": {
+							Type: "string", Description: "Number of iterations", Required: false, Default: "100",
+						},
+						"profile": {
+							Type: "choice", Description: "Performance profile", Required: false,
+							Options: []string{"quick", "standard", "thorough"}, Default: "standard",
+						},
 					},
 				},
 			},

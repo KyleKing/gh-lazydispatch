@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+const (
+	goosDarwin     = "darwin"
+	goosLinux      = "linux"
+	goosWindows    = "windows"
+	cmdOpen        = "open"
+	cmdXdgOpen     = "xdg-open"
+	cmdWindowsExe  = "cmd"
+	testExampleURL = "https://example.com"
+)
+
 // mockCmd is a mock command runner that doesn't actually execute anything.
 type mockCmd struct {
 	name string
@@ -16,7 +26,7 @@ func (m *mockCmd) Start() error {
 	return m.err
 }
 
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
 func TestOpen(t *testing.T) {
 	// Save original and restore after test
 	originalExecCommand := execCommand
@@ -30,7 +40,7 @@ func TestOpen(t *testing.T) {
 		return cmd
 	}
 
-	url := "https://example.com"
+	url := testExampleURL
 	err := Open(url)
 	if err != nil {
 		t.Errorf("Open failed: %v", err)
@@ -42,22 +52,22 @@ func TestOpen(t *testing.T) {
 
 	// Verify correct command based on OS
 	switch runtime.GOOS {
-	case "darwin":
-		if capturedCmd.name != "open" {
+	case goosDarwin:
+		if capturedCmd.name != cmdOpen {
 			t.Errorf("expected command 'open', got '%s'", capturedCmd.name)
 		}
 		if len(capturedCmd.args) != 1 || capturedCmd.args[0] != url {
 			t.Errorf("expected args [%s], got %v", url, capturedCmd.args)
 		}
-	case "linux":
-		if capturedCmd.name != "xdg-open" {
+	case goosLinux:
+		if capturedCmd.name != cmdXdgOpen {
 			t.Errorf("expected command 'xdg-open', got '%s'", capturedCmd.name)
 		}
 		if len(capturedCmd.args) != 1 || capturedCmd.args[0] != url {
 			t.Errorf("expected args [%s], got %v", url, capturedCmd.args)
 		}
-	case "windows":
-		if capturedCmd.name != "cmd" {
+	case goosWindows:
+		if capturedCmd.name != cmdWindowsExe {
 			t.Errorf("expected command 'cmd', got '%s'", capturedCmd.name)
 		}
 		expectedArgs := []string{"/c", "start", url}
@@ -67,7 +77,7 @@ func TestOpen(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
 func TestOpen_InvalidURL(t *testing.T) {
 	originalExecCommand := execCommand
 	defer func() { execCommand = originalExecCommand }()
@@ -103,9 +113,9 @@ func TestOpen_InvalidURL(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
 func TestOpen_Darwin(t *testing.T) {
-	if runtime.GOOS != "darwin" {
+	if runtime.GOOS != goosDarwin {
 		t.Skip("skipping macOS-specific test")
 	}
 
@@ -120,7 +130,7 @@ func TestOpen_Darwin(t *testing.T) {
 		return cmd
 	}
 
-	url := "https://example.com"
+	url := testExampleURL
 	err := Open(url)
 	if err != nil {
 		t.Errorf("Open on macOS failed: %v", err)
@@ -130,7 +140,7 @@ func TestOpen_Darwin(t *testing.T) {
 		t.Fatal("expected command to be executed")
 	}
 
-	if capturedCmd.name != "open" {
+	if capturedCmd.name != cmdOpen {
 		t.Errorf("expected command 'open' on macOS, got '%s'", capturedCmd.name)
 	}
 
@@ -139,9 +149,9 @@ func TestOpen_Darwin(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
 func TestOpen_Linux(t *testing.T) {
-	if runtime.GOOS != "linux" {
+	if runtime.GOOS != goosLinux {
 		t.Skip("skipping Linux-specific test")
 	}
 
@@ -156,7 +166,7 @@ func TestOpen_Linux(t *testing.T) {
 		return cmd
 	}
 
-	url := "https://example.com"
+	url := testExampleURL
 	err := Open(url)
 	if err != nil {
 		t.Errorf("Open on Linux failed: %v", err)
@@ -166,7 +176,7 @@ func TestOpen_Linux(t *testing.T) {
 		t.Fatal("expected command to be executed")
 	}
 
-	if capturedCmd.name != "xdg-open" {
+	if capturedCmd.name != cmdXdgOpen {
 		t.Errorf("expected command 'xdg-open' on Linux, got '%s'", capturedCmd.name)
 	}
 
@@ -175,9 +185,9 @@ func TestOpen_Linux(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
 func TestOpen_Windows(t *testing.T) {
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != goosWindows {
 		t.Skip("skipping Windows-specific test")
 	}
 
@@ -192,7 +202,7 @@ func TestOpen_Windows(t *testing.T) {
 		return cmd
 	}
 
-	url := "https://example.com"
+	url := testExampleURL
 	err := Open(url)
 	if err != nil {
 		t.Errorf("Open on Windows failed: %v", err)
@@ -202,7 +212,7 @@ func TestOpen_Windows(t *testing.T) {
 		t.Fatal("expected command to be executed")
 	}
 
-	if capturedCmd.name != "cmd" {
+	if capturedCmd.name != cmdWindowsExe {
 		t.Errorf("expected command 'cmd' on Windows, got '%s'", capturedCmd.name)
 	}
 
@@ -218,7 +228,7 @@ func TestOpen_Windows(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrently with other tests that do the same
+//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
 func TestOpen_EmptyURL(t *testing.T) {
 	originalExecCommand := execCommand
 	defer func() { execCommand = originalExecCommand }()

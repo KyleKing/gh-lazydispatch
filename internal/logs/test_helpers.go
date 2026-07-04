@@ -162,7 +162,9 @@ func GenerateLogWithTimestamps(lines int) string {
 	var sb strings.Builder
 
 	for i := range lines {
-		timestamp := fmt.Sprintf("2024-01-01T12:%02d:%02d.000Z", i/secondsPerMinute%secondsPerMinute, i%secondsPerMinute)
+		timestamp := fmt.Sprintf(
+			"2024-01-01T12:%02d:%02d.000Z", i/secondsPerMinute%secondsPerMinute, i%secondsPerMinute,
+		)
 		sb.WriteString(fmt.Sprintf("%s INFO: Log line %d\n", timestamp, i))
 	}
 
