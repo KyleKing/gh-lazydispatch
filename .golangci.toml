@@ -1,7 +1,7 @@
 # Configuration file for golangci-lint
 # For more options, see https://golangci-lint.run/usage/configuration/
 
-version = 2
+version = "2"
 
 [formatters]
 enable = [
@@ -133,7 +133,6 @@ text = "fieldalignment"
 
 [linters.settings.cyclop]
 max-complexity = 15
-skip-tests = true
 
 [linters.settings.dupl]
 threshold = 100
@@ -156,7 +155,6 @@ min-complexity = 20
 [linters.settings.goconst]
 min-len = 3
 min-occurrences = 3
-ignore-tests = true
 
 [linters.settings.gocritic]
 enabled-tags = ["diagnostic", "style", "performance", "experimental", "opinionated"]
@@ -275,7 +273,7 @@ enable-all = true
 check-exported = true
 
 [linters.settings.wrapcheck]
-ignoreSigs = [
+ignore-sigs = [
   ".Errorf(",
   "errors.New(",
   "errors.Unwrap(",
