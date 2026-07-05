@@ -1,3 +1,9 @@
+## v1.0.2 (2026-07-05)
+
+### Fix
+
+- finish v2 linter migration
+
 ## v1.0.1 (2026-07-04)
 
 ### Refactor
