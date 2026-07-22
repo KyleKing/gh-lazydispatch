@@ -170,7 +170,11 @@ func (m Model) viewInputDetailsPane(width, height int) string {
 		return m.viewWorkflowPane(width, height)
 	}
 
-	wf := m.workflows[m.selectedWorkflow]
+	wf := m.SelectedWorkflow()
+	if wf == nil {
+		return m.viewWorkflowPane(width, height)
+	}
+
 	inputs := wf.GetInputs()
 
 	input, ok := inputs[selectedName]
