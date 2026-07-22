@@ -20,7 +20,34 @@ KEEP=1 ./scripts/live-test.sh --yes
 
 Without `--yes` or `GH_LD_LIVE_TEST=1` the script prints what it would create and destroy, then exits 1. Nothing happens by accident.
 
-Prerequisites: `gh`, `git`, and `go` on `PATH`, and a `gh` token that can create **and delete** repositories. Classic tokens need the `delete_repo` scope (`gh auth refresh -h github.com -s delete_repo`); fine-grained PATs need `Administration: write` on your account.
+Prerequisites: `gh`, `git`, and `go` on `PATH`, and a `gh` token that can create **and delete** repositories. See [Token setup](#token-setup) below, because the default credential usually cannot.
+
+## Token setup
+
+The script aborts in preflight if the token cannot create a repository:
+
+```
+POST /user/repos -> 403 Resource not accessible by personal access token
+```
+
+What to do depends on which credential `gh` has stored. Check the prefix in `gh auth status`: `gho_` is an OAuth token, `ghp_` a classic PAT, `github_pat_` a fine-grained PAT.
+
+**OAuth token (`gho_`)** — one command:
+
+```bash
+gh auth refresh --hostname github.com --scopes delete_repo
+```
+
+**Fine-grained PAT (`github_pat_`)** — `gh auth refresh` cannot help, because the permissions live on GitHub's side rather than under gh's OAuth app. Either switch to the OAuth flow above with `gh auth login --web`, or edit the token under Settings → Developer settings → Fine-grained tokens and grant **Administration: Read and write** with **Repository access: All repositories**. All repositories is required because the script creates a repo that does not exist yet, which a token scoped to selected repositories can never reach.
+
+**Classic PAT (`ghp_`)** — add the `delete_repo` scope to the token on the web, then re-store it with `gh auth login --with-token`.
+
+Verify with the same probe the script uses:
+
+```bash
+gh api -X POST /user/repos -f name=zz-token-probe -F private=true --jq .full_name \
+    && gh repo delete zz-token-probe --yes
+```
 
 ## What it does
 
@@ -66,7 +93,7 @@ The Go side has its own guard: `TestLiveDispatch` skips unless `GH_LD_LIVE_REPO`
 
 ## Troubleshooting
 
-`token cannot delete repositories` — refresh the token as described above.
+`token cannot delete repositories` or `cannot create repositories with this token` — see [Token setup](#token-setup).
 
 `could not enable GitHub Actions` — an organization or enterprise policy is blocking Actions on new repositories. Run the test under a personal account.
 
