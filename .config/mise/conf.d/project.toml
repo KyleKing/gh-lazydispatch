@@ -13,6 +13,10 @@ run = "go test -bench=. -benchmem ./internal/logs/... | tee bench.txt"
 description = "Run integration tests only"
 run = "go test -v -run TestIntegration ./..."
 
+[tasks."test:live"]
+description = "Run the live dispatch test against a throwaway GitHub repo (uses Actions minutes)"
+run = "./scripts/live-test.sh"
+
 [tasks."test:safety"]
 description = "Check for unsafe test patterns"
 run = "./scripts/check-test-safety.sh"

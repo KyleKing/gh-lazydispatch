@@ -27,6 +27,8 @@ Shared tasks live in `.config/mise/conf.d/template.toml` (managed by the copier 
 | `mise run test`   | Run tests with coverage       |
 | `mise tasks`      | List all available tasks      |
 
+`GH_LD_LIVE_TEST=1 mise run test:live` runs the live dispatch test against a throwaway GitHub repo. It creates and deletes a real repository and consumes Actions minutes, so it is opt-in. See [docs/live-testing.md](docs/live-testing.md).
+
 ## Code Guidelines
 
 Follow [AGENTS.md](AGENTS.md) for code organization, testing patterns, and error handling.
@@ -323,6 +325,8 @@ func TestMyFeature(t *testing.T) {
 ```
 
 Read-only commands (`gh api`, `gh run view`, `gh run list`, `gh run watch`) are always allowed.
+
+**Exercising the real dispatch path:** because the unit suite can never issue a real `gh workflow run`, the dispatch path is covered by an opt-in live test that creates and destroys its own scratch repository. See [docs/live-testing.md](docs/live-testing.md).
 
 ### Recording Demo
 
