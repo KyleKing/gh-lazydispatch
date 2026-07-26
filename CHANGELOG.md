@@ -1,3 +1,10 @@
+## v1.0.3 (2026-07-26)
+
+### Fix
+
+- **lint**: resolve golangci-lint 2.12.2 findings surfaced by the template update
+- guard the workflow index in the input details pane
+
 ## v1.0.2 (2026-07-05)
 
 ### Fix
