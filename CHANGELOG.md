@@ -1,3 +1,9 @@
+## v1.0.4 (2026-07-26)
+
+### Fix
+
+- **lint**: add missing t.Parallel calls in the linux-only test file
+
 ## v1.0.3 (2026-07-26)
 
 ### Fix
