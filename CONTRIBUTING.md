@@ -12,20 +12,21 @@ mise run ci
 
 ## Tasks
 
-Shared tasks live in `.config/mise/conf.d/template.toml` (managed by the copier template). Project-specific tasks go in additional `.config/mise/conf.d/*.toml` files, which mise always loads regardless of `MISE_ENV`.
+Shared tasks live in `.config/mise/conf.d/template.toml` (managed by the copier template). Project-specific tasks go in additional `.config/mise/conf.d/*.toml` files.
 
-| Command           | Description                   |
-| ----------------- | ----------------------------- |
-| `mise run bench`  | Run benchmarks                |
-| `mise run build`  | Build binary                  |
-| `mise run ci`     | Full CI check (tests + build) |
-| `mise run clean`  | Clean build artifacts         |
-| `mise run demo`   | Generate VHS demo recordings  |
-| `mise run format` | Auto-fix lint and formatting  |
-| `mise run hooks`  | Run git hooks                 |
-| `mise run lint`   | Run linter                    |
-| `mise run test`   | Run tests with coverage       |
-| `mise tasks`      | List all available tasks      |
+| Command           | Description                                              |
+| ----------------- | -------------------------------------------------------- |
+| `mise run bench`  | Run benchmarks                                           |
+| `mise run build`  | Build binary                                             |
+| `mise run ci`     | Full CI check (tests + build)                            |
+| `mise run clean`  | Clean build artifacts                                    |
+| `mise run demo`   | Generate VHS demo recordings                             |
+| `mise run format` | Auto-fix lint and formatting                             |
+| `mise run hooks`  | Run git hooks                                            |
+| `mise run lint`   | Run linter                                               |
+| `mise dev`        | Run from source (`go run`, always reflects current code) |
+| `mise run test`   | Run tests with coverage                                  |
+| `mise tasks`      | List all available tasks                                 |
 
 `GH_LD_LIVE_TEST=1 mise run test:live` runs the live dispatch test against a throwaway GitHub repo. It creates and deletes a real repository and consumes Actions minutes, so it is opt-in. See [docs/live-testing.md](docs/live-testing.md).
 
@@ -49,26 +50,18 @@ Git hooks run automatically via hk on commit and push.
 
 ## Development Install
 
-For GH CLI extensions, install locally during development:
+Run straight from source with `go run`, which always reflects the current code, so there's no built binary or installed extension to go stale between edits:
 
 ```bash
-mise run build
-gh extension install .
+go run ./cmd/gh-lazydispatch [args]
 ```
 
-After code changes, rebuild and reinstall:
+To test the actual `gh gh-lazydispatch ...` extension invocation or a Homebrew install, use the released version rather than installing from this checkout:
 
 ```bash
-gh extension remove gh-lazydispatch
-mise run build
-gh extension install .
-```
-
-Or test directly without installing:
-
-```bash
-mise run build
-./gh-lazydispatch [args]
+gh extension install kyleking/gh-lazydispatch
+# or
+brew install --formula https://github.com/kyleking/gh-lazydispatch/raw/main/Formula/gh-lazydispatch.rb
 ```
 
 ## Releases

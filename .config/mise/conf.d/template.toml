@@ -28,9 +28,13 @@ description = "Generate VHS demo recordings"
 run = 'find . -name "*.tape" -not -path "./.git/*" -exec vhs {} \;'
 depends = ["build"]
 
+[tasks.dev]
+description = "Run from source (always reflects current code, no stale build)"
+run = "go run ./cmd/gh-lazydispatch"
+
 [tasks.format]
 description = "Format code with golangci-lint and golines"
-run = ["golangci-lint run --fix ./...", "golines -w ."]
+run = ["golangci-lint run --fix ./...", "golines -w -m 120 ."]
 
 [tasks.hooks]
 description = "Run git hooks"

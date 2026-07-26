@@ -61,7 +61,6 @@ enable = [
   "godot",
   "godox",
   "gomoddirectives",
-  "gomodguard",
   "goprintffuncname",
   "gosec",
   "gosmopolitan",
@@ -122,7 +121,10 @@ enable = [
   "zerologlint"
 ]
 
-[linters.exclusions]
+[[linters.exclusions.rules]]
+# Table-driven tests grow long cases and repeat literals without adding real complexity.
+path = "_test\\.go"
+linters = ["cyclop", "goconst"]
 
 [[linters.exclusions.rules]]
 # table-driven tests use positional struct literals (see AGENTS.md); field
@@ -170,9 +172,6 @@ min-complexity = 15
 [linters.settings.godot]
 scope = "declarations"
 capital = true
-
-[linters.settings.gomodguard]
-blocked.modules = []
 
 [linters.settings.govet]
 enable-all = true
