@@ -96,7 +96,7 @@ func (m *MockExecutor) AddCommand(name string, args []string, stdout, stderr str
 
 // AddGHRunView is a convenience method for adding gh run view commands.
 func (m *MockExecutor) AddGHRunView(runID, jobID int64, logOutput string) {
-	args := []string{"run", "view", strconv.FormatInt(runID, 10), "--log"}
+	args := []string{ghRunSubcommand, ghViewOperation, strconv.FormatInt(runID, 10), ghLogFlag}
 	if jobID > 0 {
 		args = append(args, "--job", strconv.FormatInt(jobID, 10))
 	}
@@ -106,7 +106,7 @@ func (m *MockExecutor) AddGHRunView(runID, jobID int64, logOutput string) {
 
 // AddGHRunViewError is a convenience method for adding failing gh run view commands.
 func (m *MockExecutor) AddGHRunViewError(runID, jobID int64, stderr string, err error) {
-	args := []string{"run", "view", strconv.FormatInt(runID, 10), "--log"}
+	args := []string{ghRunSubcommand, ghViewOperation, strconv.FormatInt(runID, 10), ghLogFlag}
 	if jobID > 0 {
 		args = append(args, "--job", strconv.FormatInt(jobID, 10))
 	}
@@ -123,7 +123,7 @@ func (m *MockExecutor) Reset() {
 
 // AddGHWorkflowRun mocks a successful gh workflow run command.
 func (m *MockExecutor) AddGHWorkflowRun(workflow, branch string, inputs map[string]string) {
-	args := []string{"workflow", "run", workflow}
+	args := []string{ghWorkflowSubcommand, ghRunSubcommand, workflow}
 	if branch != "" {
 		args = append(args, "--ref", branch)
 	}
@@ -139,7 +139,7 @@ func (m *MockExecutor) AddGHWorkflowRun(workflow, branch string, inputs map[stri
 
 // AddGHWorkflowRunError mocks a failing gh workflow run command.
 func (m *MockExecutor) AddGHWorkflowRunError(workflow, branch, stderr string, err error) {
-	args := []string{"workflow", "run", workflow}
+	args := []string{ghWorkflowSubcommand, ghRunSubcommand, workflow}
 	if branch != "" {
 		args = append(args, "--ref", branch)
 	}
@@ -154,13 +154,13 @@ func (m *MockExecutor) AddGHAPIRun(owner, repo string, runID int64, status, conc
 		`{"id":%d,"name":"CI","status":%q,"conclusion":%q,"html_url":"https://github.com/%s/%s/actions/runs/%d"}`,
 		runID, status, conclusion, owner, repo, runID,
 	)
-	m.AddCommand("gh", []string{"api", path}, runJSON, "", nil)
+	m.AddCommand("gh", []string{ghAPISubcommand, path}, runJSON, "", nil)
 }
 
 // AddGHAPIJobs mocks a gh api call for workflow run jobs.
 func (m *MockExecutor) AddGHAPIJobs(owner, repo string, runID int64, jobs string) {
 	path := fmt.Sprintf("repos/%s/%s/actions/runs/%d/jobs", owner, repo, runID)
-	m.AddCommand("gh", []string{"api", path}, jobs, "", nil)
+	m.AddCommand("gh", []string{ghAPISubcommand, path}, jobs, "", nil)
 }
 
 // AddGHAPILatestRun mocks a gh api call for the latest workflow run.
@@ -171,7 +171,7 @@ func (m *MockExecutor) AddGHAPILatestRun(owner, repo, workflow string, runID int
 	}
 
 	runsJSON := fmt.Sprintf(`{"total_count":1,"workflow_runs":[{"id":%d,"name":"CI","status":%q}]}`, runID, status)
-	m.AddCommand("gh", []string{"api", path}, runsJSON, "", nil)
+	m.AddCommand("gh", []string{ghAPISubcommand, path}, runsJSON, "", nil)
 }
 
 // AddGHVersion mocks the gh --version command.

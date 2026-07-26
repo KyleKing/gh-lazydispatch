@@ -2,6 +2,7 @@ package app
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
@@ -81,12 +82,11 @@ func _padRight(s string, length int) string {
 const maxSingleDigitIndex = 9
 
 func _formatRowNumber(index int) string {
-	displayIdx := index
-	if displayIdx <= maxSingleDigitIndex {
-		return string(rune('0' + displayIdx))
+	if index < 0 || index > maxSingleDigitIndex {
+		return " "
 	}
 
-	return " "
+	return strconv.Itoa(index)
 }
 
 func _contains(slice []string, item string) bool {

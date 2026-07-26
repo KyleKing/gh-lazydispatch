@@ -173,7 +173,7 @@ func (f *Fetcher) FetchRunSummary(runID int64) (string, error) {
 
 	var summary strings.Builder
 
-	summary.WriteString(fmt.Sprintf("Workflow Run #%d Summary\n\n", runID))
+	fmt.Fprintf(&summary, "Workflow Run #%d Summary\n\n", runID)
 
 	hasFailures := false
 
@@ -181,11 +181,11 @@ func (f *Fetcher) FetchRunSummary(runID int64) (string, error) {
 		if job.Conclusion != github.ConclusionSuccess {
 			hasFailures = true
 
-			summary.WriteString(fmt.Sprintf("Job: %s (%s)\n", job.Name, job.Conclusion))
+			fmt.Fprintf(&summary, "Job: %s (%s)\n", job.Name, job.Conclusion)
 
 			for _, step := range job.Steps {
 				if step.Conclusion != github.ConclusionSuccess && step.Conclusion != "" {
-					summary.WriteString(fmt.Sprintf("  ✗ %s: %s\n", step.Name, step.Conclusion))
+					fmt.Fprintf(&summary, "  ✗ %s: %s\n", step.Name, step.Conclusion)
 				}
 			}
 
@@ -198,7 +198,7 @@ func (f *Fetcher) FetchRunSummary(runID int64) (string, error) {
 	}
 
 	summary.WriteString("\nTo view full logs:\n")
-	summary.WriteString(fmt.Sprintf("  gh run view %d --log\n", runID))
+	fmt.Fprintf(&summary, "  gh run view %d --log\n", runID)
 
 	return summary.String(), nil
 }

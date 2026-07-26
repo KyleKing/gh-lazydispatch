@@ -18,6 +18,8 @@ var templatePattern = regexp.MustCompile(`\{\{\s*([^}]+)\s*\}\}`)
 // (e.g. "var.key"); anything shorter is left unresolved.
 const minExprParts = 2
 
+const inputsSegment = "inputs"
+
 // decimalBase is used to accumulate digit characters into an integer.
 const decimalBase = 10
 
@@ -76,7 +78,7 @@ func resolveVarExpr(ctx *InterpolationContext, parts []string) (string, bool) {
 
 // resolvePreviousExpr resolves a "previous.inputs.key" expression against the previous step's inputs.
 func resolvePreviousExpr(ctx *InterpolationContext, parts []string) (string, bool) {
-	if ctx.Previous == nil || len(parts) < 3 || parts[1] != "inputs" {
+	if ctx.Previous == nil || len(parts) < 3 || parts[1] != inputsSegment {
 		return "", false
 	}
 
@@ -88,7 +90,7 @@ func resolvePreviousExpr(ctx *InterpolationContext, parts []string) (string, boo
 
 // resolveStepsExpr resolves a "steps.N.inputs.key" expression against a specific step's inputs.
 func resolveStepsExpr(ctx *InterpolationContext, parts []string) (string, bool) {
-	if ctx.Steps == nil || len(parts) < 4 || parts[2] != "inputs" {
+	if ctx.Steps == nil || len(parts) < 4 || parts[2] != inputsSegment {
 		return "", false
 	}
 

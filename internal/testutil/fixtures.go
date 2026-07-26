@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+const endGroupMarker = "##[endgroup]"
+
 const (
 	percentScale      = 100
 	secondsPerMinute  = 60
@@ -22,15 +24,15 @@ func GenerateLargeLogFixture(lines int) string {
 	templates := []string{
 		"##[group]Run actions/checkout@v4",
 		"Syncing repository: owner/repo",
-		"##[endgroup]",
+		endGroupMarker,
 		"##[group]Build",
 		"Installing dependencies...",
 		"Running build process...",
-		"##[endgroup]",
+		endGroupMarker,
 		"##[group]Test",
 		"Running test suite...",
 		"Test passed: %d",
-		"##[endgroup]",
+		endGroupMarker,
 		"INFO: Processing file %d",
 		"DEBUG: Cache hit for key %d",
 		"Completed step %d of %d",
@@ -39,7 +41,7 @@ func GenerateLargeLogFixture(lines int) string {
 	for i := range lines {
 		template := templates[i%len(templates)]
 		if strings.Contains(template, "%d") {
-			sb.WriteString(fmt.Sprintf(template, i))
+			fmt.Fprintf(&sb, template, i)
 		} else {
 			sb.WriteString(template)
 		}
@@ -58,11 +60,11 @@ func GenerateLargeLogWithErrors(lines int, errorRate float64) string {
 	for i := range lines {
 		switch {
 		case float64(i%percentScale) < errorRate*percentScale:
-			sb.WriteString(fmt.Sprintf("##[error]Error on line %d: operation failed\n", i))
+			fmt.Fprintf(&sb, "##[error]Error on line %d: operation failed\n", i)
 		case float64(i%percentScale) < (errorRate+warningRateOffset)*percentScale:
-			sb.WriteString(fmt.Sprintf("##[warning]Warning on line %d: deprecated usage\n", i))
+			fmt.Fprintf(&sb, "##[warning]Warning on line %d: deprecated usage\n", i)
 		default:
-			sb.WriteString(fmt.Sprintf("INFO: Processing line %d\n", i))
+			fmt.Fprintf(&sb, "INFO: Processing line %d\n", i)
 		}
 	}
 
@@ -141,7 +143,7 @@ func GenerateLogWithPatterns(lines int, patterns []string) string {
 
 	for i := range lines {
 		pattern := patterns[i%len(patterns)]
-		sb.WriteString(fmt.Sprintf("Line %d: %s\n", i, pattern))
+		fmt.Fprintf(&sb, "Line %d: %s\n", i, pattern)
 	}
 
 	return sb.String()
@@ -153,16 +155,16 @@ func GenerateMultiStepLog(numSteps, linesPerStep int) string {
 	var sb strings.Builder
 
 	for i := range numSteps {
-		sb.WriteString(fmt.Sprintf("##[group]Run step-%d\n", i))
+		fmt.Fprintf(&sb, "##[group]Run step-%d\n", i)
 
 		for j := range linesPerStep {
 			switch {
 			case j%20 == 0:
-				sb.WriteString(fmt.Sprintf("##[error]Error in step %d line %d\n", i, j))
+				fmt.Fprintf(&sb, "##[error]Error in step %d line %d\n", i, j)
 			case j%10 == 0:
-				sb.WriteString(fmt.Sprintf("##[warning]Warning in step %d line %d\n", i, j))
+				fmt.Fprintf(&sb, "##[warning]Warning in step %d line %d\n", i, j)
 			default:
-				sb.WriteString(fmt.Sprintf("INFO: Step %d line %d\n", i, j))
+				fmt.Fprintf(&sb, "INFO: Step %d line %d\n", i, j)
 			}
 		}
 
@@ -181,7 +183,7 @@ func GenerateLogWithTimestamps(lines int) string {
 		timestamp := fmt.Sprintf(
 			"2024-01-01T12:%02d:%02d.000Z", i/secondsPerMinute%secondsPerMinute, i%secondsPerMinute,
 		)
-		sb.WriteString(fmt.Sprintf("%s INFO: Log line %d\n", timestamp, i))
+		fmt.Fprintf(&sb, "%s INFO: Log line %d\n", timestamp, i)
 	}
 
 	return sb.String()
@@ -194,7 +196,7 @@ func GenerateMixedLog(lines int) string {
 
 	patterns := []string{
 		"##[group]Step Group",
-		"##[endgroup]",
+		endGroupMarker,
 		"INFO: Normal log line",
 		"##[error]Error: Something failed",
 		"##[warning]Warning: Deprecated usage",
@@ -208,7 +210,7 @@ func GenerateMixedLog(lines int) string {
 
 	for i := range lines {
 		pattern := patterns[i%len(patterns)]
-		sb.WriteString(fmt.Sprintf("%s %d\n", pattern, i))
+		fmt.Fprintf(&sb, "%s %d\n", pattern, i)
 	}
 
 	return sb.String()

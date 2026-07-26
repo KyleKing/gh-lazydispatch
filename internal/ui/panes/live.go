@@ -12,6 +12,8 @@ import (
 
 const liveWorkflowColWidth = 20
 
+const statusUnknown = "unknown"
+
 // LiveRunsModel manages the live runs display.
 type LiveRunsModel struct {
 	runs          []watcher.WatchedRun
@@ -119,7 +121,7 @@ func (m LiveRunsModel) ViewContent() string {
 		case run.Conclusion != "":
 			status = run.Conclusion
 		default:
-			status = "unknown"
+			status = statusUnknown
 		}
 
 		indicator := "  "

@@ -10,6 +10,11 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
+const (
+	environmentInput = "environment"
+	stagingEnv       = "staging"
+)
+
 // Demo run and job IDs used to populate mock GitHub API responses.
 const (
 	demoRunIDCI      = 1001
@@ -95,8 +100,8 @@ func (c *MockConfig) setupWorkflowDispatch() {
 	// Mock workflow dispatch commands
 	c.Executor.AddGHWorkflowRun("ci.yml", "main", nil)
 	c.Executor.AddGHWorkflowRun("ci.yml", "develop", nil)
-	c.Executor.AddGHWorkflowRun("deploy.yml", "main", map[string]string{"environment": "staging"})
-	c.Executor.AddGHWorkflowRun("deploy.yml", "main", map[string]string{"environment": "production"})
+	c.Executor.AddGHWorkflowRun("deploy.yml", "main", map[string]string{environmentInput: stagingEnv})
+	c.Executor.AddGHWorkflowRun("deploy.yml", "main", map[string]string{environmentInput: "production"})
 	c.Executor.AddGHWorkflowRun("release.yml", "main", map[string]string{"version": "1.0.0"})
 
 	// Mock latest run lookup after dispatch
@@ -142,9 +147,9 @@ func Workflows() []workflow.File {
 			On: workflow.OnTrigger{
 				Dispatch: &workflow.Dispatch{
 					Inputs: map[string]workflow.Input{
-						"environment": {
+						environmentInput: {
 							Type: "choice", Description: "Target environment", Required: true,
-							Options: []string{"staging", "production"}, Default: "staging",
+							Options: []string{stagingEnv, "production"}, Default: stagingEnv,
 						},
 						"dry_run": {
 							Type: "boolean", Description: "Perform dry run only", Required: false, Default: "false",

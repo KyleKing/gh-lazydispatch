@@ -125,15 +125,15 @@ func TestDeduplicateBranches(t *testing.T) {
 func TestDefaultBranches(t *testing.T) {
 	t.Parallel()
 
-	got := _defaultBranches()
+	got := DefaultBranches()
 
 	expectedBranches := []string{"main", "master", "develop"}
 	if !reflect.DeepEqual(got, expectedBranches) {
-		t.Errorf("_defaultBranches() = %v, want %v", got, expectedBranches)
+		t.Errorf("DefaultBranches() = %v, want %v", got, expectedBranches)
 	}
 
 	if len(got) != 3 {
-		t.Errorf("_defaultBranches() length = %d, want 3", len(got))
+		t.Errorf("DefaultBranches() length = %d, want 3", len(got))
 	}
 }
 
@@ -402,7 +402,7 @@ func TestFetchBranchesTimeout(t *testing.T) {
 		t.Error("fetchBranchesWithRunner() expected timeout error, got nil")
 	}
 
-	if !reflect.DeepEqual(branches, _defaultBranches()) {
+	if !reflect.DeepEqual(branches, DefaultBranches()) {
 		t.Errorf("fetchBranchesWithRunner() on timeout = %v, want default branches", branches)
 	}
 }

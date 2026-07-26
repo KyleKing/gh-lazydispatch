@@ -15,6 +15,12 @@ const (
 	gitCommandTimeout    = 2 * time.Second
 )
 
+const (
+	branchDevelop = "develop"
+	branchMain    = "main"
+	branchMaster  = "master"
+)
+
 // CommandRunner executes git commands and returns their output.
 type CommandRunner interface {
 	RunCommand(ctx context.Context, args ...string) ([]byte, error)
@@ -23,7 +29,7 @@ type CommandRunner interface {
 type defaultCommandRunner struct{}
 
 func (*defaultCommandRunner) RunCommand(ctx context.Context, args ...string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd := exec.CommandContext(ctx, "git", args...) // #nosec G204 -- fixed git binary; args are built internally
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -48,7 +54,7 @@ func fetchBranchesWithRunner(ctx context.Context, r CommandRunner) ([]string, er
 
 	output, err := r.RunCommand(ctx, "branch", "-r", "--list")
 	if err != nil {
-		return _defaultBranches(), err
+		return DefaultBranches(), err
 	}
 
 	branches := _parseBranches(string(output))
@@ -56,7 +62,7 @@ func fetchBranchesWithRunner(ctx context.Context, r CommandRunner) ([]string, er
 	sort.Strings(branches)
 
 	if len(branches) == 0 {
-		return _defaultBranches(), nil
+		return DefaultBranches(), nil
 	}
 
 	return branches, nil
@@ -106,8 +112,9 @@ func getDefaultBranchWithRunner(ctx context.Context, r CommandRunner) string {
 	return branch
 }
 
-func _defaultBranches() []string {
-	return []string{"main", "master", "develop"}
+// DefaultBranches returns the fallback branch list used when none can be fetched.
+func DefaultBranches() []string {
+	return []string{branchMain, branchMaster, branchDevelop}
 }
 
 func _parseBranches(output string) []string {

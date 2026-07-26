@@ -138,7 +138,7 @@ func (m *ChainStatusModal) buildBashScript() string {
 	sb.WriteString("set -e\n\n")
 
 	for i, cmd := range m.commands {
-		sb.WriteString(fmt.Sprintf("# Step %d\n", i+1))
+		fmt.Fprintf(&sb, "# Step %d\n", i+1)
 		sb.WriteString(cmd)
 		sb.WriteString("\n\n")
 	}

@@ -269,7 +269,7 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 	inputs, err := InterpolateInputs(step.Inputs, ctx)
 	if err != nil {
 		return nil, &chainerr.InterpolationError{
-			Field: "inputs",
+			Field: inputsSegment,
 			Value: fmt.Sprintf("%v", step.Inputs),
 			Cause: err,
 		}

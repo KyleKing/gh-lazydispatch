@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -679,13 +680,13 @@ func (m *LogsViewerModal) renderLiveIndicator() string {
 	var style lipgloss.Style
 
 	switch m.liveStatus {
-	case "in_progress":
+	case github.StatusInProgress:
 		indicator = "[LIVE]"
 		style = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true) // Red
-	case "queued":
+	case github.StatusQueued:
 		indicator = "[QUEUED]"
 		style = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Bold(true) // Yellow
-	case "completed":
+	case github.StatusCompleted:
 		indicator = "[COMPLETED]"
 		style = lipgloss.NewStyle().Foreground(lipgloss.Color("120")).Bold(true) // Green
 	default:
@@ -740,7 +741,7 @@ func (m *LogsViewerModal) EnableStreaming(runID int64, autoScroll bool) {
 	m.isStreaming = true
 	m.streamRunID = runID
 	m.autoScroll = autoScroll
-	m.liveStatus = "in_progress"
+	m.liveStatus = github.StatusInProgress
 	m.lastUpdateTime = time.Now()
 }
 
@@ -771,7 +772,7 @@ func (m *LogsViewerModal) AppendStreamUpdate(update logs.StreamUpdate) {
 	}
 
 	// If run completed, disable streaming
-	if update.Status == "completed" {
+	if update.Status == github.StatusCompleted {
 		m.isStreaming = false
 	}
 

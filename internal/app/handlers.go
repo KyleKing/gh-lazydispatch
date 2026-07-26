@@ -30,6 +30,8 @@ const paneCount = 3
 // boolTrueValue is the string representation of a "true" boolean workflow input.
 const boolTrueValue = "true"
 
+const inputTypeChoice = "choice"
+
 // ErrLogManagerNotInitialized indicates logs were requested before the log manager was set up.
 var ErrLogManagerNotInitialized = errors.New("log manager not initialized")
 
@@ -567,7 +569,7 @@ func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
 
 	branches, err := git.FetchBranches(ctx)
 	if err != nil {
-		branches = []string{"main", "master", "develop"}
+		branches = git.DefaultBranches()
 	}
 
 	if m.branch != "" && !_contains(branches, m.branch) {
@@ -627,7 +629,7 @@ func (m Model) openInputModalForName(name string) (tea.Model, tea.Cmd) {
 		current := currentVal == boolTrueValue
 		defaultVal := input.Default == boolTrueValue
 		m.modalStack.Push(modal.NewConfirmModal(name, input.Description, current, defaultVal))
-	case "choice":
+	case inputTypeChoice:
 		m.modalStack.Push(modal.NewSelectModal(name, input.Options, currentVal, input.Default))
 	default:
 		m.modalStack.Push(modal.NewInputModal(

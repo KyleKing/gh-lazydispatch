@@ -10,6 +10,14 @@ import (
 	"testing"
 )
 
+const (
+	ghAPISubcommand      = "api"
+	ghLogFlag            = "--log"
+	ghRunSubcommand      = "run"
+	ghViewOperation      = "view"
+	ghWorkflowSubcommand = "workflow"
+)
+
 // CommandExecutor defines an interface for executing external commands.
 // This allows us to mock command execution in tests.
 type CommandExecutor interface {
@@ -41,6 +49,7 @@ func (*RealExecutor) Execute(name string, args ...string) (stdout, stderr string
 		))
 	}
 
+	// #nosec G204 -- deliberate exec wrapper; callers pass fixed binaries with internal args
 	cmd := exec.CommandContext(context.Background(), name, args...)
 
 	var stdoutBuf, stderrBuf bytes.Buffer
@@ -65,31 +74,31 @@ func isMutationCommand(name string, args []string) bool {
 
 	// Block commands that can mutate GitHub state
 	mutationCommands := map[string]bool{
-		"workflow":    true, // gh workflow run
-		"issue":       true, // gh issue create/edit/close
-		"pr":          true, // gh pr create/merge/close
-		"release":     true, // gh release create/delete
-		"repo":        true, // gh repo create/delete
-		"secret":      true, // gh secret set/delete
-		"variable":    true, // gh variable set/delete
-		"label":       true, // gh label create/delete
-		"run":         true, // gh run cancel/rerun (but not "run view")
-		"gist":        true, // gh gist create/delete
-		"project":     true, // gh project create/delete
-		"cache":       true, // gh cache delete
-		"attestation": true, // gh attestation verify can write
-		"codespace":   true, // gh codespace create/delete
-		"gpg-key":     true, // gh gpg-key add/delete
-		"ssh-key":     true, // gh ssh-key add/delete
+		ghWorkflowSubcommand: true, // gh workflow run
+		"issue":              true, // gh issue create/edit/close
+		"pr":                 true, // gh pr create/merge/close
+		"release":            true, // gh release create/delete
+		"repo":               true, // gh repo create/delete
+		"secret":             true, // gh secret set/delete
+		"variable":           true, // gh variable set/delete
+		"label":              true, // gh label create/delete
+		ghRunSubcommand:      true, // gh run cancel/rerun (but not "run view")
+		"gist":               true, // gh gist create/delete
+		"project":            true, // gh project create/delete
+		"cache":              true, // gh cache delete
+		"attestation":        true, // gh attestation verify can write
+		"codespace":          true, // gh codespace create/delete
+		"gpg-key":            true, // gh gpg-key add/delete
+		"ssh-key":            true, // gh ssh-key add/delete
 	}
 
 	subcommand := args[0]
 
 	// Special case: "gh run view" is read-only, but "gh run cancel/rerun" are mutations
-	if subcommand == "run" && len(args) > 1 {
+	if subcommand == ghRunSubcommand && len(args) > 1 {
 		operation := args[1]
 		// Allow read-only run operations
-		if operation == "view" || operation == "list" || operation == "watch" {
+		if operation == ghViewOperation || operation == "list" || operation == "watch" {
 			return false
 		}
 

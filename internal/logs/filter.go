@@ -200,21 +200,21 @@ type MatchPosition struct {
 
 // QuickFilters provides common filter configurations.
 var QuickFilters = map[string]*FilterConfig{
-	"all": {
+	string(FilterAll): {
 		Level:         FilterAll,
 		SearchTerm:    "",
 		CaseSensitive: false,
 		Regex:         false,
 		StepIndex:     -1,
 	},
-	"errors": {
+	string(FilterErrors): {
 		Level:         FilterErrors,
 		SearchTerm:    "",
 		CaseSensitive: false,
 		Regex:         false,
 		StepIndex:     -1,
 	},
-	"warnings": {
+	string(FilterWarnings): {
 		Level:         FilterWarnings,
 		SearchTerm:    "",
 		CaseSensitive: false,

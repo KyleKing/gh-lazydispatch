@@ -1,6 +1,10 @@
 package app
 
-import "charm.land/bubbles/v2/key"
+import (
+	"strconv"
+
+	"charm.land/bubbles/v2/key"
+)
 
 // KeyMap defines all keyboard shortcuts for the application.
 type KeyMap struct {
@@ -51,7 +55,7 @@ type KeyMap struct {
 
 // makeNumberedBinding creates a key binding for a numbered shortcut.
 func makeNumberedBinding(num int, prefix string) key.Binding {
-	numStr := string('0' + rune(num))
+	numStr := strconv.Itoa(num)
 	label := numStr
 
 	if prefix == "workflow" && num == 0 {

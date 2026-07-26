@@ -39,14 +39,17 @@ func CachePath() string {
 // oldPath exists and newPath does not. Both paths are derived internally from
 // XDG_CACHE_HOME/the user's home directory, never from external input.
 func migrateOldCache(oldPath, newPath string) {
+	// #nosec G703 -- path derived from XDG_CACHE_HOME/home dir, not external input
 	if _, err := os.Stat(oldPath); err != nil {
 		return
 	}
 
+	// #nosec G703 -- path derived from XDG_CACHE_HOME/home dir, not external input
 	if _, err := os.Stat(newPath); !os.IsNotExist(err) {
 		return
 	}
 
+	// #nosec G703 -- path derived from XDG_CACHE_HOME/home dir, not external input
 	if err := os.MkdirAll(filepath.Dir(newPath), dirPerm); err != nil {
 		return
 	}
@@ -56,6 +59,7 @@ func migrateOldCache(oldPath, newPath string) {
 		return
 	}
 
+	// #nosec G703 -- path derived from XDG_CACHE_HOME/home dir, not external input
 	//nolint:errcheck // best-effort cache migration; no error return to propagate failure to
 	_ = os.WriteFile(newPath, data, filePerm)
 }

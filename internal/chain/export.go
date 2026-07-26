@@ -14,10 +14,10 @@ func ExportAsBash(chainName string, chain *config.Chain, variables map[string]st
 	var sb strings.Builder
 
 	sb.WriteString("#!/bin/bash\n")
-	sb.WriteString(fmt.Sprintf("# Chain: %s\n", chainName))
+	fmt.Fprintf(&sb, "# Chain: %s\n", chainName)
 
 	if chain.Description != "" {
-		sb.WriteString(fmt.Sprintf("# %s\n", chain.Description))
+		fmt.Fprintf(&sb, "# %s\n", chain.Description)
 	}
 
 	sb.WriteString("#\n")
@@ -32,7 +32,7 @@ func ExportAsBash(chainName string, chain *config.Chain, variables map[string]st
 		sb.WriteString("# Variables:\n")
 
 		for k, v := range variables {
-			sb.WriteString(fmt.Sprintf("#   %s = %s\n", k, v))
+			fmt.Fprintf(&sb, "#   %s = %s\n", k, v)
 		}
 
 		sb.WriteString("\n")
@@ -42,7 +42,7 @@ func ExportAsBash(chainName string, chain *config.Chain, variables map[string]st
 
 	for i, cmd := range commands {
 		step := chain.Steps[i]
-		sb.WriteString(fmt.Sprintf("# Step %d: %s\n", i+1, step.Workflow))
+		fmt.Fprintf(&sb, "# Step %d: %s\n", i+1, step.Workflow)
 
 		switch step.WaitFor {
 		case config.WaitSuccess:

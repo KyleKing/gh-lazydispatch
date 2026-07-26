@@ -13,6 +13,8 @@ import (
 // Status represents the validation state of a historical input.
 type Status int
 
+const inputTypeChoice = "choice"
+
 // Validation status values.
 const (
 	StatusValid          Status = iota // Input is valid
@@ -68,7 +70,7 @@ func ValidateHistoryConfig(entry *frecency.HistoryEntry, wf *workflow.File) []Co
 // validateInputValue checks if a historical value is compatible with the current input definition.
 func validateInputValue(name, value string, input workflow.Input) *ConfigValidationError {
 	// For choice inputs, validate that the value is still in the options
-	if input.Type == "choice" && len(input.Options) > 0 {
+	if input.Type == inputTypeChoice && len(input.Options) > 0 {
 		validOption := false
 
 		for _, option := range input.Options {

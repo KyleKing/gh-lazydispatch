@@ -12,6 +12,11 @@ import (
 	execpkg "github.com/kyleking/gh-lazydispatch/internal/exec"
 )
 
+const (
+	ghRunArg      = "run"
+	ghWorkflowArg = "workflow"
+)
+
 // ErrNoRunFound indicates no workflow run was found after dispatch.
 var ErrNoRunFound = errors.New("no run found for workflow")
 
@@ -31,6 +36,7 @@ type defaultCommandExecutor struct {
 func (e defaultCommandExecutor) Execute(name string, args ...string) error {
 	// For interactive execution, we want stdout/stderr to go directly to the terminal
 	if e.executor == nil {
+		// #nosec G204 -- deliberate exec wrapper; callers pass fixed binaries with internal args
 		cmd := exec.CommandContext(context.Background(), name, args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -61,7 +67,7 @@ func SetExecutor(cmdExec execpkg.CommandExecutor) {
 
 // BuildArgs constructs the gh workflow run arguments.
 func BuildArgs(cfg RunConfig) []string {
-	args := []string{"workflow", "run", cfg.Workflow}
+	args := []string{ghWorkflowArg, ghRunArg, cfg.Workflow}
 
 	if cfg.Branch != "" {
 		args = append(args, "--ref", cfg.Branch)
@@ -127,7 +133,7 @@ func watchLatestRunWithExecutor(_ string, cmdExec CommandExecutor) error {
 	fmt.Println("Watching run...")
 	fmt.Println()
 
-	if err := cmdExec.Execute("gh", "run", "watch"); err != nil {
+	if err := cmdExec.Execute("gh", ghRunArg, "watch"); err != nil {
 		return fmt.Errorf("gh run watch failed: %w", err)
 	}
 

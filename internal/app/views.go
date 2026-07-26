@@ -217,7 +217,7 @@ func _renderInputType(content *strings.Builder, inputType string) {
 }
 
 func _renderInputOptions(content *strings.Builder, inputType string, options []string) {
-	if inputType != "choice" || len(options) == 0 {
+	if inputType != inputTypeChoice || len(options) == 0 {
 		return
 	}
 

@@ -10,6 +10,7 @@ import (
 // execCommand is a variable that holds the command executor.
 // It can be overridden in tests to avoid actually opening browsers.
 var execCommand = func(name string, args ...string) cmdRunner {
+	// #nosec G204 -- launches the platform's fixed open command with the URL argument
 	return exec.Command(name, args...)
 }
 
@@ -23,6 +24,8 @@ func Open(url string) error {
 	var name string
 	var args []string
 
+	const windowsOpenVerb = "start"
+
 	switch runtime.GOOS {
 	case "darwin":
 		name = "open"
@@ -32,7 +35,7 @@ func Open(url string) error {
 		args = []string{url}
 	case "windows":
 		name = "cmd"
-		args = []string{"/c", "start", url}
+		args = []string{"/c", windowsOpenVerb, url}
 	default:
 		name = "xdg-open"
 		args = []string{url}

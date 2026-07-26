@@ -11,6 +11,8 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
+const justNowLabel = "just now"
+
 const (
 	hoursPerDay           = 24
 	daysPerWeek           = 7
@@ -23,7 +25,7 @@ func formatTimeAgo(t time.Time) string {
 
 	switch {
 	case d < time.Minute:
-		return "just now"
+		return justNowLabel
 	case d < time.Hour:
 		return fmt.Sprintf("%dm ago", int(d.Minutes()))
 	case d < hoursPerDay*time.Hour:
