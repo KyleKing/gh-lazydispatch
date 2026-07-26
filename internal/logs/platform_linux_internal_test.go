@@ -9,6 +9,8 @@ import (
 )
 
 func TestLinux_CachePath(t *testing.T) {
+	t.Parallel()
+
 	// Test Linux-specific cache path handling
 	cache := NewCache(t.TempDir())
 
@@ -23,6 +25,8 @@ func TestLinux_CachePath(t *testing.T) {
 }
 
 func TestLinux_LogParsing(t *testing.T) {
+	t.Parallel()
+
 	// Test log parsing on Linux
 	rawLogs := "##[group]Test\nINFO: Linux test\n##[endgroup]"
 	entries := ParseLogOutput(rawLogs, "test")
@@ -33,6 +37,8 @@ func TestLinux_LogParsing(t *testing.T) {
 }
 
 func TestLinux_FileOperations(t *testing.T) {
+	t.Parallel()
+
 	// Test file operations work correctly on Linux
 	cacheDir := t.TempDir()
 	cache := NewCache(cacheDir)
