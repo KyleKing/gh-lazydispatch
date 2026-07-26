@@ -1,16 +1,7 @@
-# Shared tasks are in .config/mise/conf.d/template.toml (managed by copier template)
-# Project-specific tasks belong in additional .config/mise/conf.d/*.toml files (always loaded)
+# Copier never updates this file (_skip_if_exists), so it holds only
+# project-owned settings. Template-managed tool pins and tasks live in
+# .config/mise/conf.d/template.toml; project-specific additions belong in
+# other .config/mise/conf.d/*.toml files (always loaded)
 
 [settings]
 experimental = true
-
-[tools]
-actionlint = "latest"
-go = "latest"
-"go:github.com/golangci/golines" = "0.15.0"
-"golangci-lint" = "2.12.2"
-hk = "1.53.0"
-ls-lint = "latest"
-"pipx:commitizen" = "latest"
-pkl = "latest"
-tombi = "latest"
