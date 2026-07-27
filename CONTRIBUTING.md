@@ -14,6 +14,8 @@ mise run ci
 
 Shared tasks live in `.config/mise/conf.d/template.toml` (managed by the copier template). Project-specific tasks go in additional `.config/mise/conf.d/*.toml` files.
 
+mise loads `conf.d/*.toml` files in alphabetical order, and a task defined in more than one file resolves to whichever file loaded last. Name your project file so it sorts after `template.toml` (`user.toml` works; `project.toml` does not, since `p` < `t`) or a same-named task override will silently do nothing.
+
 | Command           | Description                                              |
 | ----------------- | -------------------------------------------------------- |
 | `mise run bench`  | Run benchmarks                                           |
@@ -66,22 +68,19 @@ brew install --formula https://github.com/kyleking/gh-lazydispatch/raw/main/Form
 
 ## Releases
 
-Automated via goreleaser on tag push. **Note:** For GH CLI extensions, the first release is required before users can run `gh extension install kyleking/gh-lazydispatch`.
+Automated by the Bump Version workflow. **Note:** For GH CLI extensions, the first release is required before users can run `gh extension install kyleking/gh-lazydispatch`.
 
 ### Creating a Release
 
-1. Tag and push:
-
-    ```bash
-    git tag v0.1.0
-    git push origin v0.1.0
-    ```
+1. Land a `fix:` or `feat:` commit on `main`. Commit types commitizen does not bump (`docs:`, `build(deps):`) cut no tag and publish nothing.
 
 1. GitHub Actions will automatically:
 
-    - Run tests and build
-    - Create release with binaries for Linux, macOS, Windows, and FreeBSD (amd64/arm64)
-    - Publish to GitHub Releases
+    - Bump the version, update CHANGELOG.md, and push a `bump:` commit
+    - Tag the new version
+    - Run goreleaser to build binaries for Linux, macOS, Windows, and FreeBSD (amd64/arm64) and publish the release
+
+    goreleaser runs inside that same workflow because a tag pushed with `GITHUB_TOKEN` does not trigger any other workflow.
 
 1. Verify the release has properly named binaries:
 

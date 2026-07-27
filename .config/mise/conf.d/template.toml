@@ -17,7 +17,10 @@ run = "go build -v -o gh-lazydispatch ./cmd/gh-lazydispatch"
 
 [tasks.ci]
 description = "Run all checks (used in GitHub Actions)"
-run = ["go test -v -coverprofile=coverage.out ./...", "go build -v -o gh-lazydispatch ./cmd/gh-lazydispatch"]
+run = [
+  "go test -v -coverprofile=coverage.out ./...",
+  "go build -v -o gh-lazydispatch ./cmd/gh-lazydispatch"
+]
 
 [tasks.clean]
 description = "Clean build artifacts"
@@ -31,6 +34,7 @@ depends = ["build"]
 [tasks.dev]
 description = "Run from source (always reflects current code, no stale build)"
 run = "go run ./cmd/gh-lazydispatch"
+raw_args = true
 
 [tasks.format]
 description = "Format code with golangci-lint and golines"
@@ -43,10 +47,12 @@ run = "hk fix --quiet"
 [tasks.lint]
 description = "Run linter"
 run = "golangci-lint run ./..."
+raw_args = true
 
 [tasks.test]
 description = "Run tests with coverage"
 run = "go test -coverprofile=coverage.out ./..."
+raw_args = true
 
 [tasks."test:coverage-min"]
 description = "Verify minimum coverage threshold (70%)"
@@ -72,5 +78,6 @@ go = "latest"
 hk = "1.53.0"
 ls-lint = "latest"
 "pipx:commitizen" = "latest"
+"pipx:yamllint" = "latest"
 pkl = "latest"
 tombi = "latest"

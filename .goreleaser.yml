@@ -1,4 +1,3 @@
-
 version: 2
 
 before:
@@ -35,14 +34,14 @@ builds:
 
 archives:
   - id: gh-lazydispatch
-    format: binary
+    formats: [binary]
     name_template: "gh-lazydispatch-{{ .Os }}-{{ .Arch }}"
 
 checksum:
   name_template: "checksums.txt"
 
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Version }}-next"
 
 changelog:
   use: github
