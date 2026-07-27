@@ -1,0 +1,4 @@
+2026-07-26 copier freshening follow-ups
+
+- git.DefaultBranches() is now exported (was _defaultBranches) so app and git share the fallback list; rename fine to revert if you prefer it private
+- goconst fixes added several small package constants (exec gh* args, chain inputsSegment, demo environmentInput/stagingEnv, panes justNowLabel/statusUnknown); flag any you want named differently
