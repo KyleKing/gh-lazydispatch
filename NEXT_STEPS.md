@@ -27,13 +27,23 @@ One sibling of the fixed panic remains half-guarded. `renderTableRows` in `inter
 
 ## Release and distribution
 
-The extension is not installable. Every release carries zero binary assets, because `bump_version.yml` pushes the tag with `secrets.GITHUB_TOKEN`, and GitHub suppresses workflow triggers for `GITHUB_TOKEN`-authored pushes, so `release.yml` (goreleaser) has never run. Either move the goreleaser job into `bump_version.yml` so it runs in the same workflow run, or push the tag with a PAT stored as a repo secret so the tag push is attributed to a user and triggers `release.yml`. The first needs no new secret and keeps the tag and the build from disagreeing.
+The extension is not installable yet. Releases v1.0.0 through v1.0.4 all carry zero binary assets, because `bump_version.yml` pushed the tag with `secrets.GITHUB_TOKEN`, and GitHub suppresses workflow triggers for `GITHUB_TOKEN`-authored pushes, so `release.yml` (goreleaser) never ran. The template fix is now adopted: goreleaser runs as a step inside the `bump_version.yml` job, guarded on `env.REVISION != env.PREVIOUS_REVISION`, and `release.yml` is deleted. `.goreleaser.yml` also moved off the two keys goreleaser v2 deprecated (`archives.format`, `snapshot.name_template`), which would have failed the build even once it fired.
 
-`Formula/gh-lazydispatch.rb` ships `version "0.1.0"` with `REPLACE_WITH_SHA256_FOR_*` placeholders, and `kyleking/homebrew-tap` returns 404. It also builds the download filename with `Hardware::CPU.arch` (`x86_64`) while the release URLs use `amd64`, so an Intel install would fail even with real SHAs. Either finish the tap and fix the arch mapping, or drop the `brew install` line from the README.
+Nothing proves this until a version actually bumps. `docs:` and `build:` commits do not bump under conventional-commit rules, so the first `fix:` or `feat:` landing on main is the real test. Commitizen reads the current version from `.cz.toml` rather than from git tags, so the next bump is v1.0.5 regardless of what tags exist.
+
+The five asset-less releases are deleted, so nothing advertises an install that returns nothing. Their tags are kept on purpose: proxy.golang.org has already cached v1.0.0 through v1.0.4 permanently, so `go install ...@v1.0.4` resolves from the proxy no matter what the repo does, and dropping the tags would only make the repo and the proxy disagree.
+
+`Formula/gh-lazydispatch.rb` ships `version "0.1.0"` with `REPLACE_WITH_SHA256_FOR_*` placeholders, and `kyleking/homebrew-tap` returns 404. It also builds the download filename with `Hardware::CPU.arch` (`x86_64`) while the release URLs use `amd64`, so an Intel install would fail even with real SHAs. `.goreleaser.yml` also has no `brews`/`homebrew_casks` block, so nothing would publish to the tap even if it existed. Deferred pending the manual tap setup; until then the README advertises a `brew install` that 404s.
+
+## Lint
+
+`hk fix --all` exits 1 on pre-existing shellcheck SC2086 findings in `.github/workflows/version-bump.yml`. CI does not run hk over all files, so nothing is failing, but the repo cannot go green on an all-files run until those expansions are quoted.
 
 ## Template and dependencies
 
-On copier `my_go_template` v0.3.1, one patch version behind v0.3.2. Bubbletea is already on `charm.land/*/v2`, so no framework migration is needed. Run the copier update when convenient.
+On copier `my_go_template` v0.6.3, current. Bubbletea is already on `charm.land/*/v2`, so no framework migration is needed. See `.freshen.md` for the per-update log.
+
+Two dependabot PRs are open and red against a stale base: #10 (go modules) and #14 (action pins). #14 also edits the now-deleted `release.yml`. Both need a rebase or a close.
 
 ## Running the live test
 
