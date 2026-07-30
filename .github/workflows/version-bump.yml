@@ -4,21 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       bump_type:
-        description: 'Version bump type (leave empty for auto)'
+        description: "Version bump type (leave empty for auto)"
         required: false
         type: choice
         options:
-          - ''
-          - 'patch'
-          - 'minor'
-          - 'major'
-        default: ''
+          - "auto"
+          - "patch"
+          - "minor"
+          - "major"
+        default: "auto"
       prerelease:
-        description: 'Prerelease identifier (e.g., alpha, beta, rc)'
+        description: "Prerelease identifier (e.g., alpha, beta, rc)"
         required: false
-        default: ''
+        default: ""
       push:
-        description: 'Push changes and tags to remote'
+        description: "Push changes and tags to remote"
         required: true
         type: boolean
         default: true
@@ -35,7 +35,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install commitizen
         run: pip install commitizen
@@ -47,23 +47,26 @@ jobs:
 
       - name: Bump version
         id: bump
+        env:
+          BUMP_TYPE: ${{ inputs.bump_type }}
+          PRERELEASE: ${{ inputs.prerelease }}
         run: |
           ARGS=()
-          if [ -n "${{ inputs.bump_type }}" ]; then
-            ARGS+=(--increment "${{ inputs.bump_type }}")
+          if [ -n "$BUMP_TYPE" ] && [ "$BUMP_TYPE" != "auto" ]; then
+            ARGS+=(--increment "$BUMP_TYPE")
           fi
-          if [ -n "${{ inputs.prerelease }}" ]; then
-            ARGS+=(--prerelease "${{ inputs.prerelease }}")
+          if [ -n "$PRERELEASE" ]; then
+            ARGS+=(--prerelease "$PRERELEASE")
           fi
 
           cz bump "${ARGS[@]}" --yes || {
             echo "No version bump needed"
-            echo "bumped=false" >> $GITHUB_OUTPUT
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
             exit 0
           }
 
-          echo "bumped=true" >> $GITHUB_OUTPUT
-          echo "new_version=$(cz version --project)" >> $GITHUB_OUTPUT
+          echo "bumped=true" >> "$GITHUB_OUTPUT"
+          echo "new_version=$(cz version --project)" >> "$GITHUB_OUTPUT"
 
       - name: Push changes
         if: steps.bump.outputs.bumped == 'true' && inputs.push
@@ -72,12 +75,15 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          BUMPED: ${{ steps.bump.outputs.bumped }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
         run: |
-          echo "### Version Bump Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.bump.outputs.bumped }}" == "true" ]; then
-            echo "**Status:** ✓ Version bumped" >> $GITHUB_STEP_SUMMARY
-            echo "**New Version:** ${{ steps.bump.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Version Bump Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$BUMPED" == "true" ]; then
+            echo "**Status:** ✓ Version bumped" >> "$GITHUB_STEP_SUMMARY"
+            echo "**New Version:** $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "**Status:** No version bump needed" >> $GITHUB_STEP_SUMMARY
+            echo "**Status:** No version bump needed" >> "$GITHUB_STEP_SUMMARY"
           fi

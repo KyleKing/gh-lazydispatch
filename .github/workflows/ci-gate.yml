@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: 'Git ref to check (branch/tag/commit)'
+        description: "Git ref to check (branch/tag/commit)"
         required: true
-        default: 'main'
+        default: "main"
       required_checks:
-        description: 'Comma-separated list of required check names (leave empty for all)'
+        description: "Comma-separated list of required check names (leave empty for all)"
         required: false
-        default: ''
+        default: ""
 
 jobs:
   verify-ci-status:
@@ -116,8 +116,13 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          REF: ${{ inputs.ref }}
+          JOB_STATUS: ${{ job.status }}
         run: |
-          echo "### CI Gate Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Ref:** ${{ inputs.ref }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### CI Gate Results"
+            echo ""
+            echo "**Ref:** $REF"
+            echo "**Status:** $JOB_STATUS"
+          } >> "$GITHUB_STEP_SUMMARY"
