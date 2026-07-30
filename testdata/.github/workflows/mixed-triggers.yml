@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       trigger_type:
-        description: 'Manual trigger type'
+        description: "Manual trigger type"
         type: choice
         options:
           - test
@@ -22,5 +22,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Trigger: ${{ github.event_name }}"
-      - run: echo "Input: ${{ inputs.trigger_type }}"
+      - run: 'echo "Trigger: ${{ github.event_name }}"'
+      - run: 'echo "Input: ${{ inputs.trigger_type }}"'

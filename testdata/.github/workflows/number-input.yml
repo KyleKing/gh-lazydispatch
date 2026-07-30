@@ -3,16 +3,16 @@ on:
   workflow_dispatch:
     inputs:
       timeout:
-        description: 'Timeout in seconds'
+        description: "Timeout in seconds"
         type: number
-        default: '300'
+        default: "300"
         required: false
       max_retries:
-        description: 'Maximum retry attempts'
+        description: "Maximum retry attempts"
         type: number
-        default: '3'
+        default: "3"
       parallel_jobs:
-        description: 'Number of parallel jobs'
+        description: "Number of parallel jobs"
         type: number
         required: true
 
@@ -20,6 +20,6 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Timeout: ${{ inputs.timeout }}"
-      - run: echo "Retries: ${{ inputs.max_retries }}"
-      - run: echo "Parallel: ${{ inputs.parallel_jobs }}"
+      - run: 'echo "Timeout: ${{ inputs.timeout }}"'
+      - run: 'echo "Retries: ${{ inputs.max_retries }}"'
+      - run: 'echo "Parallel: ${{ inputs.parallel_jobs }}"'

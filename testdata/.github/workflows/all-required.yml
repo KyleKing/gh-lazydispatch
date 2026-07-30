@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       service:
-        description: 'Service to restart'
+        description: "Service to restart"
         required: true
         type: choice
         options:
@@ -12,11 +12,11 @@ on:
           - redis
           - web
       confirmation:
-        description: 'Confirm restart'
+        description: "Confirm restart"
         required: true
         type: boolean
       admin_email:
-        description: 'Admin email for notifications'
+        description: "Admin email for notifications"
         required: true
         type: string
 
@@ -25,5 +25,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Restarting ${{ inputs.service }}"
-      - run: echo "Confirmed: ${{ inputs.confirmation }}"
-      - run: echo "Notifying: ${{ inputs.admin_email }}"
+      - run: 'echo "Confirmed: ${{ inputs.confirmation }}"'
+      - run: 'echo "Notifying: ${{ inputs.admin_email }}"'

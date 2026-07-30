@@ -3,13 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Deployment target environment'
+        description: "Deployment target environment"
         type: environment
         required: true
       enable_monitoring:
-        description: 'Enable monitoring'
+        description: "Enable monitoring"
         type: boolean
-        default: 'true'
+        default: "true"
 
 jobs:
   deploy:
@@ -17,4 +17,4 @@ jobs:
     environment: ${{ inputs.target }}
     steps:
       - run: echo "Deploying to ${{ inputs.target }}"
-      - run: echo "Monitoring: ${{ inputs.enable_monitoring }}"
+      - run: 'echo "Monitoring: ${{ inputs.enable_monitoring }}"'
