@@ -29,6 +29,10 @@ One sibling of the fixed panic remains half-guarded. `renderTableRows` in `inter
 
 The extension is installable as of v1.0.5. Two separate defects had to be cleared. First, `bump_version.yml` pushed the tag with `secrets.GITHUB_TOKEN`, and GitHub suppresses workflow triggers for `GITHUB_TOKEN`-authored pushes, so the separate `release.yml` never ran and v1.0.0 through v1.0.4 carried zero assets. Goreleaser now runs as a step inside the `bump_version.yml` job, guarded on `env.REVISION != env.PREVIOUS_REVISION`, and `release.yml` is deleted. Second, `builds[].no_unique_dist_dir` sent all ten targets to the same `dist/gh-lazydispatch` path, so they overwrote each other and the assets would have been ten copies of whichever build finished last. That key is gone.
 
+Template v0.7.0 added an unconditional `homebrew_casks` block to `.goreleaser.yml` and `TAP_DEPLOY_KEY` to the inline goreleaser step. `TAP_DEPLOY_KEY` is not provisioned on this repo, so `skip_upload` resolves to `true`, the release publishes its binaries, and no cask is pushed. Run `scripts/provision-tap-deploy-key.sh` when the tap should start receiving casks.
+
+That makes `Formula/gh-lazydispatch.rb` and the `brew:sha` mise task redundant. The task exists only to tell you to paste SHA256 values into a stub that goreleaser now generates on every release. Both should go, but the removal belongs in the template so every child loses them in one update, not here.
+
 v1.0.5 is verified from the published artifacts rather than the asset count: ten binaries with ten distinct checksums and ten distinct sizes, and `file` confirms Mach-O arm64, statically linked ELF x86-64, and PE32+ across the platforms it should. `gh extension install kyleking/gh-lazydispatch` resolves and `gh lazydispatch --version` runs, because the asset names match the `<extension-name>-<os>-<arch>[.exe]` convention gh derives from the repo name.
 
 The five asset-less releases are deleted, so nothing advertises an install that returns nothing. Their tags are kept on purpose: proxy.golang.org has already cached v1.0.0 through v1.0.4 permanently, so `go install ...@v1.0.4` resolves from the proxy no matter what the repo does, and dropping the tags would only make the repo and the proxy disagree.
@@ -37,13 +41,17 @@ The five asset-less releases are deleted, so nothing advertises an install that 
 
 ## Lint
 
-`hk fix --all` exits 1 on pre-existing shellcheck SC2086 findings in `.github/workflows/version-bump.yml`. CI does not run hk over all files, so nothing is failing, but the repo cannot go green on an all-files run until those expansions are quoted.
+Resolved on 2026-07-30: `hk fix --all` now exits 0 over all 184 files. The SC2086 findings that used to fail it came from actionlint's embedded shellcheck on `.github/workflows/bump_version.yml`, and the template rewrote that file at v0.7.0.
 
-Two TOML formatters fight over `.cz.toml` and `.golangci.toml`. `hk.pkl` runs `tombi-format` (matching the tombi LSP in nvim) while `.pre-commit-config.yaml` runs `toml-sort-fix`, and they disagree on whether arrays collapse to one line and whether inline tables get inner spaces. Each rewrites what the other wrote, so editing either file produces a spurious diff depending on which tool touched it last. `.git/hooks` currently runs prek against `.pre-commit-config.yaml`, so `toml-sort` is the form in git. Pick one owner: drop `tombi-format` from `hk.pkl`, or drop `toml-sort-fix` and finish the migration off pre-commit.
+Resolved on 2026-07-30: template v0.7.0 deleted the `toml-sort-fix` block from `.pre-commit-config.yaml`, so hk's `tombi-format` is the only TOML formatter and `.cz.toml` and `.golangci.toml` now reach a fixed point. Three consecutive `hk fix --all` runs leave both byte-identical.
+
+hk's config-based hooks are installed alongside prek rather than replacing it, because dropping prek would lose checks `hk.pkl` has no equivalent for. What prek runs here and hk does not: `copier-forbidden-files` (the `.rej` guard the copier workflow depends on), `shellcheck` on standalone scripts, `mdformat`, `prettier` over html/js/json/shell/yaml, `check-executables-have-shebangs`, `check-json`, `check-toml`, `check-vcs-permalinks`, `debug-statements`, `destroyed-symlinks`, `fix-byte-order-marker`, and `forbid-new-submodules`. hk adds `actionlint`, `ls-lint`, `pkl`, `yamllint`, `tombi-format`, and a pre-push `mise run ci` that prek never ran, so it is a trade. Backfilling the missing checks into the template's `hk.pkl` is the open decision; until then both hook systems fire and, with toml-sort gone, they no longer collide.
+
+hk's `newlines` step has no `.copier-answers.yml` exclusion where prek's `end-of-file-fixer` does, so hk strips the trailing blank line copier writes and every update produces a spurious one-line diff. Known, headed upstream to the template.
 
 ## Template and dependencies
 
-On copier `my_go_template` v0.6.4, current. Bubbletea is already on `charm.land/*/v2`, so no framework migration is needed. See `.freshen.md` for the per-update log.
+On copier `my_go_template` v0.7.0, current. Bubbletea is already on `charm.land/*/v2`, so no framework migration is needed. See `.freshen.md` for the per-update log.
 
 No dependabot PRs are open. #10 (go modules) and #15 (action pins) are merged; #14 was closed because it edited the deleted `release.yml` and #15 superseded its pins.
 
