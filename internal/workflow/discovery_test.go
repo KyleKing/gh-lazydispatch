@@ -23,8 +23,8 @@ func TestDiscover(t *testing.T) {
 		t.Fatalf("Discover failed: %v", err)
 	}
 
-	if len(workflows) != 8 {
-		t.Errorf("expected 8 dispatchable workflows, got %d", len(workflows))
+	if len(workflows) != 12 {
+		t.Errorf("expected 12 dispatchable workflows, got %d", len(workflows))
 
 		for _, wf := range workflows {
 			t.Logf("  found: %s", wf.Filename)
