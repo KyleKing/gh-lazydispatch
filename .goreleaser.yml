@@ -30,7 +30,6 @@ builds:
       - goos: windows
         goarch: arm64
     binary: gh-lazydispatch
-    no_unique_dist_dir: true
 
 archives:
   - id: gh-lazydispatch
