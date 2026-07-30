@@ -4,15 +4,14 @@
 version = "2"
 
 [formatters]
-enable = [
-  "gci",
-  "gofmt",
-  "gofumpt",
-  "goimports"
-]
+enable = ["gci", "gofmt", "gofumpt", "goimports"]
 
 [formatters.settings.gci]
-sections = ["standard", "default", "prefix(github.com/kyleking/gh-lazydispatch)"]
+sections = [
+  "standard",
+  "default",
+  "prefix(github.com/kyleking/gh-lazydispatch)"
+]
 
 [formatters.settings.gofumpt]
 extra-rules = true
@@ -159,7 +158,13 @@ min-len = 3
 min-occurrences = 3
 
 [linters.settings.gocritic]
-enabled-tags = ["diagnostic", "style", "performance", "experimental", "opinionated"]
+enabled-tags = [
+  "diagnostic",
+  "style",
+  "performance",
+  "experimental",
+  "opinionated"
+]
 # hugeParam: BubbleTea's Elm architecture passes the Model (and message
 # payloads carrying it) by value throughout Update/View/message plumbing by
 # design (see the ireturn allowlist above for the same rationale); flagging
@@ -181,7 +186,13 @@ disable = ["shadow"]
 # tea.Model and modal.Context: BubbleTea's Elm architecture requires Update/Init
 # to return these interfaces so a component can switch to a different concrete
 # model or modal.
-allow = ["error", "empty", "stdlib", "bubbletea/v2\\.Model$", "internal/ui/modal\\.Context$"]
+allow = [
+  "error",
+  "empty",
+  "stdlib",
+  "bubbletea/v2\\.Model$",
+  "internal/ui/modal\\.Context$"
+]
 
 [linters.settings.lll]
 line-length = 120
