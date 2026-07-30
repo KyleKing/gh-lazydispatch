@@ -1,3 +1,11 @@
+## v1.0.5 (2026-07-30)
+
+### Fix
+
+- **release**: build each target into its own dist path
+- quote workflow run steps to avoid unparseable YAML in test fixtures
+- quote workflow env values and drop empty choice option for actionlint
+
 ## v1.0.4 (2026-07-26)
 
 ### Fix
