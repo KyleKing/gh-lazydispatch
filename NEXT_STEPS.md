@@ -27,9 +27,9 @@ One sibling of the fixed panic remains half-guarded. `renderTableRows` in `inter
 
 ## Release and distribution
 
-The extension is not installable yet. Releases v1.0.0 through v1.0.4 all carry zero binary assets, because `bump_version.yml` pushed the tag with `secrets.GITHUB_TOKEN`, and GitHub suppresses workflow triggers for `GITHUB_TOKEN`-authored pushes, so `release.yml` (goreleaser) never ran. The template fix is now adopted: goreleaser runs as a step inside the `bump_version.yml` job, guarded on `env.REVISION != env.PREVIOUS_REVISION`, and `release.yml` is deleted. `.goreleaser.yml` also moved off the two keys goreleaser v2 deprecated (`archives.format`, `snapshot.name_template`), which would have failed the build even once it fired.
+The extension is installable as of v1.0.5. Two separate defects had to be cleared. First, `bump_version.yml` pushed the tag with `secrets.GITHUB_TOKEN`, and GitHub suppresses workflow triggers for `GITHUB_TOKEN`-authored pushes, so the separate `release.yml` never ran and v1.0.0 through v1.0.4 carried zero assets. Goreleaser now runs as a step inside the `bump_version.yml` job, guarded on `env.REVISION != env.PREVIOUS_REVISION`, and `release.yml` is deleted. Second, `builds[].no_unique_dist_dir` sent all ten targets to the same `dist/gh-lazydispatch` path, so they overwrote each other and the assets would have been ten copies of whichever build finished last. That key is gone.
 
-Nothing proves this until a version actually bumps. `docs:` and `build:` commits do not bump under conventional-commit rules, so the first `fix:` or `feat:` landing on main is the real test. Commitizen reads the current version from `.cz.toml` rather than from git tags, so the next bump is v1.0.5 regardless of what tags exist.
+v1.0.5 is verified from the published artifacts rather than the asset count: ten binaries with ten distinct checksums and ten distinct sizes, and `file` confirms Mach-O arm64, statically linked ELF x86-64, and PE32+ across the platforms it should. `gh extension install kyleking/gh-lazydispatch` resolves and `gh lazydispatch --version` runs, because the asset names match the `<extension-name>-<os>-<arch>[.exe]` convention gh derives from the repo name.
 
 The five asset-less releases are deleted, so nothing advertises an install that returns nothing. Their tags are kept on purpose: proxy.golang.org has already cached v1.0.0 through v1.0.4 permanently, so `go install ...@v1.0.4` resolves from the proxy no matter what the repo does, and dropping the tags would only make the repo and the proxy disagree.
 
@@ -39,11 +39,13 @@ The five asset-less releases are deleted, so nothing advertises an install that 
 
 `hk fix --all` exits 1 on pre-existing shellcheck SC2086 findings in `.github/workflows/version-bump.yml`. CI does not run hk over all files, so nothing is failing, but the repo cannot go green on an all-files run until those expansions are quoted.
 
+Two TOML formatters fight over `.cz.toml` and `.golangci.toml`. `hk.pkl` runs `tombi-format` (matching the tombi LSP in nvim) while `.pre-commit-config.yaml` runs `toml-sort-fix`, and they disagree on whether arrays collapse to one line and whether inline tables get inner spaces. Each rewrites what the other wrote, so editing either file produces a spurious diff depending on which tool touched it last. `.git/hooks` currently runs prek against `.pre-commit-config.yaml`, so `toml-sort` is the form in git. Pick one owner: drop `tombi-format` from `hk.pkl`, or drop `toml-sort-fix` and finish the migration off pre-commit.
+
 ## Template and dependencies
 
-On copier `my_go_template` v0.6.3, current. Bubbletea is already on `charm.land/*/v2`, so no framework migration is needed. See `.freshen.md` for the per-update log.
+On copier `my_go_template` v0.6.4, current. Bubbletea is already on `charm.land/*/v2`, so no framework migration is needed. See `.freshen.md` for the per-update log.
 
-Two dependabot PRs are open and red against a stale base: #10 (go modules) and #14 (action pins). #14 also edits the now-deleted `release.yml`. Both need a rebase or a close.
+No dependabot PRs are open. #10 (go modules) and #15 (action pins) are merged; #14 was closed because it edited the deleted `release.yml` and #15 superseded its pins.
 
 ## Running the live test
 
