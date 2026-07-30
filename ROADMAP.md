@@ -1,17 +1,8 @@
 # Roadmap
 
-Phased plan for gh-lazydispatch after the v1.0.0 release (2026-07-04). Consolidates the loose notes that previously lived in `NOTES.md`, `TEMPLATE_ADOPTION_NEXT_STEPS.md`, and the README "Planned Features" list.
+Phased plan for gh-lazydispatch after the v1.0.0 release (2026-07-04). Open defects and immediate follow-ups live in `NEXT_STEPS.md`.
 
-Status legend: [ ] not started, [~] in progress, [x] done.
-
-## Phase 0: Housekeeping (done)
-
-Closed out the template-adoption follow-ups and tidied stray notes now that v1.0.0 shipped.
-
-- [x] Clear the golangci v2 lint backlog (was 572 findings, now 0)
-- [x] Fix the gsa build failure (installed via brew, dropped from mise pin)
-- [x] Resolve the dual bump-workflow risk (`bump_version.yml` is the sole release path; `version-bump.yml`/`ci-gate.yml` remain dispatch-only demo content)
-- [x] Run `copier update` to adopt the current template, replacing the manual v0.2.2 adoption in `c24db4a`. Landed as an isolated commit pinning `.copier-answers.yml` to `_commit: v0.3.1`; the only net change was the version bump because the `conf.d` layout the template formalizes in v0.3.x had already been adopted manually.
+Phase 0 (housekeeping: the golangci v2 backlog, the gsa build failure, the dual bump-workflow risk, and the copier adoption) is complete and is not tracked here.
 
 ## Phase 1: Markdown log export (next)
 
