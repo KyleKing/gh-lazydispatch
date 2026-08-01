@@ -2,7 +2,7 @@
 
 Open defects and follow-ups. Phased feature work lives in `ROADMAP.md`; the
 append-only pass log is `.freshen.md`. Every item was re-verified against the
-source on 2026-07-27. Each names the symbol to change rather than a line number,
+source on 2026-08-01. Each names the symbol to change rather than a line number,
 because line numbers drift.
 
 ## Keymap, most visible to a new user
@@ -57,14 +57,6 @@ One sibling of the fixed `index out of range [-1]` panic remains half-guarded.
 because `viewConfigPane` fully guards before calling it, so it is safe, but the
 invariant depends on the caller. Use the `SelectedWorkflow()` accessor there too.
 
-## Lint
-
-`scripts/check-test-safety.sh:22` trips shellcheck SC2044 (`for` over `find`
-output). It does not fail anything today, but the template's CI `hooks` job runs
-shellcheck at `--severity=warning`, so it turns this repo red on the next copier
-update. Fix it here with `find -exec` or a `while read` loop rather than relaxing
-the template.
-
 ## Hooks
 
 hk's config-based hooks are installed alongside prek rather than replacing it,
@@ -76,8 +68,19 @@ copier workflow depends on), `shellcheck`, `typos`, `check-json`,
 `.copier-answers.yml` exclude to `newlines`, so the spurious one-line diff on
 every update goes away. What stays prek-only by deliberate template decision:
 `mdformat`, `prettier`, and `ruff`; `destroyed-symlinks` has no hk equivalent at
-all. Once this repo updates past v0.8.0, decide whether prek is still worth
-running for those four.
+all.
+
+Both systems now run on every commit, and prek's `mdformat` is the one that still
+earns it: it rewrapped every markdown file touched during the v0.9.1 update and
+failed the first commit attempt to do so. Decide whether to keep prek for
+`mdformat`, `prettier`, and `destroyed-symlinks` alone, or fold markdown
+formatting into `hk.pkl` upstream and drop prek here.
+
+`.config/mise/mise.lock` is the lockfile CI installs from, and `mise install
+--locked` fails on any tool missing from it. Adding a tool to
+`.config/mise/conf.d/*.toml` means running `mise lock --platform
+linux-x64,macos-arm64` in the same commit. Only those two platforms are locked,
+so a contributor on linux-arm64 or windows cannot use `--locked`.
 
 ## Release and distribution
 
@@ -97,19 +100,17 @@ holds no `gh-lazydispatch` cask yet, because no release has been cut since the
 secret was added. The next release should push one; confirm it does rather than
 assuming.
 
-`Formula/gh-lazydispatch.rb` and the `brew:sha` mise task are dead. The formula
-pins `version "0.1.0"` with `REPLACE_WITH_SHA256_FOR_*` placeholders and builds
-its download filename with `Hardware::CPU.arch` (`x86_64`) while the release URLs
-use `amd64`, so an Intel install would fail even with real checksums. Template
-v0.8.0's `remove-if-found.txt` deletes the stub on the next `copier update`, so
-nothing needs deleting by hand; the README's `brew install` line should point at
-the generated cask at the same time.
-
 ## Template and dependencies
 
-On copier `my_go_template` v0.7.0; the template is at v0.9.0. Bubbletea is
-already on `charm.land/*/v2`, so no framework migration applies. No Dependabot
-PRs are open.
+On copier `my_go_template` v0.9.1. Bubbletea is already on `charm.land/*/v2`, so
+no framework migration applies. No Dependabot PRs are open.
+
+`README.md`, `DESIGN.md`, `go.mod`, and `cmd/gh-lazydispatch/main.go` sit in the
+template's `_skip_if_exists`, so copier never touches them and each has diverged
+from the seed on purpose. `AGENTS.md` is in the same list but was still carrying
+the pre-v0.6 shape; the v0.9.1 rewrite was copied over by hand. Any future
+template change to those five needs the same manual diff against
+`my_go_template/.ctt/default/`.
 
 ## Running the live test
 
