@@ -14,20 +14,21 @@ violations=0
 if grep -r "exec\.NewRealExecutor()" --include="*_test.go" .; then
     echo "ERROR: Found direct RealExecutor usage in test files (above)"
     echo "Use exec.MockExecutor instead"
-    ((violations++))
+    violations=$((violations + 1))
 fi
 
 # Check for runner.Execute calls in test files without SetExecutor
 # This is a heuristic check - not perfect but catches common mistakes
-for test_file in $(find . -name "*_test.go" -not -path "./vendor/*"); do
+# Process substitution rather than a pipe so the counter survives the loop
+while IFS= read -r -d '' test_file; do
     if grep -q "runner\.Execute\|runner\.ExecuteAndGetRunID" "$test_file"; then
         if ! grep -q "runner\.SetExecutor\|runner\.ExecuteWithExecutor\|runner\.ExecuteAndGetRunIDWithExecutor" "$test_file"; then
             echo "WARNING: $test_file uses runner.Execute* but may not set up mocks"
             echo "  Ensure you call runner.SetExecutor() or use ...WithExecutor() functions"
-            ((violations++))
+            violations=$((violations + 1))
         fi
     fi
-done
+done < <(find . -name "*_test.go" -not -path "./vendor/*" -print0)
 
 if [ $violations -eq 0 ]; then
     echo "✓ No unsafe test patterns detected"
