@@ -105,6 +105,17 @@ assuming.
 On copier `my_go_template` v0.9.1. Bubbletea is already on `charm.land/*/v2`, so
 no framework migration applies. No Dependabot PRs are open.
 
+Two fixes made here belong upstream in `my_go_template`, and the next `copier
+update` reverts both unless the template moves first. The `ci` job in
+`go_template/.github/workflows/ci.yml.jinja` still pairs `jdx/mise-action` with
+`actions/setup-go`, which puts two GOROOTs on PATH and breaks every build once
+mise's `go = "latest"` passes the version in go.mod. And
+`go_template/hk.pkl.jinja`'s `commitizen-branch` step runs
+`cz check --rev-range origin/HEAD..HEAD`, which cz exits non-zero on when the
+range is empty, so `hk check --all` cannot pass on a branch level with origin.
+This repo works around the second with `HK_SKIP_STEPS`; djot-fmt fixed it properly
+by guarding with `test -z "$(git rev-list origin/HEAD..HEAD)" ||`.
+
 `README.md`, `DESIGN.md`, `go.mod`, and `cmd/gh-lazydispatch/main.go` sit in the
 template's `_skip_if_exists`, so copier never touches them and each has diverged
 from the seed on purpose. `AGENTS.md` is in the same list but was still carrying
