@@ -1,133 +1,71 @@
 # AI Agent Guidelines for gh-lazydispatch
 
-This document provides guidelines for AI coding assistants working on this Go project.
+How to work in this Go project. Architecture and domain context live in [DESIGN.md](DESIGN.md); task and release mechanics live in [CONTRIBUTING.md](CONTRIBUTING.md). This file covers only what those two do not.
 
-## Code Organization
+## Verify before you report
 
-### Package Structure
+CI runs four jobs and `mise run ci` is only the first, so a green `mise run ci` is not a green build. Reproduce all four locally:
+
+```bash
+hk check --all                            # every hook step; also re-runs `mise run ci`
+mise exec -- golangci-lint run ./...      # separate CI job, not an hk step
+mise exec -- golangci-lint config verify  # `run` accepts v1 schema keys silently
+mise run bench                            # compiles and runs the benchmarks
+```
+
+Run linters to completion rather than stopping at the first hit: add `--max-issues-per-linter=0 --max-same-issues=0`. A local run that passes while CI fails means the two commands differ, so read the workflow step and match its flags.
+
+Known false negatives, each of which has already cost a session:
+
+- **Hooks look uninstalled when they are not.** `hk install --mise` on git 2.55+ writes `hook.hk-*.command` into `.git/config` and creates no `.git/hooks/pre-commit`. Check with `git config --get-regexp '^hook\.'` (expect six entries) or `git hook list pre-commit` (expect `hk-pre-commit`). A file-existence check is wrong.
+- **Never pipe or chain `git commit`.** `git commit … | tail` reports the pipe's exit code, so a failing hook looks like success and the follow-up push ships nothing. Commit as its own command, then confirm with `git log -1`. Hooks rewrite files here; when one fails that way, `git add -A` its edits and commit again.
+- **A release is verified by distinct hashes, not asset count.** Ten assets can be one binary published ten times. Confirm with `gh release download <tag> -p checksums.txt -O - | awk '{print $1}' | sort -u | wc -l` and expect the same number as there are binaries.
+
+When a check fails, fix the cause. Do not skip a test, widen a timeout, or disable a linter to get to green. Three fix-and-push rounds with no new root cause means stop and report what you found.
+
+## Layout
 
 ```
 gh-lazydispatch/
-
-├── cmd/gh-lazydispatch/  # CLI entry point
-
-├── internal/         # Private packages (not importable by other modules)
-│   ├── app/          # Application logic
-│   └── ...
-
+├── cmd/gh-lazydispatch/  # main package, kept thin
+├── internal/         # private packages; the compiler blocks outside imports
 └── go.mod
 ```
 
-### Package Guidelines
+One package, one purpose. Short lowercase names, no underscores (`httputil`, not `http_util`), and no grab-bags (`util`, `common`, `misc`). Name a file after the primary type it holds (`user.go`, `user_test.go`).
 
-- One package = one purpose
-- Package names: short, lowercase, no underscores (`httputil` not `http_util`)
-- Avoid `util`, `common`, `misc` packages
-- `internal/` prevents external imports at the compiler level
+## Go conventions
 
-### File Organization
+- Define interfaces where they are consumed, not where implemented; keep them to 1-3 methods and add one only once a consumer needs it
+- Take `context.Context` as the first argument for cancellable or I/O-bound work
+- MixedCaps naming with uppercase acronyms (`ServeHTTP`, `userID`, `GetHTTPClient`)
+- Functional options for constructors with optional configuration (`WithTimeout(d)`)
+- Return errors instead of panicking outside truly unrecoverable states, and wrap with context: `fmt.Errorf("loading config: %w", err)`
+- Inspect with `errors.Is` / `errors.As`; define types for domain-specific errors
+- Validate at boundaries and trust internal code (parse, don't validate)
+- Doc-comment exported symbols, starting with the symbol name, describing non-obvious behavior and invariants rather than restating the types
 
-- Group related types, functions, and methods in the same file
-- Name files after the primary type they contain (`user.go`, `user_test.go`)
-- Keep `main.go` minimal
-
-## Code Style
-
-### Functional Composition
-
-```go
-func ValidateUser(u User) error {
-    if err := validateEmail(u.Email); err != nil {
-        return err
-    }
-    return validateAge(u.Age)
-}
-```
-
-### Interfaces
-
-- Define interfaces where they're used, not where they're implemented
-- Keep interfaces small (1-3 methods)
-- Avoid interface pollution
-
-### Functional Options Pattern
-
-```go
-type Option func(*Server)
-
-func WithTimeout(d time.Duration) Option {
-    return func(s *Server) { s.timeout = d }
-}
-
-func NewServer(addr string, opts ...Option) *Server {
-    s := &Server{addr: addr, timeout: 30 * time.Second}
-    for _, opt := range opts {
-        opt(s)
-    }
-    return s
-}
-```
-
-## Error Handling
-
-- Errors are values; handle them explicitly
-- Return errors, don't panic (except for truly unrecoverable states)
-- Add context when wrapping: `fmt.Errorf("doing something: %w", err)`
-- Use `errors.Is` and `errors.As` for checking errors
-- Use custom error types for domain-specific errors
+Avoid: naked returns, functions past ~50 lines, deep nesting (return early), ignored errors (`_ = doThing()` is almost always wrong), and shared global state (pass dependencies explicitly).
 
 ## Testing
 
-### Table-Driven Tests
+Table-driven tests with subtests via `t.Run`, placed next to the code they cover, in a `_test` package for black-box coverage. `mise run test:coverage-min` enforces the 70% floor.
 
-```go
-func TestAdd(t *testing.T) {
-    tests := []struct {
-        name     string
-        a, b     int
-        expected int
-    }{
-        {"positive numbers", 2, 3, 5},
-        {"negative numbers", -1, -1, -2},
-        {"zero", 0, 0, 0},
-    }
+Golden fixtures are byte-exact: regenerate with `go test ./... -update` and review the diff, never hand-edit. `hk.pkl` excludes `**/*.golden` from the whitespace fixers, so a fixture under any other name (`testdata/golden_*.txt`) will be silently rewritten on commit; either rename it or add its glob to that exclude.
 
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            got := Add(tt.a, tt.b)
-            if got != tt.expected {
-                t.Errorf("Add(%d, %d) = %d; want %d", tt.a, tt.b, got, tt.expected)
-            }
-        })
-    }
-}
-```
+## TUI testing
 
-### Test Files
+A subprocess pipe is not a terminal, so the program detects a non-tty and never renders. Exploratory checks need a real PTY: run it under `tmux new -d -x 80 -y 24 <cmd>`, drive it with `tmux send-keys`, and read what actually rendered with `tmux capture-pane -p` (`-e` keeps ANSI codes). For scripted tests prefer `github.com/charmbracelet/x/exp/teatest`, which drives the `tea.Model` directly and diffs golden frames; fall back to `github.com/creack/pty` for non-Bubble Tea binaries.
 
-- Use `_test` package suffix for black-box testing
-- Place test files adjacent to the code they test
+Exercise deliberately, because each of these renders fine in the happy path and breaks elsewhere: resize mid-session (`SIGWINCH`) and the minimum supported size; every quit path independently (`q`, `ctrl-c`, `esc`) restoring cursor and alt-screen state; empty and single-item states; and piped non-tty stdout degrading instead of hanging.
 
-## Anti-Patterns to Avoid
+Turn every bug found this way into a test named for its trigger (`TestQuit_RestoresCursorOnCtrlC`), parametrized over terminal size rather than hardcoding one.
 
-- **Naked returns**: Always name what you're returning
-- **Long functions**: If > 50 lines, consider breaking up
-- **Deep nesting**: Use early returns to flatten
-- **Interface pollution**: Don't define interfaces until needed
-- **Ignoring errors**: `_ = doThing()` is almost always wrong
-- **Global state**: Pass dependencies explicitly
+## Template-managed files
 
-## Tools
+This project is generated from [my_go_template](https://github.com/KyleKing/my_go_template). Edit the template, not the render, for anything under `.github/workflows/`, `.golangci.toml`, `hk.pkl`, `.goreleaser.yml`, or `.config/mise/conf.d/template.toml` — a `copier update` overwrites local edits there. Project-specific mise tasks belong in a sibling conf.d file (CONTRIBUTING.md explains the load order that makes the filename matter).
 
-- Run `mise run ci` before committing
-- Run `hk fix` to auto-fix linting issues
-- Use `golangci-lint run` for detailed linting output
+After `copier update --UNSAFE --conflict=rej --defaults`, re-apply real local content from each `.rej`, discard hunks the new template supersedes, and delete the files (a hook blocks committing them). Two specifics:
 
-## Git Practices
-
-- Do not stage, commit, or push without explicit instruction
-- Use conventional commits (commitizen enforced)
-
-## Project-Specific Guidelines
-
-See [DESIGN.md](DESIGN.md) for project-specific architecture, patterns, and domain context.
+- `.cz.toml` is re-rendered with `version = "0.0.0"`. Restore the real version by hand or the next release cuts `v0.0.1`.
+- **The same file conflicting on two consecutive updates means an answer is wrong, not that the patch needs re-applying.** Read `.copier-answers.yml` first and fix the answer; a typo there gets faithfully re-rendered every pass.

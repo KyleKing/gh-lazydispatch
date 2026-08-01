@@ -16,19 +16,21 @@ Shared tasks live in `.config/mise/conf.d/template.toml` (managed by the copier 
 
 mise loads `conf.d/*.toml` files in alphabetical order, and a task defined in more than one file resolves to whichever file loaded last. Name your project file so it sorts after `template.toml` (`user.toml` works; `project.toml` does not, since `p` < `t`) or a same-named task override will silently do nothing.
 
-| Command           | Description                                              |
-| ----------------- | -------------------------------------------------------- |
-| `mise run bench`  | Run benchmarks                                           |
-| `mise run build`  | Build binary                                             |
-| `mise run ci`     | Full CI check (tests + build)                            |
-| `mise run clean`  | Clean build artifacts                                    |
-| `mise run demo`   | Generate VHS demo recordings                             |
-| `mise run format` | Auto-fix lint and formatting                             |
-| `mise run hooks`  | Run git hooks                                            |
-| `mise run lint`   | Run linter                                               |
-| `mise dev`        | Run from source (`go run`, always reflects current code) |
-| `mise run test`   | Run tests with coverage                                  |
-| `mise tasks`      | List all available tasks                                 |
+| Command                       | Description                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `mise run bench`              | Run benchmarks                                                                                                            |
+| `mise run build`              | Build binary                                                                                                              |
+| `mise run ci`                 | Full CI check (tests + build)                                                                                             |
+| `mise run clean`              | Clean build artifacts                                                                                                     |
+| `mise run demo`               | Generate VHS demo recordings (needs [vhs](https://github.com/charmbracelet/vhs) on `PATH`; it is not pinned in `[tools]`) |
+| `mise run dev`                | Run from source (`go run`, always reflects current code)                                                                  |
+| `mise run format`             | Auto-fix lint and formatting                                                                                              |
+| `mise run hooks`              | Run git hooks                                                                                                             |
+| `mise run lint`               | Run linter                                                                                                                |
+| `mise run test`               | Run tests with coverage                                                                                                   |
+| `mise run test:coverage-min`  | Fail below the 70% coverage threshold                                                                                     |
+| `mise run test:view-coverage` | Open the coverage report in a browser                                                                                     |
+| `mise tasks`                  | List all available tasks                                                                                                  |
 
 `GH_LD_LIVE_TEST=1 mise run test:live` runs the live dispatch test against a throwaway GitHub repo. It creates and deletes a real repository and consumes Actions minutes, so it is opt-in. See [docs/live-testing.md](docs/live-testing.md).
 
@@ -58,17 +60,23 @@ Run straight from source with `go run`, which always reflects the current code, 
 go run ./cmd/gh-lazydispatch [args]
 ```
 
-To test the actual `gh gh-lazydispatch ...` extension invocation or a Homebrew install, use the released version rather than installing from this checkout:
+Or through mise, which runs the same thing:
+
+```bash
+mise run dev [args]
+```
+
+To test the actual `gh lazydispatch ...` invocation (the GitHub CLI strips the `gh-` prefix from the repository name) or a Homebrew install, use the released version rather than installing from this checkout:
 
 ```bash
 gh extension install kyleking/gh-lazydispatch
 # or
-brew install --formula https://github.com/kyleking/gh-lazydispatch/raw/main/Formula/gh-lazydispatch.rb
+brew install --cask kyleking/tap/gh-lazydispatch
 ```
 
 ## Releases
 
-Automated by the Bump Version workflow. **Note:** For GH CLI extensions, the first release is required before users can run `gh extension install kyleking/gh-lazydispatch`.
+Automated by the Bump Version workflow. **Note:** the first release is required before users can run `gh extension install kyleking/gh-lazydispatch`.
 
 ### Creating a Release
 
@@ -82,46 +90,23 @@ Automated by the Bump Version workflow. **Note:** For GH CLI extensions, the fir
 
     goreleaser runs inside that same workflow because a tag pushed with `GITHUB_TOKEN` does not trigger any other workflow.
 
-1. Verify the release has properly named binaries:
-
-    - `gh-lazydispatch-linux-amd64`
-    - `gh-lazydispatch-darwin-arm64`
-    - `gh-lazydispatch-windows-amd64.exe`
-    - etc.
-
-### Updating the Homebrew Formula
-
-After a release, update `Formula/gh-lazydispatch.rb`:
-
-1. Download the release binaries from the GitHub release page
-
-1. Generate SHA256 checksums:
+1. Verify the release by distinct hash, not by asset count. Every target is a separate build, so the checksums must all differ; a repeated hash means one binary was published under several names:
 
     ```bash
-    shasum -a 256 gh-lazydispatch-darwin-arm64 gh-lazydispatch-darwin-amd64 gh-lazydispatch-linux-arm64 gh-lazydispatch-linux-amd64
+    gh release download <tag> -p checksums.txt -O - | awk '{print $1}' | sort -u | wc -l
     ```
 
-    Or run `mise run brew:sha` for a reminder of these steps.
-
-1. Update the `version` and `sha256` values in `Formula/gh-lazydispatch.rb`
-
-1. Commit and push the formula changes
+    Expect one line per binary. Names should read `gh-lazydispatch-linux-amd64`, `gh-lazydispatch-darwin-arm64`, `gh-lazydispatch-windows-amd64.exe`, and so on.
 
 ### Installing via Homebrew
 
-Users can install directly from the repository formula:
+goreleaser builds the cask and pushes it to `https://github.com/kyleking/homebrew-tap` as part of the release, with the SHA256 values taken from the artifacts it just built:
 
 ```bash
-brew install --formula https://github.com/kyleking/gh-lazydispatch/raw/main/Formula/gh-lazydispatch.rb
+brew install --cask kyleking/tap/gh-lazydispatch
 ```
 
-Or from a local checkout:
-
-```bash
-brew install --formula ./Formula/gh-lazydispatch.rb
-```
-
-To set up a [homebrew tap](https://docs.brew.sh/Taps) for `brew install kyleking/tap/gh-lazydispatch`, create a `homebrew-tap` repo at `https://github.com/kyleking/homebrew-tap` and copy the formula there.
+The push needs a `TAP_DEPLOY_KEY` secret scoped to the tap repo; run `scripts/provision-tap-deploy-key.sh` to create it. Without the secret the release still publishes every binary and skips the cask with a warning.
 
 ## Troubleshooting
 
@@ -129,252 +114,7 @@ To set up a [homebrew tap](https://docs.brew.sh/Taps) for `brew install kyleking
 mise install --force   # Reinstall tools
 hk install --mise --force  # Reinstall hooks
 go test -v -run TestName ./package  # Debug specific test
+go test ./... -update  # Refresh golden fixtures, where the project has them
 ```
 
----
-
-## Architecture
-
-### Core Flow
-
-```mermaid
-flowchart TD
-    A[lazydispatch] --> B[Scan .github/workflows/*.y*ml]
-    B --> C[Fuzzy-select workflow]
-    C --> D[Parse workflow_dispatch inputs]
-    D --> E[Interactive input configuration]
-    E --> F[Branch selection]
-    F --> G[Confirm and trigger]
-    G --> H[Optional: Watch run]
-
-    C -.->|Type to filter| C
-    C -.->|Shows filename + name| C
-    E -.->|text → Input field| E
-    E -.->|boolean → Confirm| E
-    E -.->|choice → Select| E
-    F -.->|Current branch first| F
-    F -.->|Default branch second| F
-    F -.->|Recent branches sorted| F
-    G -.->|gh workflow run| G
-    H -.->|gh run watch| H
-```
-
-### Input Type Mapping
-
-| `workflow_dispatch` input type | TUI Component                 |
-| ------------------------------ | ----------------------------- |
-| `string` (default)             | Text input                    |
-| `boolean`                      | Confirm                       |
-| `choice`                       | Select with options           |
-| `environment`                  | Select with repo environments |
-
-## Design Decisions
-
-### TUI Architecture: Sequential Prompts
-
-The project uses **sequential prompts** (Bubbletea with modal stack) rather than a full-screen dashboard:
-
-**Rationale:**
-
-- Simpler mental model: one decision at a time
-- Easier to implement and maintain
-- Better accessibility
-- Clearer focus on current task
-- Modal stack allows lazy-git style navigation (ESC to go back)
-
-**Alternative considered:** Single-screen dashboard with split panes showing workflow list + input form + branch selector simultaneously. Deferred to v2 as it requires more complex state management without clear UX benefits for the primary use case.
-
-### Library Choices
-
-**charmbracelet/bubbles** for lists:
-
-- Built-in fuzzy filtering via sahilm/fuzzy
-- Pagination and navigation
-- Minimal boilerplate
-
-**charmbracelet/bubbletea** for TUI:
-
-- Elm architecture (Model-Update-View)
-- Composable components
-- No external dependencies (fzf, etc.)
-
-**go-gh/v2** for GitHub integration:
-
-- Native API access with inherited auth
-- Repository detection
-- Command execution
-
-### Frecency Algorithm
-
-Score combines frequency (run count) and recency (time since last run):
-
-```
-Score = (run_count) × (recency_weight)
-
-recency_weight =
-  4.0  if < 1 hour ago
-  2.0  if < 24 hours ago
-  1.0  if < 1 week ago
-  0.5  otherwise
-```
-
-This prioritizes workflows that are both frequently used AND recently used, matching user mental models better than pure frequency or recency alone.
-
-**Storage:** JSON file at `~/.local/share/lazydispatch/history.json` following XDG Base Directory spec. Each entry includes:
-
-- Repository path
-- Workflow filename
-- Branch used
-- Input values
-- Run count
-- Last run timestamp
-
-**SQLite considered but deferred:** Would provide efficient queries for large histories but adds CGO dependency and binary size. Current JSON approach handles hundreds of entries with negligible performance impact.
-
-## File Structure
-
-```
-lazydispatch/
-├── main.go                    # Entry point, CLI setup
-├── internal/
-│   ├── app/                   # Main TUI application
-│   │   ├── app.go            # Bubbletea app model
-│   │   └── app_test.go
-│   ├── workflow/              # Workflow discovery & parsing
-│   │   ├── discovery.go      # Find .github/workflows/*.yml
-│   │   ├── types.go          # File, Input structs
-│   │   └── parser.go
-│   ├── frecency/              # History & scoring
-│   │   └── store.go          # JSON persistence, frecency calc
-│   ├── ui/                    # TUI components
-│   │   ├── panes/            # Main view panes
-│   │   │   ├── workflow.go   # Workflow list pane
-│   │   │   ├── history.go    # Recent runs pane
-│   │   │   └── config.go     # Input configuration pane
-│   │   ├── modal/            # Modal dialogs
-│   │   │   ├── stack.go      # Modal stack manager
-│   │   │   ├── select.go     # Branch/option selection
-│   │   │   ├── input.go      # Text input
-│   │   │   ├── confirm.go    # Boolean confirmation
-│   │   │   └── help.go       # Help screen
-│   │   ├── styles.go         # Lipgloss styles
-│   │   └── theme/            # Catppuccin themes
-│   └── runner/               # Workflow execution
-│       └── execute.go        # gh workflow run invocation
-├── testdata/                  # Sample workflows for testing
-└── .github/
-    ├── workflows/
-    │   └── release.yml       # goreleaser with gh-extension-precompile
-    └── assets/
-        └── demo.tape         # VHS recording script
-```
-
-## Development
-
-### Building
-
-```bash
-go build -o lazydispatch
-```
-
-### Testing
-
-```bash
-go test ./...
-```
-
-Test against sample workflows in `testdata/`:
-
-```bash
-cd testdata
-../lazydispatch
-```
-
-### Test Safety
-
-The codebase has safety mechanisms to prevent accidental mutation of GitHub resources during tests.
-
-**Blocked Commands in Tests:**
-
-- `gh workflow run` - Dispatch workflows
-- `gh issue create/edit/close/delete` - Issue operations
-- `gh pr create/merge/close/edit` - Pull request operations
-- `gh run cancel/rerun` - Workflow run mutations
-- `gh release create/delete` - Release management
-
-**Safe Approach - Using Mocks:**
-
-```go
-func TestMyFeature(t *testing.T) {
-    mockExec := exec.NewMockExecutor()
-    mockExec.AddCommand("gh", []string{"workflow", "run", "test.yml"}, "", "", nil)
-    runner.SetExecutor(mockExec)
-    defer runner.SetExecutor(nil)
-
-    // Safe to call runner functions - uses mock
-    runID, err := runner.ExecuteAndGetRunID(config, client)
-}
-```
-
-Read-only commands (`gh api`, `gh run view`, `gh run list`, `gh run watch`) are always allowed.
-
-**Exercising the real dispatch path:** because the unit suite can never issue a real `gh workflow run`, the dispatch path is covered by an opt-in live test that creates and destroys its own scratch repository. See [docs/live-testing.md](docs/live-testing.md).
-
-### Recording Demo
-
-Generate demo GIF using VHS:
-
-```bash
-vhs < .github/assets/demo.tape
-```
-
-### Release Process
-
-Releases are automated via goreleaser:
-
-1. Tag version: `git tag v1.0.0`
-1. Push: `git push origin v1.0.0`
-1. GitHub Actions builds binaries for multiple platforms
-1. Creates GitHub release with artifacts
-
-## YAML Parsing
-
-The `workflow_dispatch` schema has well-defined structure:
-
-```go
-type File struct {
-    Name string `yaml:"name"`
-    On   struct {
-        Dispatch *struct {
-            Inputs map[string]Input `yaml:"inputs"`
-        } `yaml:"workflow_dispatch"`
-    } `yaml:"on"`
-}
-
-type Input struct {
-    Description string   `yaml:"description"`
-    Required    bool     `yaml:"required"`
-    Default     string   `yaml:"default"`
-    Type        string   `yaml:"type"`    // string|boolean|choice|number|environment
-    Options     []string `yaml:"options"` // for choice type
-}
-```
-
-### Edge Cases Handled
-
-1. **`on` as string vs map**: `on: push` vs `on: { workflow_dispatch: ... }`
-1. **Boolean quirk**: GitHub converts booleans to strings in `github.event.inputs`, preserved in `inputs` context
-1. **Missing type**: Defaults to `string` when `type` omitted
-1. **Environment type**: Requires API call to fetch repo environments (not yet implemented)
-
-## References
-
-- [Creating GitHub CLI extensions](https://docs.github.com/en/github-cli/github-cli/creating-github-cli-extensions)
-- [go-gh library](https://pkg.go.dev/github.com/cli/go-gh/v2)
-- [charmbracelet/bubbles](https://pkg.go.dev/github.com/charmbracelet/bubbles)
-- [charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea)
-- [gh workflow run manual](https://cli.github.com/manual/gh_workflow_run)
-- [workflow_dispatch input types](https://github.blog/changelog/2021-11-10-github-actions-input-types-for-manual-workflows/)
-- [Atuin shell history](https://atuin.sh/) - frecency inspiration
-- [gh-extension-precompile action](https://github.com/cli/gh-extension-precompile)
-- [Extending the gh CLI with Go](https://mikeball.info/blog/extending-the-gh-cli-with-go)
+Golden files are byte-exact snapshots, so `hk.pkl` excludes `**/*.golden` from every whitespace fixer. Regenerate them with `-update` and review the diff; never hand-edit.
