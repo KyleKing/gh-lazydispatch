@@ -630,8 +630,6 @@ func TestIntegration_LogStreaming(t *testing.T) {
 
 // checkLogStreamingPoll1 verifies the first poll has log entries for the first
 // two (in-progress) steps and returns their entry counts for later comparison.
-//
-//nolint:gocritic // unnamedResult wants named returns, but nonamedreturns forbids them
 func checkLogStreamingPoll1(t *testing.T, stepLogs1 []*logs.StepLogs) (int, int) {
 	t.Helper()
 

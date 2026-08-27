@@ -7,11 +7,7 @@ version = "2"
 enable = ["gci", "gofmt", "gofumpt", "goimports"]
 
 [formatters.settings.gci]
-sections = [
-  "standard",
-  "default",
-  "prefix(github.com/kyleking/gh-lazydispatch)"
-]
+sections = ["standard", "default", "prefix(github.com/kyleking/gh-lazydispatch)"]
 
 [formatters.settings.gofumpt]
 extra-rules = true
@@ -25,7 +21,7 @@ disable = [
   "forbidigo",  # requires custom regex configuration
   "gochecknoglobals",  # BubbleTea/lipgloss styles use package-level vars
   "goheader",  # copyright headers add noise for personal projects
-  "wsl"  # whitespace linting too nitpicky
+  "wsl",  # whitespace linting too nitpicky
 ]
 enable = [
   "asciicheck",
@@ -71,7 +67,7 @@ enable = [
   "ineffassign",
   "interfacebloat",
   "intrange",
-  "ireturn",  # revisit: BubbleTea Init/Update methods return interfaces by design
+  "ireturn",
   "lll",
   "loggercheck",
   "maintidx",
@@ -117,7 +113,7 @@ enable = [
   "wastedassign",
   "whitespace",
   "wrapcheck",
-  "zerologlint"
+  "zerologlint",
 ]
 
 [[linters.exclusions.rules]]
@@ -163,13 +159,13 @@ enabled-tags = [
   "style",
   "performance",
   "experimental",
-  "opinionated"
+  "opinionated",
 ]
-# hugeParam: BubbleTea's Elm architecture passes the Model (and message
-# payloads carrying it) by value throughout Update/View/message plumbing by
-# design (see the ireturn allowlist above for the same rationale); flagging
-# every call site would just be noise, not an actionable perf win here.
-disabled-checks = ["whyNoLint", "hugeParam"]
+disabled-checks = [
+  "hugeParam",  # BubbleTea root Models are large by design; value receivers keep Update/View copy semantics
+  "unnamedResult",  # contradicts nonamedreturns, which is enabled and wins
+  "whyNoLint",
+]
 
 [linters.settings.gocyclo]
 min-complexity = 15
@@ -183,15 +179,15 @@ enable-all = true
 disable = ["shadow"]
 
 [linters.settings.ireturn]
-# tea.Model and modal.Context: BubbleTea's Elm architecture requires Update/Init
-# to return these interfaces so a component can switch to a different concrete
-# model or modal.
+# Bubble Tea v2 moved to charm.land; both paths are listed so a project on either
+# major version lints clean, because Model.Update returns the tea.Model interface.
 allow = [
   "error",
   "empty",
   "stdlib",
-  "bubbletea/v2\\.Model$",
-  "internal/ui/modal\\.Context$"
+  "charm.land/bubbletea/v2.Model",
+  "github.com/charmbracelet/bubbletea.Model",
+  "internal/ui/modal\\.Context$",
 ]
 
 [linters.settings.lll]
@@ -266,7 +262,7 @@ rules = [
   { name = "useless-break" },
   { name = "var-declaration" },
   { name = "var-naming" },
-  { name = "waitgroup-by-value" }
+  { name = "waitgroup-by-value" },
 ]
 
 [linters.settings.staticcheck]
@@ -292,7 +288,7 @@ ignore-sigs = [
   ".Wrapf(",
   ".WithMessage(",
   ".WithMessagef(",
-  ".WithStack("
+  ".WithStack(",
 ]
 
 [run]

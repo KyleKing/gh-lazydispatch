@@ -353,7 +353,6 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 	}, nil
 }
 
-//nolint:gocritic // unnamedResult wants named returns, but nonamedreturns forbids them
 func (e *ChainExecutor) waitForRun(runID int64, _ config.WaitCondition) (string, string, error) {
 	ticker := time.NewTicker(watcher.PollInterval)
 	defer ticker.Stop()

@@ -8,6 +8,9 @@ before:
 builds:
   - main: ./cmd/gh-lazydispatch
     id: gh-lazydispatch
+    # A cgo-only dependency makes this matrix build cleanly and emit nothing
+    # usable, because cgo cannot cross-compile. See "Releasing a project that
+    # needs cgo" in the template README for the rework that path needs.
     env:
       - CGO_ENABLED=0
     ldflags:

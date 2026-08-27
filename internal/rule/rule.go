@@ -251,8 +251,6 @@ func validateLengthRule(value string, r ValidationRule) string {
 }
 
 // parseRange returns (min, max, err).
-//
-//nolint:gocritic // unnamedResult wants named returns, but nonamedreturns forbids them
 func parseRange(s string) (int, int, error) {
 	parts := strings.Split(s, "-")
 	if len(parts) != rangeParts {

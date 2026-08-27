@@ -51,8 +51,6 @@ func NewMockExecutor() *MockExecutor {
 }
 
 // Execute simulates command execution by looking up the command in the Commands map.
-//
-//nolint:gocritic // unnamedResult wants named returns, but nonamedreturns forbids them
 func (m *MockExecutor) Execute(name string, args ...string) (string, string, error) {
 	// Track the executed command
 	m.ExecutedCommands = append(m.ExecutedCommands, ExecutedCommand{
