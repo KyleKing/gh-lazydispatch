@@ -59,23 +59,6 @@ invariant depends on the caller. Use the `SelectedWorkflow()` accessor there too
 
 ## Hooks
 
-hk's config-based hooks are installed alongside prek rather than replacing it,
-because dropping prek would lose checks `hk.pkl` had no equivalent for. Template
-v0.8.0 backfilled most of that gap: `copier-forbidden-files` (the `.rej` guard the
-copier workflow depends on), `shellcheck`, `typos`, `check-json`,
-`python-debug-statements`, `forbid-new-submodules`, `vcs-permalinks`,
-`byte-order-marker`, and `check-executables-have-shebangs`. It also added the
-`.copier-answers.yml` exclude to `newlines`, so the spurious one-line diff on
-every update goes away. What stays prek-only by deliberate template decision:
-`mdformat`, `prettier`, and `ruff`; `destroyed-symlinks` has no hk equivalent at
-all.
-
-Both systems now run on every commit, and prek's `mdformat` is the one that still
-earns it: it rewrapped every markdown file touched during the v0.9.1 update and
-failed the first commit attempt to do so. Decide whether to keep prek for
-`mdformat`, `prettier`, and `destroyed-symlinks` alone, or fold markdown
-formatting into `hk.pkl` upstream and drop prek here.
-
 `.config/mise/mise.lock` is the lockfile CI installs from, and `mise install
 --locked` fails on any tool missing from it. Adding a tool to
 `.config/mise/conf.d/*.toml` means running `mise lock --platform
@@ -102,19 +85,8 @@ assuming.
 
 ## Template and dependencies
 
-On copier `my_go_template` v0.9.1. Bubbletea is already on `charm.land/*/v2`, so
+On copier `my_go_template` v0.13.0. Bubbletea is already on `charm.land/*/v2`, so
 no framework migration applies. No Dependabot PRs are open.
-
-Two fixes made here belong upstream in `my_go_template`, and the next `copier
-update` reverts both unless the template moves first. The `ci` job in
-`go_template/.github/workflows/ci.yml.jinja` still pairs `jdx/mise-action` with
-`actions/setup-go`, which puts two GOROOTs on PATH and breaks every build once
-mise's `go = "latest"` passes the version in go.mod. And
-`go_template/hk.pkl.jinja`'s `commitizen-branch` step runs
-`cz check --rev-range origin/HEAD..HEAD`, which cz exits non-zero on when the
-range is empty, so `hk check --all` cannot pass on a branch level with origin.
-This repo works around the second with `HK_SKIP_STEPS`; djot-fmt fixed it properly
-by guarding with `test -z "$(git rev-list origin/HEAD..HEAD)" ||`.
 
 `README.md`, `DESIGN.md`, `go.mod`, and `cmd/gh-lazydispatch/main.go` sit in the
 template's `_skip_if_exists`, so copier never touches them and each has diverged
