@@ -104,7 +104,8 @@ func (m LiveRunsModel) ViewContent() string {
 	var content strings.Builder
 
 	content.WriteString(ui.TableHeaderStyle.Render(
-		"     Workflow                Status"))
+		"     Workflow                Status",
+	))
 	content.WriteString("\n")
 
 	for i := range m.runs {

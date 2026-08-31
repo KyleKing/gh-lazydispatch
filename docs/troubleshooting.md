@@ -74,18 +74,14 @@ Regenerate with `go test ./... -update` and review the diff. Never hand-edit.
 go test -v -run TestName ./package
 ```
 
-## No workflows listed
+## `jj git push` runs no git hooks
 
-No workflows are listed because the repository has none that declare a `workflow_dispatch` trigger, or because the working directory is not a git repository. Add the trigger to the workflow, or `cd` into the checkout first.
+A colocated jj repo bypasses `pre-push` entirely, so `verify-released`,
+`commitizen-branch`, and every linter this template installs are inert. Run
+`hk check --all` by hand before pushing from jj.
 
-## Dispatch or log viewing fails on authentication
+## Project-specific entries
 
-Both go through the `gh` CLI. Run `gh auth status`, then `gh auth login` if needed.
-
-## A chain step fails immediately
-
-The named workflow does not exist, or does not accept `workflow_dispatch` on the branch you dispatched from. The error names both the workflow and the branch.
-
-## `brew install` fails
-
-No cask has published to `kyleking/homebrew-tap` for gh-lazydispatch yet, even though `.goreleaser.yml` is wired to push one. Install through `gh extension install` or `go install` instead.
+This file is template-owned and `copier update` keeps it current. Put entries that
+only apply to this project in `docs/troubleshooting.local.md`, which the template
+never renders, so they survive the next update instead of re-conflicting.

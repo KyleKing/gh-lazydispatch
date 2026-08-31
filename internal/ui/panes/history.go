@@ -121,7 +121,8 @@ func (m HistoryModel) ViewContent() string {
 	var content strings.Builder
 
 	content.WriteString(ui.TableHeaderStyle.Render(
-		"    Name                 Branch          Time"))
+		"    Name                 Branch          Time",
+	))
 	content.WriteString("\n")
 
 	for i := range m.entries {

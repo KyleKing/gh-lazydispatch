@@ -116,7 +116,8 @@ func (m ChainListModel) ViewContent() string {
 	var content strings.Builder
 
 	content.WriteString(ui.TableHeaderStyle.Render(
-		"  Name             Steps  Vars  Description"))
+		"  Name             Steps  Vars  Description",
+	))
 	content.WriteString("\n")
 
 	for i, name := range m.chainNames {
