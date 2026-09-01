@@ -1,3 +1,9 @@
+## v1.5.0 (2026-09-01)
+
+### Feat
+
+- **timeline**: draw a run's jobs on one time axis
+
 ## v1.4.0 (2026-09-01)
 
 ### Feat
