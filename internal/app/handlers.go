@@ -159,7 +159,7 @@ func (m Model) handleHistoryPaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bo
 
 		return model, cmd, true
 
-	case msg.String() == "l":
+	case key.Matches(msg, m.keys.ViewLogs):
 		if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabHistory {
 			return m, nil, true
 		}
@@ -246,10 +246,16 @@ func (m *Model) clearCompletedLiveRuns() {
 // handleKeyMsgFallback handles keys not covered by a named binding: dynamic
 // input-select and workflow-select shortcuts.
 func (m Model) handleKeyMsgFallback(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	for i, k := range m.keys.InputKeys() {
-		if key.Matches(msg, k) {
-			return m.handleInputKey(i)
+	// InputKeys and WorkflowKeys bind the same digits, so the focused pane is
+	// the only thing that tells them apart.
+	if m.focused == PaneConfig {
+		for i, k := range m.keys.InputKeys() {
+			if key.Matches(msg, k) {
+				return m.handleInputKey(i)
+			}
 		}
+
+		return m, nil
 	}
 
 	for i, k := range m.keys.WorkflowKeys() {
@@ -359,6 +365,7 @@ func (m *Model) handleDown() {
 func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	switch m.focused {
 	case PaneWorkflows:
+		return m.executeWorkflow()
 	case PaneHistory:
 		switch m.rightPanel.ActiveTab() {
 		case panes.TabLive:

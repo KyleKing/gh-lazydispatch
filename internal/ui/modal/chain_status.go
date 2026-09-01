@@ -48,7 +48,7 @@ func defaultChainStatusKeyMap() chainStatusKeyMap {
 		Close:       key.NewBinding(key.WithKeys("esc", "q")),
 		Stop:        key.NewBinding(key.WithKeys("ctrl+c")),
 		Copy:        key.NewBinding(key.WithKeys("c")),
-		ViewLogs:    key.NewBinding(key.WithKeys("l")),
+		ViewLogs:    key.NewBinding(key.WithKeys("v")),
 		OpenBrowser: key.NewBinding(key.WithKeys("o")),
 	}
 }
@@ -184,9 +184,9 @@ func (m *ChainStatusModal) View() string {
 	case m.state.Status == chain.ChainRunning:
 		s.WriteString(ui.HelpStyle.Render("[esc/q] close (continues)  [C-c] stop  [c] copy script"))
 	case m.state.Status == chain.ChainFailed && hasFailedURL:
-		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [o] open in browser  [l] view logs  [c] copy script"))
+		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [o] open in browser  [v] view logs  [c] copy script"))
 	case m.state.Status == chain.ChainCompleted || m.state.Status == chain.ChainFailed:
-		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [l] view logs  [c] copy script"))
+		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [v] view logs  [c] copy script"))
 	default:
 		s.WriteString(ui.HelpStyle.Render("[esc/q] close  [c] copy script"))
 	}

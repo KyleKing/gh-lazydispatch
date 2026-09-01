@@ -28,6 +28,7 @@ type KeyMap struct {
 	TabNext  key.Binding
 	TabPrev  key.Binding
 	Up       key.Binding
+	ViewLogs key.Binding
 	Watch    key.Binding
 
 	Input0 key.Binding
@@ -79,7 +80,7 @@ func DefaultKeyMap() KeyMap {
 		Escape:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 		Filter:   key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
 		Help:     key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
-		LiveView: key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "live view")),
+		LiveView: key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "live view")),
 		Quit:     key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 		Reset:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reset inputs")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev pane")),
@@ -88,6 +89,7 @@ func DefaultKeyMap() KeyMap {
 		TabNext:  key.NewBinding(key.WithKeys("l", "right"), key.WithHelp("l", "next tab")),
 		TabPrev:  key.NewBinding(key.WithKeys("h", "left"), key.WithHelp("h", "prev tab")),
 		Up:       key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
+		ViewLogs: key.NewBinding(key.WithKeys("v"), key.WithHelp("v", "view logs")),
 		Watch:    key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "watch")),
 
 		Input0: makeNumberedBinding(0, "input"),
@@ -114,11 +116,12 @@ func DefaultKeyMap() KeyMap {
 	}
 }
 
-// InputKeys returns all input key bindings as a slice indexed 0-9.
+// InputKeys returns the input key bindings in row order, so the returned index
+// is the input's own index and `0` reaches the tenth row.
 func (k KeyMap) InputKeys() []key.Binding {
 	return []key.Binding{
-		k.Input0, k.Input1, k.Input2, k.Input3, k.Input4,
-		k.Input5, k.Input6, k.Input7, k.Input8, k.Input9,
+		k.Input1, k.Input2, k.Input3, k.Input4, k.Input5,
+		k.Input6, k.Input7, k.Input8, k.Input9, k.Input0,
 	}
 }
 
@@ -142,6 +145,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 		{k.TabNext, k.TabPrev, k.Clear, k.ClearAll},
 		{k.Enter, k.Edit, k.Escape, k.Branch},
 		{k.Watch, k.Filter, k.Copy, k.Reset},
+		{k.LiveView, k.ViewLogs, k.Chain, k.Space},
 		{k.Input1, k.Input2, k.Input3, k.Input0},
 		{k.Quit, k.Help},
 	}

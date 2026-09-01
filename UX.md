@@ -116,15 +116,35 @@ Press `Esc` to return to workflow list.
 | `Space` | Select workflow and jump to config |
 | `Esc` | Deselect input / Close modal |
 
+### Workflows Pane
+| Key | Action |
+|-----|--------|
+| `1-9` | Select workflow by number |
+| `0` | Clear the workflow selection |
+| `Space` | Jump to the config pane |
+
 ### Config Panel
 | Key | Action |
 |-----|--------|
 | `1-9`, `0` | Edit input by number |
+| `e` | Edit the selected input |
 | `b` | Select branch |
 | `w` | Toggle watch mode |
 | `/` | Filter inputs (fuzzy match) |
 | `c` | Copy command to clipboard |
 | `r` | Reset all inputs to defaults |
+
+Digits are read by whichever pane has focus, so `3` picks the third workflow
+from the workflows pane and edits the third input from the config pane.
+
+### Runs and Chains
+| Key | Action |
+|-----|--------|
+| `C` | Run a chain |
+| `L` | Live run overview |
+| `v` | View logs for the selected entry |
+| `a` | Remap inputs of a previewed entry |
+| `d` / `D` | Stop watching one / all finished runs |
 
 ### Input Editing
 | Key | Action |

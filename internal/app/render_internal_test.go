@@ -157,7 +157,7 @@ func TestModalViewsAtStandardSize(t *testing.T) {
 
 			m.focused = PaneConfig
 
-			return pressRune(t, m, '0')
+			return pressRune(t, m, '1')
 		}},
 		{"run_confirm", func(t *testing.T, m Model) Model {
 			t.Helper()
@@ -201,9 +201,9 @@ func TestDispatchFlowEndState(t *testing.T) {
 	m := resize(t, newRenderModel(), 120, 40)
 	m.focused = PaneConfig
 
-	m = pressRune(t, m, '0')
+	m = pressRune(t, m, '1')
 	if !m.modalStack.HasActive() {
-		t.Fatal("expected input modal after pressing 0")
+		t.Fatal("expected input modal after pressing 1")
 	}
 
 	m = pressSpecial(t, m, tea.KeyDown)

@@ -81,12 +81,14 @@ func _padRight(s string, length int) string {
 
 const maxSingleDigitIndex = 9
 
+// _formatRowNumber labels a row with the digit that edits it: rows count from
+// 1 and the tenth is reached with 0.
 func _formatRowNumber(index int) string {
 	if index < 0 || index > maxSingleDigitIndex {
 		return " "
 	}
 
-	return strconv.Itoa(index)
+	return strconv.Itoa((index + 1) % (maxSingleDigitIndex + 1))
 }
 
 func _contains(slice []string, item string) bool {

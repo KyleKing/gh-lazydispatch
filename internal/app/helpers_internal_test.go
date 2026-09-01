@@ -39,10 +39,10 @@ func TestFormatRowNumber(t *testing.T) {
 		index int
 		want  string
 	}{
-		{0, "0"},
-		{1, "1"},
-		{8, "8"},
-		{9, "9"},
+		{0, "1"},
+		{1, "2"},
+		{8, "9"},
+		{9, "0"},
 		{10, " "},
 		{100, " "},
 	}

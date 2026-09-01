@@ -40,7 +40,7 @@ chains:
 
 Press `tab` to focus the right panel, `l` until the Chains tab is showing, then `j`/`k` to pick a chain and `enter` to run it. `C` runs a chain directly.
 
-While a chain runs, the status bar reads `Chain: name (step/total)`. Press `l` after it finishes or fails to open the [log viewer](./interface.md#log-viewer), which starts filtered to errors when the chain failed.
+While a chain runs, the status bar reads `Chain: name (step/total)`. Press `v` after it finishes or fails to open the [log viewer](./interface.md#log-viewer), which starts filtered to errors when the chain failed.
 
 Each step needs the named workflow to exist and to accept `workflow_dispatch` on the branch you dispatched from, otherwise the chain reports that step as failed.
 

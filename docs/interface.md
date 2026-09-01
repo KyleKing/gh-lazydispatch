@@ -26,7 +26,7 @@ The status bar shows `Chains(N)` when the repository has chains configured, and 
 
 ## Log viewer
 
-`l` opens logs from a chain status screen or from a history entry. Logs arrive organized by workflow step, one tab per step.
+`v` opens logs from a chain status screen or from a history entry. Logs arrive organized by workflow step, one tab per step.
 
 Inside the viewer:
 

@@ -33,11 +33,33 @@ func NewStack() *Stack {
 func (s *Stack) SetSize(width, height int) {
 	s.width = width
 	s.height = height
+
+	for _, ctx := range s.contexts {
+		s.size(ctx)
+	}
+}
+
+// Sizer is implemented by modals that render themselves against the terminal
+// dimensions. Stack hands those out on Push and on every resize, so a modal
+// never has to guess how much room it has.
+type Sizer interface {
+	SetSize(width, height int)
 }
 
 // Push adds a context to the top of the stack.
 func (s *Stack) Push(ctx Context) {
+	s.size(ctx)
 	s.contexts = append(s.contexts, ctx)
+}
+
+// size hands a modal the room left inside the border and padding.
+func (s *Stack) size(ctx Context) {
+	sizer, ok := ctx.(Sizer)
+	if !ok || s.width == 0 || s.height == 0 {
+		return
+	}
+
+	sizer.SetSize(s.width-modalChromeHorizontal, s.height-modalChromeVertical)
 }
 
 // Pop removes and returns the top context.
@@ -102,6 +124,12 @@ func (s *Stack) Render(background string) string {
 const (
 	modalPaddingVertical   = 2
 	modalPaddingHorizontal = 3
+)
+
+// The border and padding a modal's content sits inside of.
+const (
+	modalChromeVertical   = 2 + 2*modalPaddingVertical
+	modalChromeHorizontal = 2 + 2*modalPaddingHorizontal
 )
 
 func placeCenter(_, modal string, width, height int) string {

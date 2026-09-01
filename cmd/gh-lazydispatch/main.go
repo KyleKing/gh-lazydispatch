@@ -109,10 +109,14 @@ Environment Variables:
 Keyboard Shortcuts:
   Tab / Shift+Tab    Switch between panes
   ↑/k, ↓/j           Navigate within pane
+  h/←, l/→           Previous / next tab (right pane)
   Enter              Select / Execute workflow
   b                  Select branch
   w                  Toggle watch mode
-  1-9                Edit input by number
+  1-9                Select workflow, or edit input, by number
+  C                  Run a chain
+  L                  Live run overview
+  v                  View logs for the selected entry
   ?                  Show help
   q, Ctrl+C          Quit
 

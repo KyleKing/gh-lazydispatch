@@ -1,40 +1,40 @@
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        
-                             ╔═══════════════════════════════════════════════════════════╗                              
-                             ║                                                           ║                              
-                             ║                                                           ║                              
-                             ║   Keyboard Shortcuts                                      ║                              
-                             ║                                                           ║                              
-                             ║   Navigation                                              ║                              
-                             ║     Tab / Shift+Tab    Switch between panes               ║                              
-                             ║     ↑/k, ↓/j           Navigate lists and select input    ║                              
-                             ║     Enter              Select / Execute / Edit selected   ║                              
-                             ║     Esc                Deselect / Close modal             ║                              
-                             ║                                                           ║                              
-                             ║   Config Panel                                            ║                              
-                             ║     1-9, 0             Edit input by number (1-10)        ║                              
-                             ║     b                  Select branch                      ║                              
-                             ║     w                  Toggle watch mode                  ║                              
-                             ║     /                  Start filtering inputs             ║                              
-                             ║     c                  Command - copy to clipboard        ║                              
-                             ║     r                  Reset all inputs to defaults       ║                              
-                             ║                                                           ║                              
-                             ║   Input Editing                                           ║                              
-                             ║     Ctrl+R             Restore default value              ║                              
-                             ║     Enter              Confirm (or apply anyway)          ║                              
-                             ║     Esc                Cancel / Keep editing              ║                              
-                             ║                                                           ║                              
-                             ║   Application                                             ║                              
-                             ║     ?                  Show this help                     ║                              
-                             ║     q, Ctrl+C          Quit                               ║                              
-                             ║                                                           ║                              
-                             ║   Press ? or Esc to close                                 ║                              
-                             ║                                                           ║                              
-                             ║                                                           ║                              
-                             ╚═══════════════════════════════════════════════════════════╝                              
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        
-                                                                                                                        
+                           ╔════════════════════════════════════════════════════════════════╗                           
+                           ║                                                                ║                           
+                           ║                                                                ║                           
+                           ║   Keyboard Shortcuts                                           ║                           
+                           ║                                                                ║                           
+                           ║   Navigation                                                   ║                           
+                           ║     Tab / Shift+Tab    Switch between panes                    ║                           
+                           ║     ↑/k, ↓/j           Navigate lists and select input         ║                           
+                           ║     h/←, l/→           Previous / next tab (right pane)        ║                           
+                           ║     Enter              Select / Execute / Edit selected        ║                           
+                           ║     Esc                Deselect / Close modal                  ║                           
+                           ║                                                                ║                           
+                           ║   Workflows Pane                                               ║                           
+                           ║     1-9                Select workflow by number               ║                           
+                           ║     0                  Clear the workflow selection            ║                           
+                           ║     Space              Jump to the config pane                 ║                           
+                           ║                                                                ║                           
+                           ║   Config Pane                                                  ║                           
+                           ║     1-9, 0             Edit input by number (1-10)             ║                           
+                           ║     e                  Edit the selected input                 ║                           
+                           ║     b                  Select branch                           ║                           
+                           ║     w                  Toggle watch mode                       ║                           
+                           ║     /                  Start filtering inputs                  ║                           
+                           ║     c                  Copy the gh command to the clipboard    ║                           
+                           ║     r                  Reset all inputs to defaults            ║                           
+                           ║                                                                ║                           
+                           ║   Runs and Chains                                              ║                           
+                           ║     C                  Run a chain                             ║                           
+                           ║     L                  Live run overview                       ║                           
+                           ║     v                  View logs for the selected entry        ║                           
+                           ║     a                  Remap inputs of a previewed entry       ║                           
+                           ║     d / D              Stop watching one / all finished runs   ║                           
+                           ║                                                                ║                           
+                           ║   Input Editing                                                ║                           
+                           ║     Ctrl+R             Restore default value                   ║                           
+                           ║                                                                ║                           
+                           ║   j/k scroll  ·  ? or Esc to close                             ║                           
+                           ║                                                                ║                           
+                           ║                                                                ║                           
+                           ╚════════════════════════════════════════════════════════════════╝                           

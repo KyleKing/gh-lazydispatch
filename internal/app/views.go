@@ -463,11 +463,11 @@ func (Model) renderTableHeader() string {
 func (m Model) renderTableRows(height int) string {
 	var rows strings.Builder
 
-	if m.selectedWorkflow >= len(m.workflows) {
+	wf := m.SelectedWorkflow()
+	if wf == nil {
 		return ""
 	}
 
-	wf := m.workflows[m.selectedWorkflow]
 	wfInputs := wf.GetInputs()
 
 	visibleRows := height - TableHeaderHeight

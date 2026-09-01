@@ -30,7 +30,7 @@ type liveViewKeyMap struct {
 
 func defaultLiveViewKeyMap() liveViewKeyMap {
 	return liveViewKeyMap{
-		Close:    key.NewBinding(key.WithKeys("esc", "l", "q")),
+		Close:    key.NewBinding(key.WithKeys("esc", "L", "q")),
 		Up:       key.NewBinding(key.WithKeys("up", "k")),
 		Down:     key.NewBinding(key.WithKeys("down", "j")),
 		Clear:    key.NewBinding(key.WithKeys("d")),
