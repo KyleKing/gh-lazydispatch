@@ -29,6 +29,8 @@ Flags (runs):
   --branch <name>
   --status <status>   queued|in_progress|completed|success|failure
   --limit <n>         Default 20
+  --current           One row per workflow: the branch's state rather than its
+                      history. Needs --branch, and ignores --status and --limit
 
 Flags (logs):
   --errors-only       Keep only lines that read as errors
@@ -231,13 +233,21 @@ const defaultRunLimit = 20
 func exportRuns(args []string, stdout, stderr io.Writer) error {
 	fs := newFlagSet("runs")
 	query := github.RunQuery{}
+
+	var current bool
+
 	fs.StringVar(&query.Workflow, "workflow", "", "workflow filename")
 	fs.StringVar(&query.Branch, "branch", "", "branch name")
 	fs.StringVar(&query.Status, "status", "", "run status or conclusion")
 	fs.IntVar(&query.Limit, "limit", defaultRunLimit, "maximum runs")
+	fs.BoolVar(&current, "current", false, "one row per workflow on the branch")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("%w: %w", ErrUsage, err)
+	}
+
+	if current && query.Branch == "" {
+		return fmt.Errorf("%w: --current needs --branch", ErrUsage)
 	}
 
 	client, err := newClient()
@@ -245,9 +255,9 @@ func exportRuns(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	runs, err := client.ListRuns(query)
+	runs, err := listRuns(client, query, current)
 	if err != nil {
-		return fmt.Errorf("listing runs: %w", err)
+		return err
 	}
 
 	summaries := make([]runSummary, 0, len(runs))
@@ -267,6 +277,27 @@ func exportRuns(args []string, stdout, stderr io.Writer) error {
 	notef(stderr, "%d runs\n", len(summaries))
 
 	return writeJSON(stdout, summaries)
+}
+
+// listRuns reads either the branch's run history or its current state, which is
+// the newest run of each workflow. The two answer different questions: whether
+// something is flaky, and whether the branch is green.
+func listRuns(client *github.Client, query github.RunQuery, current bool) ([]github.WorkflowRun, error) {
+	if current {
+		runs, err := client.LatestRunsOnBranch(query.Branch, 0)
+		if err != nil {
+			return nil, fmt.Errorf("reading the branch's current state: %w", err)
+		}
+
+		return runs, nil
+	}
+
+	runs, err := client.ListRuns(query)
+	if err != nil {
+		return nil, fmt.Errorf("listing runs: %w", err)
+	}
+
+	return runs, nil
 }
 
 // newClient builds a GitHub client for the repository the working directory

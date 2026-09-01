@@ -128,6 +128,22 @@ Remaining, in the order that pays off:
 - `formatTimeAgo` in `internal/ui/panes/history.go` to `aragonite/display`, which
   already spells relative times and status glyphs for two other tools
 
+## Coverage
+
+`mise run test:coverage-min` holds the whole module at 70%. Two packages sit
+below it for different reasons:
+
+- `internal/chain` was at 45% because the engine dispatched through
+  `runner.ExecuteAndGetRunID`, which shells out to `gh workflow run`, and
+  `internal/exec`'s mutation guard panics on that in a test. The executor now
+  takes `WithDispatcher` and `WithPollInterval`, which took it to 78%. Every
+  seam like that is worth adding: it is a design defect that reads as a coverage
+  number
+- `internal/exec` reports 23.8%, and all of the uncovered statements are
+  `mock_executor.go`, which other packages' tests exercise heavily and its own
+  never touch. The number is an artifact. The real improvement is moving the
+  mock to `internal/testutil`, which also stops it shipping in the binary
+
 ## Deferred / v2 ideas
 
 Tracked in `DESIGN.md` and `CONTRIBUTING.md` design-decision sections:

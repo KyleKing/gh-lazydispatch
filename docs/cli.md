@@ -74,11 +74,16 @@ is not a step that failed, and the same rule governs signature detection.
 
 ```sh
 gh-lazydispatch export runs [--workflow <file>] [--branch <name>]
-                            [--status <status>] [--limit <n>]
+                            [--status <status>] [--limit <n>] [--current]
 ```
 
 Recent runs, newest first, reduced to the fields that decide what to do next.
 `--workflow` takes a filename (`ci.yml`), not a display name.
+
+`--current` answers the other question: not what has run, but what state each
+workflow is in on a branch now. It keeps the newest run of each workflow, keyed
+on the workflow file and its display title together so a workflow reporting a
+mode in its title keeps one state per mode, and it needs `--branch`.
 
 ## workflows and chains
 

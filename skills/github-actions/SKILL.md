@@ -52,6 +52,7 @@ out over a list.
 | `export diagnose <run-id>` | Why did this run fail? |
 | `export logs <run-id>` | What did this run print? |
 | `export runs` | What ran recently, and did it pass? |
+| `export runs --current` | Is this branch green right now? |
 | `export workflows` | What can I dispatch, and what inputs does it take? |
 | `export chains` | What multi-workflow sequences are defined here? |
 
@@ -104,11 +105,18 @@ that says `echo "Error: ..."` is not a step that failed.
 ### runs, workflows, chains
 
 ```sh
+gh-lazydispatch export runs --branch main --current
 gh-lazydispatch export runs --workflow ci.yml --branch main --limit 5
 gh-lazydispatch export runs --status failure
 gh-lazydispatch export workflows
 gh-lazydispatch export chains
 ```
+
+`--current` reduces a branch's runs to the newest of each workflow, which is
+the answer to whether the branch is green. A plain listing is mostly the same
+workflow re-run, so reading it to find the current state means reading past the
+history: on a branch with 27 runs, `--current` returns 13 rows. Ask for it
+before reaching for `diagnose`, since it names which run failed.
 
 `export workflows` reads `.github/workflows/` in the working directory and
 returns each dispatchable workflow with its inputs, their types, defaults, and

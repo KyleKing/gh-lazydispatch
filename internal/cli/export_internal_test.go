@@ -135,6 +135,9 @@ func TestRun_RejectsUnknownCommands(t *testing.T) {
 		{"not export", []string{"dispatch"}},
 		{"no export command", []string{"export"}},
 		{"unknown export command", []string{"export", "everything"}},
+		// --current reduces a branch's runs to one per workflow, so without a
+		// branch it would silently answer about the whole repository.
+		{"current without a branch", []string{"export", "runs", "--current"}},
 	}
 
 	for _, tt := range tests {
