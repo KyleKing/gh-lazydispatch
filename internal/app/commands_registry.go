@@ -11,6 +11,7 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 )
 
 // DefaultRegistry builds the commands the `:` bar offers. Every one of them
@@ -46,6 +47,7 @@ func DefaultRegistry() Registry {
 			Description: "Leave gh-lazydispatch",
 			Run:         func(m Model, _ []string) (Model, tea.Cmd) { return m, tea.Quit },
 		},
+		runsCommand(),
 		Command{
 			Name:        "reset",
 			Description: "Restore every input to its workflow default",
@@ -67,6 +69,39 @@ func DefaultRegistry() Registry {
 		timelineCommand(),
 		workflowCommand(),
 	)
+}
+
+// runsCommand opens the Runs tab on a scope, which is the branch's state on
+// GitHub rather than this checkout's dispatch history.
+func runsCommand() Command {
+	scopes := map[string]panes.RunsScope{
+		"branch":    panes.ScopeBranch,
+		"mine":      panes.ScopeMine,
+		"reviewing": panes.ScopeReviewing,
+	}
+
+	return Command{
+		Name:        "runs",
+		Description: "Show a branch's or a PR set's runs: :runs [branch|mine|reviewing]",
+		Run: func(m Model, args []string) (Model, tea.Cmd) {
+			scope := panes.ScopeBranch
+
+			if len(args) > 0 {
+				named, ok := scopes[strings.ToLower(args[0])]
+				if !ok {
+					return m, statusCmd("scopes are branch, mine, and reviewing")
+				}
+
+				scope = named
+			}
+
+			m.focused = PaneHistory
+			m.rightPanel.SetTab(panes.TabRuns)
+			m.rightPanel.Runs().SetScope(scope)
+
+			return m, m.fetchRunsCmd(scope, m.branch)
+		},
+	}
 }
 
 // runLogCommand builds `:logs` and `:diagnose`, which differ only in whether

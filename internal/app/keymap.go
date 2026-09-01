@@ -23,7 +23,9 @@ type KeyMap struct {
 	Help     key.Binding
 	LiveView key.Binding
 	Quit     key.Binding
+	Reload   key.Binding
 	Reset    key.Binding
+	Scope    key.Binding
 	ShiftTab key.Binding
 	Space    key.Binding
 	Tab      key.Binding
@@ -86,7 +88,9 @@ func DefaultKeyMap() KeyMap {
 		Help:     key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
 		LiveView: key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "live view")),
 		Quit:     key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+		Reload:   key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "reload runs")),
 		Reset:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reset inputs")),
+		Scope:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "run scope")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev pane")),
 		Space:    key.NewBinding(key.WithKeys("space"), key.WithHelp("space", "select")),
 		Tab:      key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next pane")),
@@ -150,6 +154,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 		{k.Enter, k.Edit, k.Escape, k.Branch},
 		{k.Watch, k.Filter, k.Copy, k.Reset},
 		{k.LiveView, k.ViewLogs, k.Chain, k.Space},
+		{k.Scope, k.Reload},
 		{k.Input1, k.Input2, k.Input3, k.Input0},
 		{k.Quit, k.Help},
 	}

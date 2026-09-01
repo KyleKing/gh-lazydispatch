@@ -43,49 +43,65 @@ fine:
 
 Both are fixed. The lesson is in `AGENTS.local.md`: the demo workflows prove the
 code runs, and only a repository whose logs nobody wrote for this tool proves it
-is right.
+is right. The same applies to the frames: the golden tests rendered against
+zero-value styles, so they had been asserting on a UI with no borders and no
+colors that no user has ever seen.
 
-## Phase 5: the branch's current state, not this checkout's history
+## Phase 5: the branch's current state, not this checkout's history (shipped)
 
 The History tab lists local dispatch history, so in a repository this tool has
-never dispatched from it reads "No recent runs" while GitHub holds thousands. The
-question a reader actually opens the tool with is whether their branch is green,
-and nothing on screen answers it.
+never dispatched from it read "No recent runs" while GitHub held thousands. The
+question a reader opens the tool with is whether their branch is green, and
+nothing on screen answered it.
 
-`aragonite/forge/github.LatestRunsOnBranch` is the read this needs: the newest
-run of each workflow on a ref, keyed on workflow file *and* display title so a
-workflow reporting its mode in the title (a Pulumi preview against a Pulumi
-deploy) keeps one current state per mode. Runs older than a cutoff drop out
-unless they are still going.
+`internal/ui/panes/runs.go` is the Runs tab over
+`aragonite/forge/github.LatestRunsOnBranch`: the newest run of each workflow on a
+ref, keyed on workflow file *and* display title so a workflow reporting its mode
+in the title keeps one current state per mode. It loads on first open, `s` cycles
+branch / my PRs / awaiting my review, and the status bar carries the verdict.
 
 Still to build:
 
-- A Runs pane over that read, lazily loaded, with the frecency History tab left
-  alone. Filters worth having beyond the current branch: my open PRs, PRs
-  awaiting my review. Both are `gh search prs` reads this tool does not make yet
+- The pull request scopes read one page of the repository's recent runs and keep
+  the rows whose head branch belongs to a matching PR. In a busy repository that
+  page is filled by whatever branch ran last, so the other PRs report nothing.
+  The right read is each PR's check rollup, which `SearchPRsInRepo` already
+  returns: one row per PR, one call, exact. That makes the pane hold two row
+  shapes, which is the decision worth taking deliberately
 - A flakiness view. Per-branch, one run per workflow is the whole answer; asking
   whether a workflow is flaky is the opposite query (many runs of one workflow)
   and wants its own screen rather than a column
-- Deciding the age cutoff. Four hours is right for a busy repository and wrong
-  for a quiet one, so it likely reads as "the last run, plus anything from the
-  last N hours", with N falling back to three runs when the repository is quiet
 
-## Phase 6: layout from first principles
+## Phase 6: layout from first principles (shipped)
 
-The right panel hides four tabs' worth of information behind `h`/`l`, so the
-counts a reader wants at a glance cost a keystroke each and are invisible until
-then. The redesign should decide what earns permanent screen space at 80x24
-before deciding what any pane looks like, and degrade upward to a wide terminal
-rather than the reverse.
+`internal/app/layout.go` is now the only place the split is decided, and both
+`View` and the resize handler take it from there. The right panel was previously
+told it had one more row than it rendered in.
 
-Constraints already learned the hard way: no pane may size itself to its content
-(`ui.PaneStyle` now clamps with `MaxHeight`, and every pane needs a scroll window
-like `scrollWindow` and `renderTableRows` have), and the footer is load-bearing
-because the command bar draws on it.
+What the redesign settled:
 
-Golden frames at 80x24, 120x40, and 160x50 with a realistic workflow count are
-the acceptance test, alongside `assertFits`, which already catches overflow once
-a fixture is large enough to trigger it.
+- The config pane takes the height its content needs, between its own chrome and
+  leaving `minTopPaneHeight` rows above it. A workflow with no inputs no longer
+  spends half an 80x24 terminal on an empty table: the workflow list went from
+  11 rows to 26 in a repository with 26 dispatchable workflows
+- The tab bar carries each tab's count, and the Runs tab its verdict, so what is
+  behind `h`/`l` is readable without going there. Names abbreviate to initials
+  before a count is dropped
+- Every list scrolls through `ui.ScrollWindow`. History and Live drew every row
+  and relied on `MaxHeight` to cut the overflow, which silently hid the selection
+- The config pane's row budget was `height - 14` against a pane 11 rows of chrome
+  tall, so on a workflow with many inputs the command preview was the part that
+  got truncated
+
+Two defects the golden frames could not have caught before, because the frames
+themselves were wrong: `PaneStyle` called `BorderStyle(...)`, which sets a
+border's style without enabling any side, so no pane had ever drawn a border and
+focus was invisible. Nothing outside `main` called `ui.InitTheme`, so every test
+rendered against zero-value styles. `internal/ui` now applies a default palette
+at init, which is what makes a golden frame the frame a user sees.
+
+Golden frames at 80x24, 120x40, and 160x50 hold the layout, alongside
+`assertFits` and `TestLayoutFor_GivesTheConfigPaneWhatItsContentNeeds`.
 
 ## Phase 7: aragonite consolidation
 
@@ -96,7 +112,9 @@ query, jobs with per-step timings, latest run per workflow on a ref) and exports
 guard in front of every gh call rather than reinstating it per call site.
 
 `internal/github`'s read paths delegate through that seam, converting aragonite's
-model at the boundary.
+model at the boundary. `LatestPerWorkflow` is exported separately from
+`LatestRunsOnBranch` because the pull request scopes group a listing this
+repository fetched rather than one aragonite fetched for a single ref.
 
 Remaining, in the order that pays off:
 

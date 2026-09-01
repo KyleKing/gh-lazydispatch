@@ -144,12 +144,32 @@ func (m Model) handlePaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 func (m Model) handleHistoryPaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	switch {
 	case key.Matches(msg, m.keys.TabNext):
-		m.cycleHistoryTab(m.rightPanel.NextTab)
-		return m, nil, true
+		cmd := m.cycleHistoryTab(m.rightPanel.NextTab)
+
+		return m, cmd, true
 
 	case key.Matches(msg, m.keys.TabPrev):
-		m.cycleHistoryTab(m.rightPanel.PrevTab)
-		return m, nil, true
+		cmd := m.cycleHistoryTab(m.rightPanel.PrevTab)
+
+		return m, cmd, true
+
+	case key.Matches(msg, m.keys.Scope):
+		if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabRuns {
+			return m, nil, true
+		}
+
+		model, cmd := m.cycleRunsScope()
+
+		return model, cmd, true
+
+	case key.Matches(msg, m.keys.Reload):
+		if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabRuns {
+			return m, nil, true
+		}
+
+		model, cmd := m.reloadRuns()
+
+		return model, cmd, true
 
 	case key.Matches(msg, m.keys.Clear):
 		m.clearSelectedLiveRun()
@@ -196,11 +216,16 @@ func (m Model) handleConfigPaneAction(action func() (tea.Model, tea.Cmd)) (tea.M
 	return action()
 }
 
-// cycleHistoryTab runs cycle (NextTab/PrevTab) only when the history pane is focused.
-func (m *Model) cycleHistoryTab(cycle func()) {
-	if m.focused == PaneHistory {
-		cycle()
+// cycleHistoryTab runs cycle (NextTab/PrevTab) only when the history pane is
+// focused, and loads whatever the tab it lands on needs.
+func (m *Model) cycleHistoryTab(cycle func()) tea.Cmd {
+	if m.focused != PaneHistory {
+		return nil
 	}
+
+	cycle()
+
+	return m.loadRunsIfNeeded()
 }
 
 // handleEscapeKey backs out one level, innermost first: a timeline drilled
@@ -327,6 +352,8 @@ func (m *Model) handleUp() {
 			m.rightPanel.Live().MoveUp()
 		case panes.TabTimeline:
 			m.rightPanel.Timeline().MoveUp()
+		case panes.TabRuns:
+			m.rightPanel.Runs().MoveUp()
 		}
 	case PaneConfig:
 		if m.selectedInput < 0 {
@@ -363,6 +390,8 @@ func (m *Model) handleDown() {
 			m.rightPanel.Live().MoveDown()
 		case panes.TabTimeline:
 			m.rightPanel.Timeline().MoveDown()
+		case panes.TabRuns:
+			m.rightPanel.Runs().MoveDown()
 		}
 	case PaneConfig:
 		if m.selectedInput < 0 {
@@ -413,6 +442,8 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 			}
 		case panes.TabTimeline:
 			m.rightPanel.Timeline().Drill()
+		case panes.TabRuns:
+			return m.logsForSelectedRun()
 		}
 	case PaneConfig:
 		return m.executeWorkflow()

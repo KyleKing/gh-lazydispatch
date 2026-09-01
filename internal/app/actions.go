@@ -13,10 +13,11 @@ import (
 // Nouns shared across command names, action names, key help, and pane titles,
 // so the same thing reads the same everywhere it is named.
 const (
-	keyEnter      = "enter"
-	nameBranch    = "branch"
-	nameWorkflow  = "workflow"
-	paneWorkflows = "Workflows"
+	keyEnter           = "enter"
+	nameBranch         = "branch"
+	nameTimelineAction = "timeline for this run"
+	nameWorkflow       = "workflow"
+	paneWorkflows      = "Workflows"
 )
 
 // paneAction is one verb the action leader offers, scoped to a pane. Keys are
@@ -56,6 +57,8 @@ func (m Model) actionsFor() actionMenu {
 			return actionMenu{title: "Live", target: m.liveTarget(), actions: liveActions()}
 		case panes.TabTimeline:
 			return actionMenu{title: "Timeline", target: m.timelineTarget(), actions: timelineActions()}
+		case panes.TabRuns:
+			return actionMenu{title: "Runs", target: m.runsTarget(), actions: runsActions()}
 		}
 	}
 
@@ -83,7 +86,7 @@ func configActions() []paneAction {
 
 func (m Model) historyActions() []paneAction {
 	actions := []paneAction{
-		{key: "t", name: "timeline for this run", run: Model.timelineForSelection},
+		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
 		{key: "v", name: "view logs", run: Model.viewSelectedLogs},
 	}
 
@@ -106,7 +109,7 @@ func chainActions() []paneAction {
 func liveActions() []paneAction {
 	return []paneAction{
 		{key: "L", name: "open the live overview", run: Model.openLiveViewModal},
-		{key: "t", name: "timeline for this run", run: Model.timelineForSelection},
+		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
 		{key: "d", name: "stop watching the selected run", run: Model.clearSelectedRunAction},
 		{key: "D", name: "stop watching every completed run", run: Model.clearCompletedRunsAction},
 	}
@@ -245,6 +248,15 @@ func (m Model) undrillTimeline() (tea.Model, tea.Cmd) {
 	m.rightPanel.Timeline().Undrill()
 
 	return m, nil
+}
+
+func (m Model) runsTarget() string {
+	run, ok := m.rightPanel.SelectedGitHubRun()
+	if !ok {
+		return m.rightPanel.Runs().Scope().Label()
+	}
+
+	return run.Name
 }
 
 func (m Model) timelineTarget() string {

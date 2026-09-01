@@ -28,10 +28,13 @@ func historyColumns() []table.Column {
 	return []table.Column{
 		{Key: ui.ColKeyName, Title: ui.ColTitleName, Min: ui.ColMinName, Max: ui.ColMaxName, Weight: ui.WeightHigh},
 		{
-			Key: "branch", Title: "Branch", Min: ui.ColMinShort, Max: ui.ColMaxBranch,
+			Key: ui.ColKeyBranch, Title: ui.ColTitleBranch, Min: ui.ColMinShort, Max: ui.ColMaxBranch,
 			Weight: ui.WeightMid, Priority: ui.PrioSecondToGo,
 		},
-		{Key: "time", Title: "Time", Min: ui.ColMinLabel, Max: ui.ColMaxTime, Priority: ui.PrioFirstToGo},
+		{
+			Key: ui.ColKeyTime, Title: ui.ColTitleTime, Min: ui.ColMinLabel,
+			Max: ui.ColMaxTime, Priority: ui.PrioFirstToGo,
+		},
 	}
 }
 
@@ -140,7 +143,9 @@ func (m HistoryModel) ViewContent() string {
 	content.WriteString(ui.TableHeader(layout, historyGutter))
 	content.WriteString("\n")
 
-	for i := range m.entries {
+	first, last := ui.ScrollWindow(m.selectedIndex, len(m.entries), m.height-listPaneChrome)
+
+	for i := first; i < last; i++ {
 		entry := &m.entries[i]
 
 		indicator := "  "
@@ -161,9 +166,9 @@ func (m HistoryModel) ViewContent() string {
 		}
 
 		cells := ui.TableRow(layout, map[string]string{
-			ui.ColKeyName: name,
-			"branch":      entry.Branch,
-			"time":        formatTimeAgo(entry.LastRunAt),
+			ui.ColKeyName:   name,
+			ui.ColKeyBranch: entry.Branch,
+			ui.ColKeyTime:   formatTimeAgo(entry.LastRunAt),
 		})
 
 		rowStyle := ui.TableRowStyle
@@ -173,9 +178,14 @@ func (m HistoryModel) ViewContent() string {
 
 		content.WriteString(rowStyle.Render(indicator + typeIcon + " " + cells))
 
-		if i < len(m.entries)-1 {
+		if i < last-1 {
 			content.WriteString("\n")
 		}
+	}
+
+	if first > 0 || last < len(m.entries) {
+		content.WriteString("\n")
+		content.WriteString(ui.RenderScrollIndicator(last < len(m.entries), first > 0))
 	}
 
 	return content.String()

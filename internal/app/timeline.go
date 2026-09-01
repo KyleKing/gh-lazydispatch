@@ -67,6 +67,10 @@ func (m Model) showTimeline(runID int64, title string) (tea.Model, tea.Cmd) {
 
 // timelineForSelection picks the run whatever has focus is pointing at.
 func (m Model) timelineForSelection() (tea.Model, tea.Cmd) {
+	if run, ok := m.rightPanel.SelectedGitHubRun(); ok && m.rightPanel.ActiveTab() == panes.TabRuns {
+		return m.showTimeline(run.ID, run.Name)
+	}
+
 	if run, ok := m.rightPanel.SelectedRun(); ok && m.rightPanel.ActiveTab() == panes.TabLive {
 		return m.showTimeline(run.RunID, run.Workflow)
 	}

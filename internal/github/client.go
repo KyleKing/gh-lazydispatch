@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kyleking/aragonite/forge"
 	ghforge "github.com/kyleking/aragonite/forge/github"
 
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
@@ -148,4 +149,59 @@ func (c *Client) LatestRunsOnBranch(branch string, within time.Duration) ([]Work
 	}
 
 	return fromForgeRuns(runs), nil
+}
+
+// PRScope names which pull requests a run listing should cover. Both are search
+// queries rather than API filters, because "mine" and "awaiting my review" are
+// questions only the search index answers.
+type PRScope string
+
+// Pull request scopes worth a saved view.
+const (
+	PRScopeMine      PRScope = "is:open author:@me"
+	PRScopeReviewing PRScope = "is:open review-requested:@me"
+)
+
+// LatestRunsForPRs returns the current state of each workflow on the head branch
+// of every pull request matching scope.
+//
+// It reads one page of the repository's recent runs rather than a page per
+// branch, so a pull request whose last run has aged out of that page reports
+// nothing rather than costing another round trip.
+func (c *Client) LatestRunsForPRs(scope PRScope, within time.Duration) ([]WorkflowRun, error) {
+	ctx := c.runnerContext(context.Background())
+
+	prs, err := ghforge.SearchPRsInRepo(ctx, ".", c.fullName(), string(scope))
+	if err != nil {
+		return nil, fmt.Errorf("searching pull requests: %w", err)
+	}
+
+	branches := make(map[string]bool, len(prs))
+	for i := range prs {
+		branches[prs[i].HeadRef] = true
+	}
+
+	if len(branches) == 0 {
+		return nil, nil
+	}
+
+	runs, err := ghforge.ListRuns(ctx, ".", c.fullName(), ghforge.RunQuery{})
+	if err != nil {
+		return nil, fmt.Errorf("listing runs: %w", err)
+	}
+
+	return fromForgeRuns(ghforge.LatestPerWorkflow(runsOnBranches(runs, branches), within)), nil
+}
+
+// runsOnBranches keeps the runs started against one of the branches.
+func runsOnBranches(runs []forge.WorkflowRun, branches map[string]bool) []forge.WorkflowRun {
+	kept := make([]forge.WorkflowRun, 0, len(runs))
+
+	for i := range runs {
+		if branches[runs[i].HeadBranch] {
+			kept = append(kept, runs[i])
+		}
+	}
+
+	return kept
 }

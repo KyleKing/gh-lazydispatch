@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
@@ -267,38 +269,24 @@ func TestTabbedRightModel_TabSwitching(t *testing.T) {
 	m.SetSize(80, 24)
 	m.SetFocused(true)
 
-	if m.ActiveTab() != TabHistory {
-		t.Error("expected TabHistory initially")
+	// Every tab is reachable by walking forward, and the walk lands back where
+	// it started, so adding a tab does not need this test rewritten.
+	for i := range tabCount {
+		if want := RightTab(i); m.ActiveTab() != want {
+			t.Fatalf("after %d NextTab calls the active tab is %v, want %v", i, m.ActiveTab(), want)
+		}
+
+		m.NextTab()
 	}
-
-	m.NextTab()
-
-	if m.ActiveTab() != TabChains {
-		t.Error("expected TabChains after NextTab")
-	}
-
-	m.NextTab()
-
-	if m.ActiveTab() != TabLive {
-		t.Error("expected TabLive after second NextTab")
-	}
-
-	m.NextTab()
-
-	if m.ActiveTab() != TabTimeline {
-		t.Error("expected TabTimeline after third NextTab")
-	}
-
-	m.NextTab()
 
 	if m.ActiveTab() != TabHistory {
-		t.Error("expected TabHistory after wrapping around")
+		t.Errorf("a full walk forward ended on %v, want the first tab", m.ActiveTab())
 	}
 
 	m.PrevTab()
 
-	if m.ActiveTab() != TabTimeline {
-		t.Error("expected TabTimeline after PrevTab wraps backwards")
+	if want := RightTab(tabCount - 1); m.ActiveTab() != want {
+		t.Errorf("PrevTab from the first tab landed on %v, want %v", m.ActiveTab(), want)
 	}
 }
 
@@ -760,5 +748,63 @@ func TestTabbedPanelFitsTheWidthItIsGiven(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func testRuns(n int) []github.WorkflowRun {
+	runs := make([]github.WorkflowRun, 0, n)
+	for i := range n {
+		runs = append(runs, github.WorkflowRun{
+			ID: int64(i + 1), Name: fmt.Sprintf("workflow-%02d", i), HeadBranch: "topic",
+			Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
+			CreatedAt: time.Now(),
+		})
+	}
+
+	return runs
+}
+
+// A list longer than the pane must scroll rather than draw past its border,
+// which MaxHeight would silently truncate.
+func TestRunsModel_ScrollsToKeepTheSelectionVisible(t *testing.T) {
+	t.Parallel()
+
+	m := NewRunsModel()
+	m.SetSize(60, 10)
+	m.SetRuns(ScopeBranch, "topic", testRuns(30))
+
+	for range 20 {
+		m.MoveDown()
+	}
+
+	content := m.ViewContent()
+	if !strings.Contains(content, "workflow-20") {
+		t.Errorf("the selected row is off screen:\n%s", content)
+	}
+
+	if lines := strings.Count(content, "\n") + 1; lines > 10 {
+		t.Errorf("the list drew %d lines into 10 rows", lines)
+	}
+}
+
+// The tab bar is the only place a reader sees what the other tabs hold.
+func TestTabbedRight_TabBarCarriesTheCounts(t *testing.T) {
+	t.Parallel()
+
+	m := NewTabbedRight()
+	m.SetSize(80, 20)
+	m.Runs().SetRuns(ScopeBranch, "topic", testRuns(2))
+
+	bar := ansi.Strip(m.renderTabHeader())
+	if !strings.Contains(bar, "Runs 2+") {
+		t.Errorf("the tab bar does not report the runs verdict: %q", bar)
+	}
+
+	// A bar too wide for the pane abbreviates the names and keeps the counts.
+	m.SetSize(30, 20)
+
+	narrow := ansi.Strip(m.renderTabHeader())
+	if strings.Contains(narrow, "Timeline") || !strings.Contains(narrow, "R 2+") {
+		t.Errorf("the narrow tab bar is %q, want abbreviated names with counts", narrow)
 	}
 }

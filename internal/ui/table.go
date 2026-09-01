@@ -8,9 +8,13 @@ import (
 
 // Column keys and titles shared by more than one table.
 const (
+	ColKeyBranch   = "branch"
 	ColKeyName     = "name"
+	ColKeyTime     = "time"
 	ColKeyWorkflow = "workflow"
+	ColTitleBranch = "Branch"
 	ColTitleName   = "Name"
+	ColTitleTime   = "Time"
 )
 
 // Column sizing vocabulary shared by every table, in display cells. Naming the
@@ -83,4 +87,24 @@ func TableRow(layout table.Layout, values map[string]string) string {
 	}
 
 	return table.Join(cells)
+}
+
+// ScrollWindow returns the half-open range of rows a pane should draw so that
+// selected stays visible. A negative selected holds the window at the top,
+// which is what a cleared selection wants.
+func ScrollWindow(selected, total, rows int) (int, int) {
+	if rows < 1 {
+		rows = 1
+	}
+
+	if total <= rows {
+		return 0, total
+	}
+
+	first := 0
+	if selected >= rows {
+		first = selected - rows + 1
+	}
+
+	return first, first + rows
 }

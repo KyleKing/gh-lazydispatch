@@ -1,9 +1,11 @@
 package panes
 
 import (
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
@@ -21,6 +23,7 @@ const (
 	TabChains
 	TabLive
 	TabTimeline
+	TabRuns
 )
 
 // TabbedRightModel manages the tabbed right panel.
@@ -29,6 +32,7 @@ type TabbedRightModel struct {
 	chains    ChainListModel
 	live      LiveRunsModel
 	timeline  TimelineModel
+	runs      RunsModel
 	activeTab RightTab
 	width     int
 	height    int
@@ -43,6 +47,7 @@ func NewTabbedRight() TabbedRightModel {
 		chains:    NewChainListModel(),
 		live:      NewLiveRunsModel(),
 		timeline:  NewTimelineModel(),
+		runs:      NewRunsModel(),
 	}
 }
 
@@ -61,6 +66,7 @@ func (m *TabbedRightModel) SetSize(width, height int) {
 	m.chains.SetSize(width-tabbedChromeWidth, contentHeight)
 	m.live.SetSize(width-tabbedChromeWidth, contentHeight)
 	m.timeline.SetSize(width-tabbedChromeWidth, contentHeight)
+	m.runs.SetSize(width-tabbedChromeWidth, contentHeight)
 }
 
 // SetFocused updates the focus state.
@@ -70,6 +76,7 @@ func (m *TabbedRightModel) SetFocused(focused bool) {
 	m.chains.SetFocused(focused && m.activeTab == TabChains)
 	m.live.SetFocused(focused && m.activeTab == TabLive)
 	m.timeline.SetFocused(focused && m.activeTab == TabTimeline)
+	m.runs.SetFocused(focused && m.activeTab == TabRuns)
 }
 
 // ActiveTab returns the currently active tab.
@@ -78,7 +85,7 @@ func (m TabbedRightModel) ActiveTab() RightTab {
 }
 
 // tabCount is the number of tabs in the right panel.
-const tabCount = 4
+const tabCount = 5
 
 // SetTab switches directly to one tab, for a caller that landed on the data
 // rather than on the tab.
@@ -108,6 +115,7 @@ func (m *TabbedRightModel) updateTabFocus() {
 	m.chains.SetFocused(m.focused && m.activeTab == TabChains)
 	m.live.SetFocused(m.focused && m.activeTab == TabLive)
 	m.timeline.SetFocused(m.focused && m.activeTab == TabTimeline)
+	m.runs.SetFocused(m.focused && m.activeTab == TabRuns)
 }
 
 // SetHistoryEntries updates the history entries.
@@ -145,6 +153,11 @@ func (m *TabbedRightModel) Timeline() *TimelineModel {
 	return &m.timeline
 }
 
+// Runs returns the runs model for direct access.
+func (m *TabbedRightModel) Runs() *RunsModel {
+	return &m.runs
+}
+
 // SetTimelineRun replaces what the Timeline tab draws.
 func (m *TabbedRightModel) SetTimelineRun(title string, jobs []github.Job) {
 	m.timeline.SetRun(title, jobs)
@@ -167,6 +180,8 @@ func (m TabbedRightModel) Update(msg tea.Msg) (TabbedRightModel, tea.Cmd) {
 		m.live, cmd = m.live.Update(msg)
 	case TabTimeline:
 		m.timeline, cmd = m.timeline.Update(msg)
+	case TabRuns:
+		m.runs, cmd = m.runs.Update(msg)
 	}
 
 	return m, cmd
@@ -189,33 +204,110 @@ func (m TabbedRightModel) View() string {
 		content = m.live.ViewContent()
 	case TabTimeline:
 		content = m.timeline.ViewContent()
+	case TabRuns:
+		content = m.runs.ViewContent()
 	}
 
 	return style.Render(tabs + "\n" + content)
 }
 
 func (m TabbedRightModel) renderTabHeader() string {
-	tabs := []struct {
-		name string
-		tab  RightTab
-	}{
-		{"History", TabHistory},
-		{"Chains", TabChains},
-		{"Live", TabLive},
-		{"Timeline", TabTimeline},
+	tabs := m.tabLabels()
+
+	full := m.joinTabs(tabs, false)
+	if ansi.StringWidth(ansi.Strip(full)) <= m.width-tabbedChromeWidth {
+		return full
 	}
+
+	return m.joinTabs(tabs, true)
+}
+
+// tabLabel is one tab's name and the count that makes its contents visible
+// without opening it.
+type tabLabel struct {
+	name  string
+	count string
+	tab   RightTab
+}
+
+// tabLabels reports what each tab holds, so a reader sees the counts rather
+// than having to visit four tabs to find them. The Runs tab reports a verdict
+// instead of a count, since "three passed, one failed" is the answer and the
+// row total is not.
+func (m TabbedRightModel) tabLabels() []tabLabel {
+	live := ""
+	if n := len(m.live.runs); n > 0 {
+		live = strconv.Itoa(n)
+		if m.live.ActiveCount() > 0 {
+			live += "*"
+		}
+	}
+
+	return []tabLabel{
+		{name: "History", count: countLabel(len(m.history.entries)), tab: TabHistory},
+		{name: "Chains", count: countLabel(len(m.chains.chainNames)), tab: TabChains},
+		{name: "Live", count: live, tab: TabLive},
+		{name: "Timeline", count: countLabel(len(m.timeline.jobs)), tab: TabTimeline},
+		{name: "Runs", count: m.runsVerdict(), tab: TabRuns},
+	}
+}
+
+func countLabel(n int) string {
+	if n == 0 {
+		return ""
+	}
+
+	return strconv.Itoa(n)
+}
+
+// runsVerdict spells the branch's state in the glyphs the run lists already
+// use, and stays empty until something has been loaded.
+func (m TabbedRightModel) runsVerdict() string {
+	passed, failed, active := m.runs.Summary()
 
 	var parts []string
 
+	for _, part := range []struct {
+		glyph string
+		count int
+	}{{"+", passed}, {"x", failed}, {"*", active}} {
+		if part.count > 0 {
+			parts = append(parts, strconv.Itoa(part.count)+part.glyph)
+		}
+	}
+
+	return strings.Join(parts, "")
+}
+
+// joinTabs renders the tab bar, abbreviating each name to its initial when the
+// full names do not fit. The counts survive abbreviation, because they are what
+// the bar is for.
+func (m TabbedRightModel) joinTabs(tabs []tabLabel, abbreviated bool) string {
+	parts := make([]string, 0, len(tabs))
+
 	for _, t := range tabs {
+		name := t.name
+		if abbreviated {
+			name = name[:1]
+		}
+
+		if t.count != "" {
+			name += " " + t.count
+		}
+
 		if t.tab == m.activeTab {
-			parts = append(parts, ui.SelectedStyle.Render("["+t.name+"]"))
+			parts = append(parts, ui.SelectedStyle.Render("["+name+"]"))
 		} else {
-			parts = append(parts, ui.SubtitleStyle.Render(" "+t.name+" "))
+			parts = append(parts, ui.SubtitleStyle.Render(" "+name+" "))
 		}
 	}
 
 	return strings.Join(parts, " ")
+}
+
+// SelectedGitHubRun returns the run selected in the Runs tab.
+func (m TabbedRightModel) SelectedGitHubRun() (github.WorkflowRun, bool) {
+	return m.runs.SelectedRun()
 }
 
 // SelectedHistoryEntry returns the currently selected history entry.

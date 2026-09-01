@@ -32,6 +32,6 @@ Setup, tasks, and the release flow live in [CONTRIBUTING.md](../CONTRIBUTING.md)
 - Frecency-based history of what you have dispatched
 - Workflow chains for multi-step deployments
 - Log viewer with per-step tabs, filtering, search, and live streaming
-- A tabbed right panel holding History, Chains, and Live runs
+- A tabbed right panel holding History, Chains, Live, Timeline, and Runs, with each tab's count in the tab bar
 - A command preview before anything runs
 - Catppuccin Latte or Macchiato

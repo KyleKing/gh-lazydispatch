@@ -473,3 +473,51 @@ func TestClient_CommandsExecuted(t *testing.T) {
 		t.Errorf("expected 'gh api ...' command, got %v", cmd.Args)
 	}
 }
+
+// A branch listing must report each workflow's current state rather than its
+// history, and a workflow reporting its mode in the title has one state per mode.
+func TestLatestRunsOnBranch(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now().UTC()
+	payload := fmt.Sprintf(`{"workflow_runs":[
+		{"id":1,"path":".github/workflows/ci.yml","name":"CI","status":"completed",
+		 "conclusion":"success","head_branch":"topic","created_at":%q},
+		{"id":2,"path":".github/workflows/ci.yml","name":"CI","status":"completed",
+		 "conclusion":"failure","head_branch":"topic","created_at":%q},
+		{"id":3,"path":".github/workflows/deploy.yml","name":"Deploy (preview)","status":"completed",
+		 "conclusion":"success","head_branch":"topic","created_at":%q}
+	]}`,
+		now.Format(time.RFC3339),
+		now.Add(-time.Hour).Format(time.RFC3339),
+		now.Format(time.RFC3339),
+	)
+
+	mockExec := exec.NewMockExecutor()
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?branch=topic&per_page=100"},
+		payload, "", nil)
+
+	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	runs, err := client.LatestRunsOnBranch("topic", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runs) != 2 {
+		t.Fatalf("got %d runs, want the newest CI plus the Deploy mode: %+v", len(runs), runs)
+	}
+
+	for _, run := range runs {
+		if run.ID == 2 {
+			t.Error("the superseded CI run survived")
+		}
+
+		if run.Path != "ci.yml" && run.Path != "deploy.yml" {
+			t.Errorf("run %d kept the API's full path %q", run.ID, run.Path)
+		}
+	}
+}

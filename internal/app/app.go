@@ -45,7 +45,6 @@ const (
 const (
 	leftPaneWidthNumerator   = 11
 	leftPaneWidthDenominator = 30
-	panesHeightDivisor       = 2
 )
 
 // Model is the root bubbletea model for the application.
@@ -186,6 +185,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return model, cmd
 	}
 
+	if model, cmd, handled := m.handleRunsMsg(msg); handled {
+		return model, cmd
+	}
+
 	if status, ok := msg.(StatusMsg); ok {
 		m.status = status.Text
 
@@ -220,10 +223,9 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) Model {
 	m.width = msg.Width
 	m.height = msg.Height
 	m.modalStack.SetSize(msg.Width, msg.Height)
-	leftWidth := (m.width * leftPaneWidthNumerator) / leftPaneWidthDenominator
-	rightWidth := m.width - leftWidth
-	topHeight := (m.height - 1) / panesHeightDivisor
-	m.rightPanel.SetSize(rightWidth, topHeight)
+
+	box := m.layout()
+	m.rightPanel.SetSize(box.rightWidth, box.topHeight)
 
 	return m
 }

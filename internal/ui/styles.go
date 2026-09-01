@@ -12,6 +12,15 @@ import (
 
 var currentPalette theme.Palette
 
+// A zero-value lipgloss.Style draws no border and no color, so a consumer that
+// never applies a theme renders a pane invisibly different from a real one.
+// Every style is built here first, and InitTheme replaces them.
+//
+//nolint:gochecknoinits // styles are package state, and a zero one renders wrong rather than failing
+func init() {
+	InitTheme(theme.Macchiato())
+}
+
 // Colors used throughout the UI.
 var (
 	PrimaryColor   color.Color
@@ -70,7 +79,7 @@ func ApplyTheme() {
 	LinkColor = currentPalette.Blue
 
 	BorderStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
+		Border(lipgloss.RoundedBorder()).
 		BorderForeground(SecondaryColor)
 
 	CLIPreviewStyle = lipgloss.NewStyle().
@@ -87,7 +96,7 @@ func ApplyTheme() {
 	// The focused pane carries a heavier border as well as a brighter one, so
 	// focus survives NO_COLOR and a monochrome terminal.
 	FocusedBorderStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.ThickBorder()).
+		Border(lipgloss.ThickBorder()).
 		BorderForeground(PrimaryColor)
 
 	HelpStyle = lipgloss.NewStyle().

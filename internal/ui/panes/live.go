@@ -118,7 +118,9 @@ func (m LiveRunsModel) ViewContent() string {
 	content.WriteString(ui.TableHeader(layout, liveGutter))
 	content.WriteString("\n")
 
-	for i := range m.runs {
+	first, last := ui.ScrollWindow(m.selectedIndex, len(m.runs), m.height-listPaneChrome)
+
+	for i := first; i < last; i++ {
 		run := &m.runs[i]
 
 		icon := runStatusIcon(run.Status, run.Conclusion)
@@ -151,9 +153,14 @@ func (m LiveRunsModel) ViewContent() string {
 
 		content.WriteString(rowStyle.Render(indicator + icon + " " + cells))
 
-		if i < len(m.runs)-1 {
+		if i < last-1 {
 			content.WriteString("\n")
 		}
+	}
+
+	if first > 0 || last < len(m.runs) {
+		content.WriteString("\n")
+		content.WriteString(ui.RenderScrollIndicator(last < len(m.runs), first > 0))
 	}
 
 	return content.String()

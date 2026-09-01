@@ -43,12 +43,9 @@ func (m Model) View() tea.View {
 
 	statusBar := m.viewTopStatusBar()
 	footerBar := m.viewFooterBar()
-	fixedHeight := viewsFixedChromeHeight
 
-	topHeight := (m.height - fixedHeight) / panesHeightDivisor
-	bottomHeight := m.height - fixedHeight - topHeight
-
-	leftWidth := (m.width * leftPaneWidthNumerator) / leftPaneWidthDenominator
+	box := m.layout()
+	topHeight, leftWidth := box.topHeight, box.leftWidth
 
 	var leftPane string
 
@@ -65,9 +62,12 @@ func (m Model) View() tea.View {
 		leftPane = m.viewWorkflowPane(leftWidth, topHeight)
 	}
 
+	// The config pane's height follows the selected workflow's input count, so
+	// the right panel is resized on every frame rather than only on a resize.
+	m.rightPanel.SetSize(box.rightWidth, box.topHeight)
 	m.rightPanel.SetFocused(m.focused == PaneHistory)
 	rightPane := m.rightPanel.View()
-	configPane := m.viewConfigPane(m.width, bottomHeight)
+	configPane := m.viewConfigPane(m.width, box.configHeight)
 
 	top := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
 	main := lipgloss.JoinVertical(lipgloss.Left, statusBar, top, configPane, footerBar)
@@ -96,6 +96,10 @@ func (m Model) viewTooSmall() string {
 
 func (m Model) viewTopStatusBar() string {
 	var parts []string
+
+	if m.branch != "" {
+		parts = append(parts, m.branch+m.runsVerdict())
+	}
 
 	if m.wfdConfig != nil && len(m.wfdConfig.Chains) > 0 {
 		parts = append(parts, fmt.Sprintf("Chains(%d)", len(m.wfdConfig.Chains)))
@@ -126,7 +130,7 @@ func (m Model) viewTopStatusBar() string {
 	left := strings.Join(parts, "  ")
 	right := "lazydispatch"
 
-	padding := m.width - len(left) - len(right) - footerBarMargin
+	padding := m.width - ansi.StringWidth(left) - len(right) - footerBarMargin
 	if padding < 1 {
 		padding = 1
 	}
@@ -158,6 +162,8 @@ func (m Model) viewFooterBar() string {
 			hints = append(hints, "[h/l] tab", "[j/k] select")
 		case panes.TabTimeline:
 			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] steps", "[Esc] jobs")
+		case panes.TabRuns:
+			hints = append(hints, "[h/l] tab", "[j/k] select", "[s] scope", "[R] reload", "[Enter] logs")
 		}
 	case PaneConfig:
 		hints = append(hints, "[Enter] run", "[1-0] edit", "[/] filter")
@@ -305,7 +311,7 @@ func (m Model) viewWorkflowPane(width, height int) string {
 	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
 
 	maxLineWidth := width - paneContentMargin
-	first, last := scrollWindow(m.selectedWorkflow, len(m.workflows), height-workflowPaneChrome)
+	first, last := ui.ScrollWindow(m.selectedWorkflow, len(m.workflows), height-workflowPaneChrome)
 
 	title := ui.TitleStyle.Render(m.leftPaneTitle()) +
 		ui.RenderScrollIndicator(last < len(m.workflows), first > 0)
@@ -346,26 +352,6 @@ func (m Model) viewWorkflowPane(width, height int) string {
 // workflowPaneChrome is the vertical space the workflow pane spends on its
 // border, title, and the "all workflows" pseudo-entry.
 const workflowPaneChrome = 4
-
-// scrollWindow returns the half-open range of rows to draw so that selected
-// stays visible. A negative selected (the cleared workflow selection) holds the
-// window at the top.
-func scrollWindow(selected, total, rows int) (int, int) {
-	if rows < 1 {
-		rows = 1
-	}
-
-	if total <= rows {
-		return 0, total
-	}
-
-	first := 0
-	if selected >= rows {
-		first = selected - rows + 1
-	}
-
-	return first, first + rows
-}
 
 func (m Model) viewHistoryConfigPane(width, height int) string {
 	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
@@ -464,24 +450,7 @@ func (m Model) viewConfigPane(width, height int) string {
 		return style.Render(content.String())
 	}
 
-	branch := m.branch
-	if branch == "" {
-		branch = "(not set)"
-	}
-
-	content.WriteString(ui.TitleStyle.Render("Branch"))
-	content.WriteString(": [b] ")
-	content.WriteString(branch)
-
-	content.WriteString("    Watch: [w] ")
-
-	if m.watchRun {
-		content.WriteString("on")
-	} else {
-		content.WriteString("off")
-	}
-
-	content.WriteString("    [r] reset all")
+	content.WriteString(m.configHeaderLine(width - ui.PaneBorderSize))
 	content.WriteString("\n")
 
 	if m.filterText != "" {
@@ -513,6 +482,30 @@ func (m Model) viewConfigPane(width, height int) string {
 	return style.Render(content.String())
 }
 
+// configHeaderLine spells the branch and the toggles on one line. A long branch
+// name gives way rather than wrapping, since a wrapped line costs the config
+// pane a row it did not budget for and the toggles are what the keys act on.
+func (m Model) configHeaderLine(width int) string {
+	branch := m.branch
+	if branch == "" {
+		branch = "(not set)"
+	}
+
+	watch := "off"
+	if m.watchRun {
+		watch = "on"
+	}
+
+	tail := "    Watch: [w] " + watch + "    [r] reset all"
+	head := ": [b] "
+
+	if room := width - ansi.StringWidth(head+tail) - len("Branch"); room > 0 {
+		branch = table.TruncateLeft(branch, room)
+	}
+
+	return ui.TitleStyle.Render("Branch") + head + branch + tail
+}
+
 func (Model) renderTableHeader(layout table.Layout) string {
 	return ui.TableHeader(layout, ui.RowGutterWidth)
 }
@@ -527,20 +520,18 @@ func (m Model) renderTableRows(layout table.Layout, height int) string {
 
 	wfInputs := wf.GetInputs()
 
-	visibleRows := height - TableHeaderHeight
+	visibleRows := height - configPaneChrome
+	if visibleRows < len(m.filteredInputs) {
+		// The scroll indicator costs a row, and it only appears once there is
+		// something off screen to point at.
+		visibleRows--
+	}
+
 	if visibleRows < 1 {
-		visibleRows = 5
+		visibleRows = 1
 	}
 
-	scrollOffset := 0
-	if m.selectedInput >= visibleRows {
-		scrollOffset = m.selectedInput - visibleRows + 1
-	}
-
-	visibleEnd := scrollOffset + visibleRows
-	if visibleEnd > len(m.filteredInputs) {
-		visibleEnd = len(m.filteredInputs)
-	}
+	scrollOffset, visibleEnd := ui.ScrollWindow(m.selectedInput, len(m.filteredInputs), visibleRows)
 
 	for i := scrollOffset; i < visibleEnd; i++ {
 		name := m.filteredInputs[i]
