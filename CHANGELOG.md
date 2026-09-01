@@ -1,3 +1,15 @@
+## v1.6.0 (2026-09-01)
+
+### Feat
+
+- **github**: read Actions runs and jobs through aragonite
+- **app**: read any run's log from the command bar
+
+### Fix
+
+- **logs**: read a failure signature only from the failure it describes
+- **ui**: scroll the workflow list instead of overflowing the pane
+
 ## v1.5.0 (2026-09-01)
 
 ### Feat
