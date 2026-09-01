@@ -38,9 +38,7 @@ func ExportAsBash(chainName string, chain *config.Chain, variables map[string]st
 		sb.WriteString("\n")
 	}
 
-	commands := resolveChainCommands(chain, variables, branch)
-
-	for i, cmd := range commands {
+	for i, resolved := range ResolveSteps(chain, variables, branch) {
 		step := chain.Steps[i]
 		fmt.Fprintf(&sb, "# Step %d: %s\n", i+1, step.Workflow)
 
@@ -53,15 +51,37 @@ func ExportAsBash(chainName string, chain *config.Chain, variables map[string]st
 			sb.WriteString("# (original: no wait)\n")
 		}
 
-		sb.WriteString(cmd)
+		if resolved.Err != nil {
+			fmt.Fprintf(&sb, "# ERROR: failed to interpolate inputs for step %d (%s): %v\n\n",
+				i+1, step.Workflow, resolved.Err)
+
+			continue
+		}
+
+		sb.WriteString(resolved.Command)
 		sb.WriteString("\n\n")
 	}
 
 	return sb.String()
 }
 
-func resolveChainCommands(chain *config.Chain, variables map[string]string, branch string) []string {
-	commands := make([]string, len(chain.Steps))
+// ResolvedStep is one chain step with its templates interpolated and the gh
+// command it dispatches. Building it once is what keeps the preview modal, the
+// bash export, and the command list a chain records in history agreeing with
+// what ChainExecutor actually runs.
+type ResolvedStep struct {
+	Inputs map[string]string
+	// Err is the interpolation failure, if the step had one. A preview renders
+	// it and carries on; only the executor treats it as fatal.
+	Err      error
+	Workflow string
+	Command  string
+}
+
+// ResolveSteps interpolates every step's inputs in order, so a step's
+// `previous` names the step directly above it.
+func ResolveSteps(chain *config.Chain, variables map[string]string, branch string) []ResolvedStep {
+	resolved := make([]ResolvedStep, len(chain.Steps))
 
 	ctx := &InterpolationContext{
 		Var:   variables,
@@ -69,31 +89,30 @@ func resolveChainCommands(chain *config.Chain, variables map[string]string, bran
 	}
 
 	for i, step := range chain.Steps {
-		inputs, err := InterpolateInputs(step.Inputs, ctx)
-		if err != nil {
-			commands[i] = fmt.Sprintf(
-				"# ERROR: failed to interpolate inputs for step %d (%s): %v", i+1, step.Workflow, err,
-			)
-
-			continue
+		if i > 0 {
+			ctx.Previous = ctx.Steps[i-1]
 		}
+
+		inputs, err := InterpolateInputs(step.Inputs, ctx)
 
 		cfg := runner.RunConfig{
 			Workflow: step.Workflow,
 			Branch:   branch,
 			Inputs:   inputs,
 		}
-		args := runner.BuildArgs(cfg)
-		commands[i] = runner.FormatCommand(args)
+
+		resolved[i] = ResolvedStep{
+			Workflow: step.Workflow,
+			Inputs:   inputs,
+			Command:  runner.FormatCommand(runner.BuildArgs(cfg)),
+			Err:      err,
+		}
 
 		ctx.Steps[i] = &StepResult{
 			Workflow: step.Workflow,
 			Inputs:   inputs,
 		}
-		if i > 0 {
-			ctx.Previous = ctx.Steps[i-1]
-		}
 	}
 
-	return commands
+	return resolved
 }

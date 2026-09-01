@@ -7,10 +7,10 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
-	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
@@ -29,12 +29,6 @@ type chainConfirmKeyMap struct {
 	Watch   key.Binding
 }
 
-type resolvedStep struct {
-	Workflow string
-	Inputs   map[string]string
-	Command  string
-}
-
 // ChainConfirmModal shows the chain configuration and confirms execution.
 type ChainConfirmModal struct {
 	chain         *config.Chain
@@ -43,7 +37,8 @@ type ChainConfirmModal struct {
 	branch        string
 	keys          chainConfirmKeyMap
 	result        ChainConfirmResultMsg
-	resolvedSteps []resolvedStep
+	resolvedSteps []chain.ResolvedStep
+	width         int
 	watchMode     bool
 	done          bool
 }
@@ -70,38 +65,7 @@ func NewChainConfirmModal(
 }
 
 func (m *ChainConfirmModal) resolveSteps() {
-	m.resolvedSteps = make([]resolvedStep, len(m.chain.Steps))
-
-	ctx := &chain.InterpolationContext{
-		Var:   m.variables,
-		Steps: make(map[int]*chain.StepResult),
-	}
-
-	for i, step := range m.chain.Steps {
-		//nolint:errcheck // preview-only: unresolved templates simply pass through as literal text
-		inputs, _ := chain.InterpolateInputs(step.Inputs, ctx)
-
-		cfg := runner.RunConfig{
-			Workflow: step.Workflow,
-			Branch:   m.branch,
-			Inputs:   inputs,
-		}
-		args := runner.BuildArgs(cfg)
-
-		m.resolvedSteps[i] = resolvedStep{
-			Workflow: step.Workflow,
-			Inputs:   inputs,
-			Command:  runner.FormatCommand(args),
-		}
-
-		ctx.Steps[i] = &chain.StepResult{
-			Workflow: step.Workflow,
-			Inputs:   inputs,
-		}
-		if i > 0 {
-			ctx.Previous = ctx.Steps[i-1]
-		}
-	}
+	m.resolvedSteps = chain.ResolveSteps(m.chain, m.variables, m.branch)
 }
 
 // Update handles input for the chain confirm modal.
@@ -230,9 +194,37 @@ func (m *ChainConfirmModal) renderSteps(s *strings.Builder) {
 		s.WriteString(ui.NormalStyle.Render(fmt.Sprintf("  %d. %s ", i+1, step.Workflow)))
 		s.WriteString(ui.TableDimmedStyle.Render(waitLabel))
 		s.WriteString("\n")
-		s.WriteString(ui.CLIPreviewStyle.Render("     " + step.Command))
-		s.WriteString("\n")
+		for _, line := range m.wrapCommand(step.Command) {
+			s.WriteString(ui.CLIPreviewStyle.Render(line))
+			s.WriteString("\n")
+		}
 	}
+}
+
+// commandIndent is the gutter a wrapped command sits in, under its step's
+// numbered heading.
+const commandIndent = "     "
+
+// wrapCommand folds a dispatch command onto as many lines as the modal is
+// wide, because the whole command is what a reader checks before confirming.
+func (m *ChainConfirmModal) wrapCommand(command string) []string {
+	room := m.width - len(commandIndent)
+	if room < 1 {
+		return []string{commandIndent + command}
+	}
+
+	folded := strings.Split(ansi.Hardwrap(command, room, false), "\n")
+	for i, line := range folded {
+		folded[i] = commandIndent + line
+	}
+
+	return folded
+}
+
+// SetSize records the room the modal has, so a long command wraps rather than
+// widening the modal past the terminal.
+func (m *ChainConfirmModal) SetSize(width, _ int) {
+	m.width = width
 }
 
 // IsDone returns true if the modal is finished.

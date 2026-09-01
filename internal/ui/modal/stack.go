@@ -1,8 +1,11 @@
 package modal
 
 import (
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/kyleking/aragonite/tui/table"
 
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -139,11 +142,35 @@ func placeCenter(_, modal string, width, height int) string {
 		Padding(modalPaddingVertical, modalPaddingHorizontal).
 		Background(ui.ModalBgColor)
 
-	styledModal := modalStyle.Render(modal)
+	styledModal := modalStyle.Render(clip(modal, width-modalChromeHorizontal, height-modalChromeVertical))
 
 	return lipgloss.Place(
 		width, height, lipgloss.Center, lipgloss.Center, styledModal, lipgloss.WithWhitespaceChars(" "),
 	)
+}
+
+// elisionNotice replaces the lines a modal taller than the terminal cannot
+// show, so content is never lost without saying so.
+const elisionNotice = "…"
+
+// clip bounds a modal's content to the room inside its border and padding. A
+// modal that sizes itself is already within bounds and passes through
+// untouched; this is the guarantee for the ones that do not.
+func clip(content string, width, height int) string {
+	if width < 1 || height < 1 {
+		return content
+	}
+
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		lines[i] = table.Truncate(line, width)
+	}
+
+	if len(lines) > height {
+		lines = append(lines[:height-1:height-1], ui.HelpStyle.Render(elisionNotice))
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // ClosedMsg is sent when a modal is closed.

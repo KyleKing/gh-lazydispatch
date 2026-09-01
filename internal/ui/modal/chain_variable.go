@@ -158,6 +158,18 @@ func (m *ChainVariableModal) updateNavigating(msg tea.Msg) (Context, tea.Cmd) {
 	return m.updateVariableValue(keyMsg)
 }
 
+// stepVariable moves a choice to its neighboring option or flips a boolean,
+// leaving a free-text variable alone.
+func (m *ChainVariableModal) stepVariable(v *config.ChainVariable, name string, delta int) {
+	switch {
+	case v == nil:
+	case v.Type == inputTypeBoolean:
+		m.toggleBoolVariable(name)
+	case v.Type == inputTypeChoice && len(v.Options) > 0:
+		m.cycleOption(name, v.Options, delta)
+	}
+}
+
 // updateVariableValue handles keys that modify the currently selected variable's value.
 func (m *ChainVariableModal) updateVariableValue(keyMsg tea.KeyPressMsg) (Context, tea.Cmd) {
 	v := m.currentVariable()
@@ -172,24 +184,15 @@ func (m *ChainVariableModal) updateVariableValue(keyMsg tea.KeyPressMsg) (Contex
 		return m, nil
 
 	case key.Matches(keyMsg, m.keys.Toggle):
-		if v != nil && v.Type == inputTypeBoolean {
-			m.toggleBoolVariable(name)
-		}
-
+		m.stepVariable(v, name, 1)
 		return m, nil
 
 	case key.Matches(keyMsg, m.keys.NextOption):
-		if v != nil && v.Type == inputTypeChoice && len(v.Options) > 0 {
-			m.cycleOption(name, v.Options, 1)
-		}
-
+		m.stepVariable(v, name, 1)
 		return m, nil
 
 	case key.Matches(keyMsg, m.keys.PrevOption):
-		if v != nil && v.Type == inputTypeChoice && len(v.Options) > 0 {
-			m.cycleOption(name, v.Options, -1)
-		}
-
+		m.stepVariable(v, name, -1)
 		return m, nil
 
 	case key.Matches(keyMsg, m.keys.Edit), key.Matches(keyMsg, m.keys.Confirm):
@@ -223,21 +226,15 @@ func (m *ChainVariableModal) handleEditOrConfirm(v *config.ChainVariable, name s
 		return m, nil
 	}
 
+	// Enter accepts what the row shows and moves on. Cycling a choice or
+	// flipping a boolean is space and the arrow keys, so the value confirmed is
+	// always the value on screen.
 	switch v.Type {
+	case inputTypeBoolean, inputTypeChoice:
+		return m.advanceOrConfirm()
+
 	case "string":
 		return m.startEditing(name)
-
-	case inputTypeBoolean:
-		m.toggleBoolVariable(name)
-
-		return m.advanceOrConfirm()
-
-	case inputTypeChoice:
-		if len(v.Options) > 0 {
-			m.cycleOption(name, v.Options, 1)
-		}
-
-		return m.advanceOrConfirm()
 
 	default:
 		return m.startEditing(name)
@@ -344,7 +341,9 @@ func (m *ChainVariableModal) View() string {
 			s.WriteString("\n\n")
 		}
 
-		s.WriteString(ui.HelpStyle.Render("[↑↓] navigate  [enter/e] edit  [ctrl+r] default  [esc] cancel"))
+		s.WriteString(ui.HelpStyle.Render(
+			"[↑↓] navigate  [←→/space] change  [e] edit  [enter] accept  [ctrl+r] default  [esc] cancel",
+		))
 	}
 
 	return s.String()

@@ -485,32 +485,11 @@ func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Mo
 }
 
 func (Model) buildChainCommands(chainDef *config.Chain, variables map[string]string, branch string) []string {
-	commands := make([]string, len(chainDef.Steps))
+	resolved := chain.ResolveSteps(chainDef, variables, branch)
 
-	ctx := &chain.InterpolationContext{
-		Var:   variables,
-		Steps: make(map[int]*chain.StepResult),
-	}
-
-	for i, step := range chainDef.Steps {
-		//nolint:errcheck // preview-only: unresolved templates simply pass through as literal text
-		inputs, _ := chain.InterpolateInputs(step.Inputs, ctx)
-
-		cfg := runner.RunConfig{
-			Workflow: step.Workflow,
-			Branch:   branch,
-			Inputs:   inputs,
-		}
-		args := runner.BuildArgs(cfg)
-		commands[i] = runner.FormatCommand(args)
-
-		ctx.Steps[i] = &chain.StepResult{
-			Workflow: step.Workflow,
-			Inputs:   inputs,
-		}
-		if i > 0 {
-			ctx.Previous = ctx.Steps[i-1]
-		}
+	commands := make([]string, len(resolved))
+	for i, step := range resolved {
+		commands[i] = step.Command
 	}
 
 	return commands
