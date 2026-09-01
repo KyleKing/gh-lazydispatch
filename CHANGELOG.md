@@ -1,3 +1,9 @@
+## v1.3.1 (2026-09-01)
+
+### Refactor
+
+- use aragonite's ghcassette instead of a local copy
+
 ## v1.3.0 (2026-09-01)
 
 ### Feat
