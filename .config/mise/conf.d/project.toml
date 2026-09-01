@@ -13,6 +13,10 @@ run = "go test -bench=. -benchmem ./internal/logs/... | tee bench.txt"
 description = "Run integration tests only"
 run = "go test -v -run TestIntegration ./..."
 
+[tasks."test:record"]
+description = "Re-record the gh cassettes against real workflow runs (reads only; needs gh auth)"
+run = "LAZYDISPATCH_RECORD=1 go test ./internal/logs/ -run TestRecorded_ -count=1"
+
 [tasks."test:live"]
 description = "Run the live dispatch test against a throwaway GitHub repo (uses Actions minutes)"
 run = "./scripts/live-test.sh"
