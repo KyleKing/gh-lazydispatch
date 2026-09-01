@@ -637,7 +637,7 @@ func (m Model) openInputModalForName(name string) (tea.Model, tea.Cmd) {
 		defaultVal := input.Default == boolTrueValue
 		m.modalStack.Push(modal.NewConfirmModal(name, input.Description, current, defaultVal))
 	case inputTypeChoice:
-		m.modalStack.Push(modal.NewSelectModal(name, input.Options, currentVal, input.Default))
+		m.modalStack.Push(modal.NewSelectModal(name, input.Description, input.Options, currentVal, input.Default))
 	default:
 		m.modalStack.Push(modal.NewInputModal(
 			name, input.Description, input.Default, input.InputType(), currentVal, input.Options, input.ValidationRules,

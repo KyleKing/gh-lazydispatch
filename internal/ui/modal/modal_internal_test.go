@@ -17,7 +17,7 @@ func TestStack_PushPop(t *testing.T) {
 		t.Error("expected empty stack")
 	}
 
-	modal := NewSelectModal("Test", []string{"a", "b"}, "a", "a")
+	modal := NewSelectModal("Test", "", []string{"a", "b"}, "a", "a")
 	stack.Push(modal)
 
 	if !stack.HasActive() {
@@ -43,8 +43,8 @@ func TestStack_Current(t *testing.T) {
 		t.Error("expected nil current on empty stack")
 	}
 
-	modal1 := NewSelectModal("First", []string{"a"}, "a", "a")
-	modal2 := NewSelectModal("Second", []string{"b"}, "b", "b")
+	modal1 := NewSelectModal("First", "", []string{"a"}, "a", "a")
+	modal2 := NewSelectModal("Second", "", []string{"b"}, "b", "b")
 
 	stack.Push(modal1)
 	stack.Push(modal2)
@@ -64,7 +64,7 @@ func TestStack_Current(t *testing.T) {
 func TestSelectModal_Navigation(t *testing.T) {
 	t.Parallel()
 
-	modal := NewSelectModal("Test", []string{"a", "b", "c"}, "a", "a")
+	modal := NewSelectModal("Test", "", []string{"a", "b", "c"}, "a", "a")
 
 	if modal.selected != 0 {
 		t.Errorf("expected selected 0, got %d", modal.selected)
@@ -88,7 +88,7 @@ func TestSelectModal_Navigation(t *testing.T) {
 func TestSelectModal_Select(t *testing.T) {
 	t.Parallel()
 
-	modal := NewSelectModal("Test", []string{"a", "b", "c"}, "b", "a")
+	modal := NewSelectModal("Test", "", []string{"a", "b", "c"}, "b", "a")
 
 	if modal.selected != 1 {
 		t.Errorf("expected initial selection 1 (current='b'), got %d", modal.selected)
@@ -109,7 +109,7 @@ func TestSelectModal_Select(t *testing.T) {
 func TestSelectModal_Escape(t *testing.T) {
 	t.Parallel()
 
-	modal := NewSelectModal("Test", []string{"a", "b"}, "a", "a")
+	modal := NewSelectModal("Test", "", []string{"a", "b"}, "a", "a")
 
 	esc := tea.KeyPressMsg{Code: tea.KeyEscape}
 	modal.Update(esc)

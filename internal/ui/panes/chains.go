@@ -17,7 +17,7 @@ import (
 // drops first, then the variable count.
 func chainColumns() []table.Column {
 	return []table.Column{
-		{Key: ui.ColKeyName, Title: ui.ColTitleName, Min: ui.ColMinName, Weight: ui.WeightMid},
+		{Key: ui.ColKeyName, Title: ui.ColTitleName, Min: ui.ColMinName, Max: ui.ColMaxName, Weight: ui.WeightMid},
 		{
 			Key: "steps", Title: "Steps", Min: ui.ColMaxSteps, Max: ui.ColMaxSteps,
 			Align: table.AlignRight, Priority: ui.PrioThirdToGo,

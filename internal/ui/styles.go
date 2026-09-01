@@ -84,8 +84,10 @@ func ApplyTheme() {
 		Bold(true).
 		Foreground(ErrorColor)
 
+	// The focused pane carries a heavier border as well as a brighter one, so
+	// focus survives NO_COLOR and a monochrome terminal.
 	FocusedBorderStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
+		BorderStyle(lipgloss.ThickBorder()).
 		BorderForeground(PrimaryColor)
 
 	HelpStyle = lipgloss.NewStyle().

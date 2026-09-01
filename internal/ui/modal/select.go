@@ -1,7 +1,6 @@
 package modal
 
 import (
-	"fmt"
 	"strings"
 
 	"charm.land/bubbles/v2/key"
@@ -12,13 +11,14 @@ import (
 
 // SelectModal presents a list of options to choose from.
 type SelectModal struct {
-	title      string
-	result     string
-	keys       selectKeyMap
-	options    []string
-	selected   int
-	defaultIdx int
-	done       bool
+	title       string
+	description string
+	result      string
+	keys        selectKeyMap
+	options     []string
+	selected    int
+	defaultIdx  int
+	done        bool
 }
 
 type selectKeyMap struct {
@@ -40,7 +40,7 @@ func defaultSelectKeyMap() selectKeyMap {
 }
 
 // NewSelectModal creates a new selection modal.
-func NewSelectModal(title string, options []string, current, defaultVal string) *SelectModal {
+func NewSelectModal(title, description string, options []string, current, defaultVal string) *SelectModal {
 	selected := 0
 	defaultIdx := 0
 
@@ -55,11 +55,12 @@ func NewSelectModal(title string, options []string, current, defaultVal string) 
 	}
 
 	return &SelectModal{
-		title:      title,
-		options:    options,
-		selected:   selected,
-		defaultIdx: defaultIdx,
-		keys:       defaultSelectKeyMap(),
+		title:       title,
+		description: description,
+		options:     options,
+		selected:    selected,
+		defaultIdx:  defaultIdx,
+		keys:        defaultSelectKeyMap(),
 	}
 }
 
@@ -101,7 +102,13 @@ func (m *SelectModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 func (m *SelectModal) View() string {
 	var s strings.Builder
 
-	s.WriteString(ui.TitleStyle.Render(m.title) + "\n\n")
+	s.WriteString(ui.TitleStyle.Render(m.title) + "\n")
+
+	if m.description != "" {
+		s.WriteString(ui.SubtitleStyle.Render(m.description) + "\n")
+	}
+
+	s.WriteString("\n")
 
 	for i, opt := range m.options {
 		cursor := "  "
@@ -112,7 +119,12 @@ func (m *SelectModal) View() string {
 			style = ui.SelectedStyle
 		}
 
-		s.WriteString(style.Render(fmt.Sprintf("%s%s", cursor, opt)))
+		s.WriteString(style.Render(cursor + opt))
+
+		if i == m.defaultIdx {
+			s.WriteString(ui.HelpStyle.Render("  (default)"))
+		}
+
 		if i < len(m.options)-1 {
 			s.WriteString("\n")
 		}

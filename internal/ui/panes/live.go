@@ -17,7 +17,7 @@ const liveGutter = ui.RowGutterWidth + 2
 // liveColumns describes the live-runs table.
 func liveColumns() []table.Column {
 	return []table.Column{
-		{Key: ui.ColKeyWorkflow, Title: "Workflow", Min: ui.ColMinName, Weight: ui.WeightHigh},
+		{Key: ui.ColKeyWorkflow, Title: "Workflow", Min: ui.ColMinName, Max: ui.ColMaxName, Weight: ui.WeightHigh},
 		{Key: "status", Title: "Status", Min: ui.ColMinLabel, Max: ui.ColMaxStatus, Weight: ui.WeightLow},
 	}
 }

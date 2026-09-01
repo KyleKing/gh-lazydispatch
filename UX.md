@@ -123,6 +123,9 @@ Press `Esc` to return to workflow list.
 | `0` | Clear the workflow selection |
 | `Space` | Jump to the config pane |
 
+The `all workflows` row above the list is the cleared state: with it selected the
+History tab shows every run rather than the selected workflow's.
+
 ### Config Panel
 | Key | Action |
 |-----|--------|

@@ -272,7 +272,9 @@ func (m Model) viewWorkflowPane(width, height int) string {
 
 	var content strings.Builder
 
-	allLine := "all"
+	// The pseudo-entry above the workflows leaves history unfiltered; `0`
+	// returns to it.
+	allLine := "all workflows"
 	if m.selectedWorkflow == -1 {
 		content.WriteString(ui.SelectedStyle.Render("> " + allLine))
 	} else {
@@ -289,10 +291,7 @@ func (m Model) viewWorkflowPane(width, height int) string {
 			name = wf.Filename
 		}
 
-		line := name
-		if len(line) > maxLineWidth {
-			line = line[:maxLineWidth-3] + "..."
-		}
+		line := table.Truncate(name, maxLineWidth)
 
 		if i == m.selectedWorkflow {
 			content.WriteString(ui.SelectedStyle.Render("> " + line))
@@ -444,8 +443,9 @@ func (m Model) viewConfigPane(width, height int) string {
 	cliCmd := m.buildCLIString()
 	maxCmdWidth := width - cliPreviewMargin
 
-	if maxCmdWidth > 0 && len(cliCmd) > maxCmdWidth {
-		cliCmd = "..." + cliCmd[len(cliCmd)-maxCmdWidth+3:]
+	// The command's tail carries the inputs, which is the half a reader checks.
+	if maxCmdWidth > 0 {
+		cliCmd = table.TruncateLeft(cliCmd, maxCmdWidth)
 	}
 
 	content.WriteString(ui.CLIPreviewStyle.Render(cliCmd))

@@ -18,7 +18,7 @@
                          ║   environment                                                     ║                          
                          ║                                                                   ║                          
                          ║     production                                                    ║                          
-                         ║   > staging                                                       ║                          
+                         ║   > staging  (default)                                            ║                          
                          ║                                                                   ║                          
                          ║   [↑↓] navigate  [enter] select  [ctrl+r] default  [esc] cancel   ║                          
                          ║                                                                   ║                          

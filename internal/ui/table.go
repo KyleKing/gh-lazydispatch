@@ -15,7 +15,9 @@ const (
 
 // Column sizing vocabulary shared by every table, in display cells. Naming the
 // floors keeps a table readable as a set of tradeoffs rather than a wall of
-// digits.
+// digits. Every column holding a short value is capped, because surplus width
+// spread across them pushes a row's cells so far apart that the eye has to
+// travel between them on a wide terminal.
 const (
 	ColWidthReq = 3
 	ColMinFlag  = 1
@@ -29,6 +31,9 @@ const (
 	ColMaxSteps  = 5
 	ColMaxTime   = 12
 	ColMaxStatus = 14
+	ColMaxValue  = 24
+	ColMaxBranch = 28
+	ColMaxName   = 36
 
 	WeightLow  = 1
 	WeightMid  = 2
@@ -45,9 +50,12 @@ func ConfigColumns() []table.Column {
 	return []table.Column{
 		{Key: "num", Title: "#", Min: ColMinFlag, Max: ColMaxFlag},
 		{Key: "req", Title: "Req", Min: ColWidthReq, Max: ColWidthReq, Priority: PrioFirstToGo},
-		{Key: ColKeyName, Title: ColTitleName, Min: ColMinLabel, Weight: WeightHigh},
-		{Key: "value", Title: "Value", Min: ColMinShort, Weight: WeightMid},
-		{Key: "default", Title: "Default", Min: ColMinShort, Weight: WeightMid, Priority: PrioSecondToGo},
+		{Key: ColKeyName, Title: ColTitleName, Min: ColMinLabel, Max: ColMaxName, Weight: WeightHigh},
+		{Key: "value", Title: "Value", Min: ColMinShort, Max: ColMaxValue, Weight: WeightMid},
+		{
+			Key: "default", Title: "Default", Min: ColMinShort, Max: ColMaxValue,
+			Weight: WeightMid, Priority: PrioSecondToGo,
+		},
 	}
 }
 

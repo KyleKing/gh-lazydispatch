@@ -26,8 +26,11 @@ const historyGutter = ui.RowGutterWidth + 2
 // name, and the relative time is the first thing a narrow pane drops.
 func historyColumns() []table.Column {
 	return []table.Column{
-		{Key: ui.ColKeyName, Title: ui.ColTitleName, Min: ui.ColMinName, Weight: ui.WeightHigh},
-		{Key: "branch", Title: "Branch", Min: ui.ColMinShort, Weight: ui.WeightMid, Priority: ui.PrioSecondToGo},
+		{Key: ui.ColKeyName, Title: ui.ColTitleName, Min: ui.ColMinName, Max: ui.ColMaxName, Weight: ui.WeightHigh},
+		{
+			Key: "branch", Title: "Branch", Min: ui.ColMinShort, Max: ui.ColMaxBranch,
+			Weight: ui.WeightMid, Priority: ui.PrioSecondToGo,
+		},
 		{Key: "time", Title: "Time", Min: ui.ColMinLabel, Max: ui.ColMaxTime, Priority: ui.PrioFirstToGo},
 	}
 }
