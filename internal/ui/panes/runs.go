@@ -1,9 +1,11 @@
 package panes
 
 import (
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/forge"
 	"github.com/kyleking/aragonite/tui/table"
 
 	"github.com/kyleking/gh-lazydispatch/internal/github"
@@ -44,23 +46,78 @@ const listPaneChrome = 2
 // runsGutter is the selection indicator plus the run status glyph.
 const runsGutter = ui.RowGutterWidth + 2
 
-// runsColumns describes the runs table. A branch-scoped listing drops the
-// branch column, since every row shares it.
-func runsColumns(scope RunsScope) []table.Column {
-	cols := []table.Column{
+// runsColumns describes the runs table. Every row shares the ref named in the
+// pane title, so there is no branch column.
+func runsColumns() []table.Column {
+	return []table.Column{
 		{Key: ui.ColKeyWorkflow, Title: "Workflow", Min: ui.ColMinName, Max: ui.ColMaxName, Weight: ui.WeightHigh},
+		{
+			Key: ui.ColKeyTime, Title: ui.ColTitleTime, Min: ui.ColMinLabel, Max: ui.ColMaxTime,
+			Priority: ui.PrioFirstToGo,
+		},
+	}
+}
+
+// prColumns describes the pull request table. A pull request row reports its
+// check rollup rather than one workflow, so it shares no column with a run row
+// beyond the time.
+func prColumns() []table.Column {
+	return []table.Column{
+		{Key: ui.ColKeyPR, Title: ui.ColTitlePR, Min: ui.ColMinShort, Max: ui.ColMinShort},
+		{Key: ui.ColKeyName, Title: ui.ColTitleName, Min: ui.ColMinName, Max: ui.ColMaxName, Weight: ui.WeightHigh},
+		{
+			Key: ui.ColKeyChecks, Title: ui.ColTitleChecks, Min: ui.ColMinLabel, Max: ui.ColMaxStatus,
+			Priority: ui.PrioSecondToGo,
+		},
+		{
+			Key: ui.ColKeyTime, Title: ui.ColTitleTime, Min: ui.ColMinLabel, Max: ui.ColMaxTime,
+			Priority: ui.PrioFirstToGo,
+		},
+	}
+}
+
+// checksLabel spells a pull request's rollup as passing, failing, and pending
+// counts, dropping the zeroes.
+func checksLabel(c forge.ChecksStatus) string {
+	if c.Total == 0 {
+		return "none"
 	}
 
-	if scope != ScopeBranch {
-		cols = append(cols, table.Column{
-			Key: ui.ColKeyBranch, Title: ui.ColTitleBranch, Min: ui.ColMinShort, Max: ui.ColMaxBranch,
-			Weight: ui.WeightMid, Priority: ui.PrioSecondToGo,
-		})
+	var label strings.Builder
+
+	for _, part := range []struct {
+		glyph string
+		count int
+	}{{"+", c.Passing}, {"x", c.Failing}, {"*", c.Pending}} {
+		if part.count > 0 {
+			if label.Len() > 0 {
+				label.WriteString(" ")
+			}
+
+			label.WriteString(strconv.Itoa(part.count) + part.glyph)
+		}
 	}
 
-	return append(cols, table.Column{
-		Key: ui.ColKeyTime, Title: ui.ColTitleTime, Min: ui.ColMinLabel, Max: ui.ColMaxTime, Priority: ui.PrioFirstToGo,
-	})
+	if label.Len() == 0 {
+		return "skipped"
+	}
+
+	return label.String()
+}
+
+// checksIcon reduces a rollup to the one glyph a row's gutter holds: a failure
+// outranks a pending check, because it is the one a reader has to act on.
+func checksIcon(c forge.ChecksStatus) string {
+	switch {
+	case c.Failing > 0:
+		return "x"
+	case c.Pending > 0:
+		return "*"
+	case c.Passing > 0:
+		return "+"
+	default:
+		return "?"
+	}
 }
 
 // RunsModel shows the current state of each workflow on GitHub, which is a
@@ -68,7 +125,9 @@ func runsColumns(scope RunsScope) []table.Column {
 type RunsModel struct {
 	err           error
 	branch        string
+	ref           string
 	runs          []github.WorkflowRun
+	prs           []github.PullRequest
 	scope         RunsScope
 	selectedIndex int
 	width         int
@@ -89,6 +148,7 @@ func (m *RunsModel) SetRuns(scope RunsScope, branch string, runs []github.Workfl
 	m.scope = scope
 	m.branch = branch
 	m.runs = runs
+	m.prs = nil
 	m.loading = false
 	m.loaded = true
 	m.err = nil
@@ -96,6 +156,29 @@ func (m *RunsModel) SetRuns(scope RunsScope, branch string, runs []github.Workfl
 	if m.selectedIndex >= len(runs) {
 		m.selectedIndex = 0
 	}
+}
+
+// SetPRs replaces what a pull request scope shows and marks it loaded.
+func (m *RunsModel) SetPRs(scope RunsScope, prs []github.PullRequest) {
+	m.scope = scope
+	m.runs = nil
+	m.prs = prs
+	m.loading = false
+	m.loaded = true
+	m.err = nil
+
+	if m.selectedIndex >= len(prs) {
+		m.selectedIndex = 0
+	}
+}
+
+// rowCount is how many rows the current scope holds, whichever shape they are.
+func (m RunsModel) rowCount() int {
+	if m.scope == ScopeBranch {
+		return len(m.runs)
+	}
+
+	return len(m.prs)
 }
 
 // SetError records a failed load so the pane says so rather than reading empty.
@@ -129,6 +212,8 @@ func (m *RunsModel) SetScope(scope RunsScope) {
 
 	m.scope = scope
 	m.runs = nil
+	m.prs = nil
+	m.ref = ""
 	m.loaded = false
 	m.selectedIndex = 0
 }
@@ -137,6 +222,8 @@ func (m *RunsModel) SetScope(scope RunsScope) {
 func (m *RunsModel) NextScope() RunsScope {
 	m.scope = (m.scope + 1) % runsScopeCount
 	m.runs = nil
+	m.prs = nil
+	m.ref = ""
 	m.loaded = false
 	m.selectedIndex = 0
 
@@ -147,7 +234,23 @@ func (m *RunsModel) NextScope() RunsScope {
 func (m *RunsModel) Invalidate() {
 	m.loaded = false
 	m.runs = nil
+	m.prs = nil
 }
+
+// DrillToBranch moves the pane to the branch scope for a ref the checkout is
+// not on, which is how a pull request row reaches the runs behind its rollup.
+func (m *RunsModel) DrillToBranch(ref string) {
+	m.scope = ScopeBranch
+	m.ref = ref
+	m.runs = nil
+	m.prs = nil
+	m.loaded = false
+	m.selectedIndex = 0
+}
+
+// Ref returns the ref a drilled branch scope is showing, empty when the pane is
+// showing the checkout's own branch.
+func (m RunsModel) Ref() string { return m.ref }
 
 // SetSize updates the pane dimensions.
 func (m *RunsModel) SetSize(width, height int) {
@@ -167,7 +270,7 @@ func (m *RunsModel) MoveUp() {
 
 // MoveDown moves selection down.
 func (m *RunsModel) MoveDown() {
-	if m.selectedIndex < len(m.runs)-1 {
+	if m.selectedIndex < m.rowCount()-1 {
 		m.selectedIndex++
 	}
 }
@@ -181,10 +284,30 @@ func (m RunsModel) SelectedRun() (github.WorkflowRun, bool) {
 	return m.runs[m.selectedIndex], true
 }
 
+// SelectedPR returns the pull request under the cursor.
+func (m RunsModel) SelectedPR() (github.PullRequest, bool) {
+	if m.scope == ScopeBranch || m.selectedIndex >= len(m.prs) {
+		return github.PullRequest{}, false
+	}
+
+	return m.prs[m.selectedIndex], true
+}
+
 // Summary counts how many runs passed, failed, and are still going, which is
 // what the tab header reports without the tab being open.
 func (m RunsModel) Summary() (int, int, int) {
 	var passed, failed, active int
+
+	for i := range m.prs {
+		switch checksIcon(m.prs[i].Checks) {
+		case "x":
+			failed++
+		case "*":
+			active++
+		case "+":
+			passed++
+		}
+	}
 
 	for i := range m.runs {
 		run := &m.runs[i]
@@ -207,7 +330,7 @@ func (m RunsModel) Update(_ tea.Msg) (RunsModel, tea.Cmd) {
 	return m, nil
 }
 
-// ViewContent renders the runs list without the pane border.
+// ViewContent renders the list without the pane border.
 func (m RunsModel) ViewContent() string {
 	if m.loading {
 		return ui.SubtitleStyle.Render("Loading " + m.scope.Label() + "…")
@@ -218,48 +341,70 @@ func (m RunsModel) ViewContent() string {
 			ui.NormalStyle.Render(m.err.Error())
 	}
 
-	if len(m.runs) == 0 {
+	if m.rowCount() == 0 {
 		return m.viewEmpty()
 	}
 
-	var content strings.Builder
+	if m.scope == ScopeBranch {
+		return m.viewRows(ui.FitColumns(runsColumns(), m.width, runsGutter), len(m.runs), m.runCells)
+	}
 
-	layout := ui.FitColumns(runsColumns(m.scope), m.width, runsGutter)
+	return m.viewRows(ui.FitColumns(prColumns(), m.width, runsGutter), len(m.prs), m.prCells)
+}
+
+func (m RunsModel) runCells(layout table.Layout, i int) (string, string) {
+	run := &m.runs[i]
+
+	return runStatusIcon(run.Status, run.Conclusion), ui.TableRow(layout, map[string]string{
+		ui.ColKeyWorkflow: run.Name,
+		ui.ColKeyTime:     formatTimeAgo(run.CreatedAt),
+	})
+}
+
+func (m RunsModel) prCells(layout table.Layout, i int) (string, string) {
+	pr := &m.prs[i]
+
+	return checksIcon(pr.Checks), ui.TableRow(layout, map[string]string{
+		ui.ColKeyPR:     "#" + strconv.Itoa(pr.Number),
+		ui.ColKeyName:   pr.Title,
+		ui.ColKeyChecks: checksLabel(pr.Checks),
+		ui.ColKeyTime:   formatTimeAgo(pr.UpdatedAt),
+	})
+}
+
+// viewRows draws the scrolled window of whichever row shape the scope holds.
+func (m RunsModel) viewRows(
+	layout table.Layout, total int, cells func(table.Layout, int) (string, string),
+) string {
+	var content strings.Builder
 
 	content.WriteString(ui.TableHeader(layout, runsGutter))
 	content.WriteString("\n")
 
-	first, last := ui.ScrollWindow(m.selectedIndex, len(m.runs), m.height-listPaneChrome)
+	first, last := ui.ScrollWindow(m.selectedIndex, total, m.height-listPaneChrome)
 
 	for i := first; i < last; i++ {
-		run := &m.runs[i]
-
 		indicator := "  "
 		if i == m.selectedIndex {
 			indicator = "> "
 		}
-
-		cells := ui.TableRow(layout, map[string]string{
-			ui.ColKeyWorkflow: run.Name,
-			ui.ColKeyBranch:   run.HeadBranch,
-			ui.ColKeyTime:     formatTimeAgo(run.CreatedAt),
-		})
 
 		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {
 			rowStyle = ui.TableSelectedStyle
 		}
 
-		content.WriteString(rowStyle.Render(indicator + runStatusIcon(run.Status, run.Conclusion) + " " + cells))
+		glyph, row := cells(layout, i)
+		content.WriteString(rowStyle.Render(indicator + glyph + " " + row))
 
 		if i < last-1 {
 			content.WriteString("\n")
 		}
 	}
 
-	if first > 0 || last < len(m.runs) {
+	if first > 0 || last < total {
 		content.WriteString("\n")
-		content.WriteString(ui.RenderScrollIndicator(last < len(m.runs), first > 0))
+		content.WriteString(ui.RenderScrollIndicator(last < total, first > 0))
 	}
 
 	return content.String()
@@ -279,8 +424,8 @@ func (m RunsModel) viewEmpty() string {
 	content.WriteString(ui.SubtitleStyle.Render("No runs for " + m.scope.Label()))
 	content.WriteString("\n\n")
 
-	if m.scope == ScopeBranch && m.branch != "" {
-		content.WriteString(ui.NormalStyle.Render("Nothing has run on " + m.branch + "."))
+	if ref := m.title(); m.scope == ScopeBranch && ref != "" {
+		content.WriteString(ui.NormalStyle.Render("Nothing has run on " + ref + "."))
 		content.WriteString("\n\n")
 	}
 
@@ -289,26 +434,23 @@ func (m RunsModel) viewEmpty() string {
 	return content.String()
 }
 
+// title names what the pane is showing: the scope, or the ref a pull request
+// row was drilled into.
+func (m RunsModel) title() string {
+	if m.scope != ScopeBranch {
+		return m.scope.Label()
+	}
+
+	if m.ref != "" {
+		return m.ref
+	}
+
+	return m.branch
+}
+
 // View renders the runs pane with its border.
 func (m RunsModel) View() string {
 	style := ui.PaneStyle(m.width, m.height, m.focused)
 
-	return style.Render(ui.TitleStyle.Render("Runs ("+m.scope.Label()+")") + "\n" + m.ViewContent())
-}
-
-// RunsSelectedMsg is sent when a run in the pane is chosen.
-type RunsSelectedMsg struct {
-	Run github.WorkflowRun
-}
-
-// HandleSelect reports the run under the cursor.
-func (m RunsModel) HandleSelect() tea.Cmd {
-	run, ok := m.SelectedRun()
-	if !ok {
-		return nil
-	}
-
-	return func() tea.Msg {
-		return RunsSelectedMsg{Run: run}
-	}
+	return style.Render(ui.TitleStyle.Render("Runs ("+m.title()+")") + "\n" + m.ViewContent())
 }

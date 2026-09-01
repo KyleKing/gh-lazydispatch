@@ -17,11 +17,14 @@ type FetchRunsMsg struct {
 	Scope  panes.RunsScope
 }
 
-// RunsFetchedMsg carries what GitHub said, or why it could not say.
+// RunsFetchedMsg carries what GitHub said, or why it could not say. A branch
+// scope answers with runs and a pull request scope with rollups, so only one of
+// the two is ever set.
 type RunsFetchedMsg struct {
 	Error  error
 	Branch string
 	Runs   []github.WorkflowRun
+	PRs    []github.PullRequest
 	Scope  panes.RunsScope
 }
 
@@ -58,7 +61,7 @@ func applyRunWindow(runs []github.WorkflowRun) []github.WorkflowRun {
 	return runs
 }
 
-// fetchRunsCmd reads a scope's runs off GitHub rather than out of the local
+// fetchRunsCmd reads a scope's state off GitHub rather than out of the local
 // dispatch history, which is the only way to answer whether a branch this
 // checkout never dispatched from is green.
 func (m Model) fetchRunsCmd(scope panes.RunsScope, branch string) tea.Cmd {
@@ -67,26 +70,35 @@ func (m Model) fetchRunsCmd(scope panes.RunsScope, branch string) tea.Cmd {
 		return statusCmd("no GitHub client")
 	}
 
+	if scope != panes.ScopeBranch {
+		return fetchPRsCmd(client, scope)
+	}
+
 	return func() tea.Msg {
-		var (
-			runs []github.WorkflowRun
-			err  error
-		)
-
-		switch scope {
-		case panes.ScopeMine:
-			runs, err = client.LatestRunsForPRs(github.PRScopeMine, 0)
-		case panes.ScopeReviewing:
-			runs, err = client.LatestRunsForPRs(github.PRScopeReviewing, 0)
-		default:
-			runs, err = client.LatestRunsOnBranch(branch, 0)
-		}
-
+		runs, err := client.LatestRunsOnBranch(branch, 0)
 		if err != nil {
 			return RunsFetchedMsg{Scope: scope, Branch: branch, Error: err}
 		}
 
 		return RunsFetchedMsg{Scope: scope, Branch: branch, Runs: applyRunWindow(runs)}
+	}
+}
+
+// fetchPRsCmd reads each pull request's own check rollup, which is exact where
+// grouping a page of the repository's recent runs by branch was not.
+func fetchPRsCmd(client *github.Client, scope panes.RunsScope) tea.Cmd {
+	query := github.PRScopeMine
+	if scope == panes.ScopeReviewing {
+		query = github.PRScopeReviewing
+	}
+
+	return func() tea.Msg {
+		prs, err := client.PullRequestsInScope(query)
+		if err != nil {
+			return RunsFetchedMsg{Scope: scope, Error: err}
+		}
+
+		return RunsFetchedMsg{Scope: scope, PRs: prs}
 	}
 }
 
@@ -100,9 +112,12 @@ func (m Model) handleRunsMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 		return m, m.fetchRunsCmd(msg.Scope, msg.Branch), true
 
 	case RunsFetchedMsg:
-		if msg.Error != nil {
+		switch {
+		case msg.Error != nil:
 			m.rightPanel.Runs().SetError(msg.Error)
-		} else {
+		case msg.Scope != panes.ScopeBranch:
+			m.rightPanel.Runs().SetPRs(msg.Scope, msg.PRs)
+		default:
 			m.rightPanel.Runs().SetRuns(msg.Scope, msg.Branch, msg.Runs)
 		}
 
@@ -124,7 +139,17 @@ func (m Model) loadRunsIfNeeded() tea.Cmd {
 		return nil
 	}
 
-	return m.fetchRunsCmd(runs.Scope(), m.branch)
+	return m.fetchRunsCmd(runs.Scope(), m.runsRef())
+}
+
+// runsRef is the branch the Runs tab is reading: the ref a pull request row was
+// drilled into, or the checkout's own branch.
+func (m Model) runsRef() string {
+	if ref := m.rightPanel.Runs().Ref(); ref != "" {
+		return ref
+	}
+
+	return m.branch
 }
 
 // cycleRunsScope moves the Runs tab to the next scope and loads it.
@@ -139,7 +164,23 @@ func (m Model) reloadRuns() (tea.Model, tea.Cmd) {
 	runs := m.rightPanel.Runs()
 	runs.Invalidate()
 
-	return m, m.fetchRunsCmd(runs.Scope(), m.branch)
+	return m, m.fetchRunsCmd(runs.Scope(), m.runsRef())
+}
+
+// openSelectedRunsRow opens the selected run's log, or expands a pull request
+// row into the runs on its head branch. A rollup says a pull request is red and
+// the runs behind it say which workflow is.
+func (m Model) openSelectedRunsRow() (tea.Model, tea.Cmd) {
+	runs := m.rightPanel.Runs()
+
+	pr, ok := runs.SelectedPR()
+	if !ok {
+		return m.logsForSelectedRun()
+	}
+
+	runs.DrillToBranch(pr.HeadRef)
+
+	return m, m.fetchRunsCmd(panes.ScopeBranch, pr.HeadRef)
 }
 
 // diagnoseSelectedRun opens the selected run's log filtered to the failure.

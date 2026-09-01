@@ -251,12 +251,15 @@ func (m Model) undrillTimeline() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) runsTarget() string {
-	run, ok := m.rightPanel.SelectedGitHubRun()
-	if !ok {
-		return m.rightPanel.Runs().Scope().Label()
+	if pr, ok := m.rightPanel.Runs().SelectedPR(); ok {
+		return "#" + strconv.Itoa(pr.Number)
 	}
 
-	return run.Name
+	if run, ok := m.rightPanel.SelectedGitHubRun(); ok {
+		return run.Name
+	}
+
+	return m.rightPanel.Runs().Scope().Label()
 }
 
 func (m Model) timelineTarget() string {

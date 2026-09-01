@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kyleking/aragonite/forge"
+
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 )
@@ -119,5 +121,48 @@ func TestRunsVerdict_ReportsTheBranchStateInTheStatusBar(t *testing.T) {
 
 	if verdict := m.runsVerdict(); verdict != " 1+ 1x 1*" {
 		t.Errorf("verdict is %q, want one of each", verdict)
+	}
+}
+
+// A pull request scope answers with rollups, and the row a reader picks has to
+// reach the runs behind it.
+func TestRunsPRScope_RollupsReportAndDrillIntoTheirBranch(t *testing.T) {
+	t.Parallel()
+
+	m := newRenderModel()
+	m.rightPanel.SetTab(panes.TabRuns)
+	m.rightPanel.Runs().SetPRs(panes.ScopeMine, []github.PullRequest{
+		{
+			Number: 7, Title: "Add the runs tab", HeadRef: "topic",
+			Checks: forge.ChecksStatus{Total: 3, Passing: 2, Failing: 1},
+		},
+		{Number: 8, Title: "Bump the linter", HeadRef: "lint", Checks: forge.ChecksStatus{Total: 1, Pending: 1}},
+	})
+
+	if verdict := m.runsVerdict(); verdict != " 1x 1*" {
+		t.Errorf("verdict is %q, want a failing and a pending pull request", verdict)
+	}
+
+	if got := m.runsTarget(); got != "#7" {
+		t.Errorf("action target is %q, want the pull request under the cursor", got)
+	}
+
+	model, cmd := m.openSelectedRunsRow()
+	if cmd == nil {
+		t.Fatal("opening a pull request row asked for nothing")
+	}
+
+	drilled, ok := model.(Model)
+	if !ok {
+		t.Fatalf("opening a row returned %T, want a Model", model)
+	}
+
+	runs := drilled.rightPanel.Runs()
+	if runs.Scope() != panes.ScopeBranch || runs.Ref() != "topic" {
+		t.Errorf("drilled into %v/%q, want the branch scope on topic", runs.Scope(), runs.Ref())
+	}
+
+	if runs.Loaded() {
+		t.Error("the drilled scope reported itself loaded before its runs arrived")
 	}
 }

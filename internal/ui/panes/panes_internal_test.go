@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/kyleking/aragonite/forge"
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
@@ -784,6 +785,33 @@ func TestRunsModel_ScrollsToKeepTheSelectionVisible(t *testing.T) {
 
 	if lines := strings.Count(content, "\n") + 1; lines > 10 {
 		t.Errorf("the list drew %d lines into 10 rows", lines)
+	}
+}
+
+// A pull request scope draws rollups rather than runs, and the row has to name
+// the pull request and how its checks stand.
+func TestRunsModel_PullRequestRowsCarryTheirRollup(t *testing.T) {
+	t.Parallel()
+
+	m := NewRunsModel()
+	m.SetSize(60, 10)
+	m.SetPRs(ScopeMine, []github.PullRequest{
+		{
+			Number: 7, Title: "Add the runs tab", HeadRef: "topic",
+			Checks: forge.ChecksStatus{Total: 3, Passing: 2, Failing: 1},
+		},
+		{Number: 8, Title: "Bump the linter", HeadRef: "lint", Checks: forge.ChecksStatus{Total: 0}},
+	})
+
+	content := ansi.Strip(m.ViewContent())
+	for _, want := range []string{"PR", "Checks", "#7", "Add the runs tab", "2+ 1x", "#8", "none"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("the rollup rows do not carry %q:\n%s", want, content)
+		}
+	}
+
+	if strings.Contains(content, "Workflow") {
+		t.Errorf("a pull request scope drew the run columns:\n%s", content)
 	}
 }
 

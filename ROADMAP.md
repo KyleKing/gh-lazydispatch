@@ -60,14 +60,15 @@ ref, keyed on workflow file *and* display title so a workflow reporting its mode
 in the title keeps one current state per mode. It loads on first open, `s` cycles
 branch / my PRs / awaiting my review, and the status bar carries the verdict.
 
+The pull request scopes list one row per pull request with its own check rollup,
+from `SearchPRsInRepo`: one call and exact, where grouping a page of the
+repository's recent runs by head branch reported nothing for every pull request
+but the last one to run. The pane holds two row shapes, and `enter` on a rollup
+drills into the runs on that pull request's head branch, which is what names the
+failing workflow.
+
 Still to build:
 
-- The pull request scopes read one page of the repository's recent runs and keep
-  the rows whose head branch belongs to a matching PR. In a busy repository that
-  page is filled by whatever branch ran last, so the other PRs report nothing.
-  The right read is each PR's check rollup, which `SearchPRsInRepo` already
-  returns: one row per PR, one call, exact. That makes the pane hold two row
-  shapes, which is the decision worth taking deliberately
 - A flakiness view. Per-branch, one run per workflow is the whole answer; asking
   whether a workflow is flaky is the opposite query (many runs of one workflow)
   and wants its own screen rather than a column
@@ -139,10 +140,10 @@ below it for different reasons:
   takes `WithDispatcher` and `WithPollInterval`, which took it to 78%. Every
   seam like that is worth adding: it is a design defect that reads as a coverage
   number
-- `internal/exec` reports 23.8%, and all of the uncovered statements are
+- `internal/exec` reported 23.8% while every uncovered statement was
   `mock_executor.go`, which other packages' tests exercise heavily and its own
-  never touch. The number is an artifact. The real improvement is moving the
-  mock to `internal/testutil`, which also stops it shipping in the binary
+  never touch. The mock now lives in `internal/testutil` alongside the rest of
+  the test doubles, and `exec` reports 95.2% of the code that actually ships
 
 ## Deferred / v2 ideas
 

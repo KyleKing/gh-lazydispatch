@@ -9,11 +9,15 @@ import (
 // Column keys and titles shared by more than one table.
 const (
 	ColKeyBranch   = "branch"
+	ColKeyChecks   = "checks"
 	ColKeyName     = "name"
+	ColKeyPR       = "pr"
 	ColKeyTime     = "time"
 	ColKeyWorkflow = "workflow"
 	ColTitleBranch = "Branch"
+	ColTitleChecks = "Checks"
 	ColTitleName   = "Name"
+	ColTitlePR     = "PR"
 	ColTitleTime   = "Time"
 )
 

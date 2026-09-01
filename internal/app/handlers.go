@@ -443,7 +443,7 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		case panes.TabTimeline:
 			m.rightPanel.Timeline().Drill()
 		case panes.TabRuns:
-			return m.logsForSelectedRun()
+			return m.openSelectedRunsRow()
 		}
 	case PaneConfig:
 		return m.executeWorkflow()

@@ -45,17 +45,17 @@ It loads nothing until opened, and then reads the newest run of each workflow on
 
 `s` cycles the scope between the current branch, your open pull requests, and the pull requests awaiting your review. `R` reloads. `enter` opens the run's log, and the action menu (`a`) adds diagnose and timeline.
 
+The two pull request scopes list one row per pull request carrying its own check rollup (`2+ 1x`), because that is the exact answer to whether it is green. `enter` on one of those rows expands it into the runs on its head branch, which is where the failing workflow is named. The pane title carries the ref it drilled into, and `s` cycles back out.
+
 | Key | Does |
 | --- | --- |
 | `s` | Next scope: branch, my PRs, awaiting my review |
 | `R` | Reload the current scope |
-| `enter` | Open the selected run's log |
+| `enter` | Open the selected run's log, or expand a pull request into its branch's runs |
 | `a` then `d` | Diagnose the selected run's failure |
 | `a` then `t` | Draw the selected run on the timeline |
 
 `:runs [branch\|mine\|reviewing]` opens a scope by name.
-
-The two pull request scopes read one page of the repository's recent runs rather than a page per branch, so a pull request whose last run has aged off that page reports nothing rather than costing another round trip.
 
 ## Timeline
 

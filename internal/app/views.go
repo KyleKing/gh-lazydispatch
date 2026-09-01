@@ -163,7 +163,12 @@ func (m Model) viewFooterBar() string {
 		case panes.TabTimeline:
 			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] steps", "[Esc] jobs")
 		case panes.TabRuns:
-			hints = append(hints, "[h/l] tab", "[j/k] select", "[s] scope", "[R] reload", "[Enter] logs")
+			open := "[Enter] logs"
+			if m.rightPanel.Runs().Scope() != panes.ScopeBranch {
+				open = "[Enter] runs"
+			}
+
+			hints = append(hints, "[h/l] tab", "[j/k] select", "[s] scope", "[R] reload", open)
 		}
 	case PaneConfig:
 		hints = append(hints, "[Enter] run", "[1-0] edit", "[/] filter")

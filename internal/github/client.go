@@ -162,13 +162,17 @@ const (
 	PRScopeReviewing PRScope = "is:open review-requested:@me"
 )
 
-// LatestRunsForPRs returns the current state of each workflow on the head branch
-// of every pull request matching scope.
+// PullRequest is aragonite's pull request model, which already carries the
+// check rollup that answers whether a pull request is green.
+type PullRequest = forge.PullRequest
+
+// PullRequestsInScope returns every pull request matching scope, each with its
+// own check rollup.
 //
-// It reads one page of the repository's recent runs rather than a page per
-// branch, so a pull request whose last run has aged out of that page reports
-// nothing rather than costing another round trip.
-func (c *Client) LatestRunsForPRs(scope PRScope, within time.Duration) ([]WorkflowRun, error) {
+// The rollup is the answer rather than a run listing because runs are keyed by
+// branch: one page of a repository's recent runs is filled by whichever branch
+// ran last, so every other pull request in it reports nothing.
+func (c *Client) PullRequestsInScope(scope PRScope) ([]PullRequest, error) {
 	ctx := c.runnerContext(context.Background())
 
 	prs, err := ghforge.SearchPRsInRepo(ctx, ".", c.fullName(), string(scope))
@@ -176,32 +180,5 @@ func (c *Client) LatestRunsForPRs(scope PRScope, within time.Duration) ([]Workfl
 		return nil, fmt.Errorf("searching pull requests: %w", err)
 	}
 
-	branches := make(map[string]bool, len(prs))
-	for i := range prs {
-		branches[prs[i].HeadRef] = true
-	}
-
-	if len(branches) == 0 {
-		return nil, nil
-	}
-
-	runs, err := ghforge.ListRuns(ctx, ".", c.fullName(), ghforge.RunQuery{})
-	if err != nil {
-		return nil, fmt.Errorf("listing runs: %w", err)
-	}
-
-	return fromForgeRuns(ghforge.LatestPerWorkflow(runsOnBranches(runs, branches), within)), nil
-}
-
-// runsOnBranches keeps the runs started against one of the branches.
-func runsOnBranches(runs []forge.WorkflowRun, branches map[string]bool) []forge.WorkflowRun {
-	kept := make([]forge.WorkflowRun, 0, len(runs))
-
-	for i := range runs {
-		if branches[runs[i].HeadBranch] {
-			kept = append(kept, runs[i])
-		}
-	}
-
-	return kept
+	return prs, nil
 }
