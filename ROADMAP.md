@@ -129,9 +129,14 @@ free. The branch list and the default branch are `vcs.RemoteBranches` and
 `vcs.DefaultBranchName`, and what is left here is the timeout and the fallback
 list.
 
+A run's logs are held in `aragonite/cache`'s TTL cache, which replaced 200 lines
+of hand-rolled disk cache that nothing ever wrote to: `Put` had no caller, so
+every reopen of a run re-downloaded its log. Memory only, because aragonite's
+disk store deliberately holds counts, states, and titles rather than bodies, and
+a log is measured in megabytes.
+
 Remaining, in the order that pays off:
 
-- `internal/logs/cache.go` to `aragonite/cache`
 - `formatTimeAgo` in `internal/ui/panes/history.go` to `aragonite/display`, which
   already spells relative times and status glyphs for two other tools
 

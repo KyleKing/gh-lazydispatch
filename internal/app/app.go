@@ -3,8 +3,6 @@ package app
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -125,17 +123,7 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 		m.ghClient = ghClient
 		m.watcher = watcher.NewWatcher(ghClient)
 
-		// Initialize log manager
-		cacheDir, err := os.UserCacheDir()
-		if err != nil {
-			cacheDir = ""
-		}
-
-		logCacheDir := filepath.Join(cacheDir, "lazydispatch", "logs")
-		m.logManager = logs.NewManager(ghClient, logCacheDir)
-
-		//nolint:errcheck,gosec // best-effort: New() has no error return; a missing/corrupt cache just starts empty
-		m.logManager.LoadCache()
+		m.logManager = logs.NewManager(ghClient)
 	}
 
 	if cfg, err := config.Load("."); err == nil && cfg != nil {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/kyleking/aragonite/cache"
+
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 )
 
@@ -15,12 +17,12 @@ type LogFetcher interface {
 // Manager coordinates log fetching, caching, and access.
 type Manager struct {
 	fetcher    LogFetcher
-	cache      *Cache
+	cache      *cache.TTLCache[[]*StepLogs]
 	useRealAPI bool
 }
 
 // NewManager creates a new log manager that uses gh CLI if available.
-func NewManager(client GitHubClient, cacheDir string) *Manager {
+func NewManager(client GitHubClient) *Manager {
 	var fetcher LogFetcher
 
 	useRealAPI := false
@@ -37,7 +39,7 @@ func NewManager(client GitHubClient, cacheDir string) *Manager {
 
 	return &Manager{
 		fetcher:    fetcher,
-		cache:      NewCache(cacheDir),
+		cache:      newLogCache(),
 		useRealAPI: useRealAPI,
 	}
 }
@@ -66,7 +68,7 @@ func (m *Manager) GetLogsForChain(chainState chain.ChainState, branch string) (*
 
 	// Fetch logs for each completed step
 	for idx, result := range chainState.StepResults {
-		stepLogs, err := m.fetcher.FetchStepLogs(result.RunID, result.Workflow)
+		stepLogs, err := m.stepLogs(result.RunID, result.Workflow)
 		if err != nil {
 			// Store error but continue with other steps
 			runLogs.AddStep(&StepLogs{
@@ -100,9 +102,9 @@ func (m *Manager) GetLogsForRun(runID int64, workflow string) (*RunLogs, error) 
 
 	runLogs := NewRunLogs(name, "")
 
-	stepLogs, err := m.fetcher.FetchStepLogs(runID, workflow)
+	stepLogs, err := m.stepLogs(runID, workflow)
 	if err != nil {
-		return nil, fmt.Errorf("fetching step logs for run %d: %w", runID, err)
+		return nil, err
 	}
 
 	for _, sl := range stepLogs {
@@ -112,12 +114,21 @@ func (m *Manager) GetLogsForRun(runID int64, workflow string) (*RunLogs, error) 
 	return runLogs, nil
 }
 
-// LoadCache loads the log cache from disk.
-func (m *Manager) LoadCache() error {
-	return m.cache.Load()
-}
+// stepLogs reads a run's steps, serving a copy already fetched in this session
+// rather than downloading a log again. Reopening the same run is the common
+// move: a reader diagnoses a failure, leaves for the timeline, and comes back.
+func (m *Manager) stepLogs(runID int64, workflow string) ([]*StepLogs, error) {
+	key := logCacheKey(runID, workflow)
+	if cached, ok := m.cache.Get(key, cache.NoStamp); ok {
+		return cached, nil
+	}
 
-// ClearExpired removes expired entries from the cache.
-func (m *Manager) ClearExpired() error {
-	return m.cache.Clear()
+	fetched, err := m.fetcher.FetchStepLogs(runID, workflow)
+	if err != nil {
+		return nil, fmt.Errorf("fetching the log of run %d: %w", runID, err)
+	}
+
+	m.cache.Set(key, cache.NoStamp, fetched)
+
+	return fetched, nil
 }
