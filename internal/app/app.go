@@ -152,18 +152,15 @@ func (Model) Init() tea.Cmd {
 
 // Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m.modalStack.HasActive() {
-		return m.updateModal(msg)
+	if sized, ok := msg.(tea.WindowSizeMsg); ok {
+		return m.handleWindowSize(sized), nil
 	}
 
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		return m.handleWindowSize(msg), nil
-
-	case tea.KeyPressMsg:
-		return m.handleKeyMsg(msg)
-	}
-
+	// Everything a background operation or a closing modal sends reaches its
+	// own handler before the modal stack sees it. A modal reporting on that
+	// work is usually the active one, so routing by "is a modal open" is what
+	// stopped a chain's status ever updating and dropped a modal's result when
+	// a keystroke raced it.
 	if model, cmd, handled := m.handleModalResultMsg(msg); handled {
 		return model, cmd
 	}
@@ -174,6 +171,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if model, cmd, handled := m.handleLogMsg(msg); handled {
 		return model, cmd
+	}
+
+	if m.modalStack.HasActive() {
+		return m.updateModal(msg)
+	}
+
+	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+		return m.handleKeyMsg(keyMsg)
 	}
 
 	return m, nil

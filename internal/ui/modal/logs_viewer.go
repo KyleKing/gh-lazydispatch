@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	// LogsViewportWidthMargin and logsViewportHeightMargin reserve space around the
-	// viewport for the modal's border, title, and footer chrome.
-	logsViewportWidthMargin  = 4
-	logsViewportHeightMargin = 10
+	// The viewport sits inside the modal's border and padding, then under the
+	// title, filter line, and footer this modal draws itself.
+	logsViewportWidthMargin  = modalChromeHorizontal
+	logsViewportHeightMargin = modalChromeVertical + 6
 
 	// NearBottomThreshold is how many lines from the end still count as "at the bottom"
 	// for auto-scroll purposes.
@@ -438,10 +438,30 @@ func (m *LogsViewerModal) scrollToMatch(matchIdx int) {
 	m.viewport.SetYOffset(centerOffset)
 }
 
+// emptyStateContent explains why no lines are showing. A step whose fetch
+// failed carries its error and no entries, which is otherwise indistinguishable
+// from a run that logged nothing.
+func (m *LogsViewerModal) emptyStateContent() string {
+	var failures []string
+
+	for _, step := range m.runLogs.AllSteps() {
+		if step != nil && step.Error != nil {
+			failures = append(failures, fmt.Sprintf("  %s: %v", step.Workflow, step.Error))
+		}
+	}
+
+	if len(failures) == 0 {
+		return ui.TableDimmedStyle.Render("No logs match the current filter")
+	}
+
+	return ui.ErrorStyle.Render("Could not fetch logs:") + "\n" +
+		ui.TableDimmedStyle.Render(strings.Join(failures, "\n"))
+}
+
 // updateViewportContent refreshes the viewport with current filtered logs.
 func (m *LogsViewerModal) updateViewportContent() {
 	if len(m.filtered.Steps) == 0 {
-		m.viewport.SetContent(ui.TableDimmedStyle.Render("No logs match the current filter"))
+		m.viewport.SetContent(m.emptyStateContent())
 		return
 	}
 

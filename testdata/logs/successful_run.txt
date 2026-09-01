@@ -1,58 +1,55 @@
-##[group]Run actions/checkout@v4
-Syncing repository: owner/repo
-##[group]Getting Git version info
-Working directory is '/home/runner/work/repo/repo'
-/usr/bin/git version
-git version 2.43.0
-Successfully set up Git version: 2.43.0
-##[endgroup]
-##[group]Initializing the repository
-/usr/bin/git init /home/runner/work/repo/repo
-Initialized empty Git repository in /home/runner/work/repo/repo/.git/
-##[endgroup]
-##[group]Fetching the repository
-/usr/bin/git remote add origin https://github.com/owner/repo
-/usr/bin/git fetch --depth=1 origin +refs/heads/main:refs/remotes/origin/main
-From https://github.com/owner/repo
- * branch            main       -> FETCH_HEAD
- * [new branch]      main       -> origin/main
-##[endgroup]
-##[endgroup]
-##[group]Set up Python 3.11
-Successfully set up Python 3.11.7
-##[endgroup]
-##[group]Install dependencies
-##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
-Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.7/x64/lib/python3.11/site-packages (23.3.2)
-Collecting pip
-  Downloading pip-24.0-py3-none-any.whl (2.1 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 50.2 MB/s eta 0:00:00
-Installing collected packages: pip
-  Attempting uninstall: pip
-    Found existing installation: pip 23.3.2
-    Uninstalling pip-23.3.2:
-      Successfully uninstalled pip-23.3.2
-Successfully installed pip-24.0
-##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install pytest pytest-cov
-Collecting pytest
-  Downloading pytest-8.0.0-py3-none-any.whl (333 kB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 333.5/333.5 kB 25.8 MB/s eta 0:00:00
-Successfully installed pytest-8.0.0 pytest-cov-4.1.0
-##[endgroup]
-##[group]Run tests
-##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pytest tests/ --cov=src --cov-report=xml
-============================= test session starts ==============================
-platform linux -- Python 3.11.7, pytest-8.0.0, pluggy-1.4.0
-rootdir: /home/runner/work/repo/repo
-configfile: pyproject.toml
-plugins: cov-4.1.0
-collected 42 items
-
-tests/test_core.py ..................                                    [ 42%]
-tests/test_utils.py ........................                             [100%]
-
----------- coverage: platform linux, python 3.11.7-final-0 -----------
-Coverage XML written to coverage.xml
-
-============================== 42 passed in 2.13s ===============================
-##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:43Z ##[group]Run actions/checkout@v4
+build	Run actions/checkout@v4	2026-09-01T03:17:43.137000Z Syncing repository: owner/repo
+build	Run actions/checkout@v4	2026-09-01T03:17:43.274000Z ##[group]Getting Git version info
+build	Run actions/checkout@v4	2026-09-01T03:17:43.411000Z Working directory is '/home/runner/work/repo/repo'
+build	Run actions/checkout@v4	2026-09-01T03:17:43.548000Z /usr/bin/git version
+build	Run actions/checkout@v4	2026-09-01T03:17:43.685000Z git version 2.43.0
+build	Run actions/checkout@v4	2026-09-01T03:17:43.822000Z Successfully set up Git version: 2.43.0
+build	Run actions/checkout@v4	2026-09-01T03:17:43.959000Z ##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:44.096000Z ##[group]Initializing the repository
+build	Run actions/checkout@v4	2026-09-01T03:17:44.233000Z /usr/bin/git init /home/runner/work/repo/repo
+build	Run actions/checkout@v4	2026-09-01T03:17:44.370000Z Initialized empty Git repository in /home/runner/work/repo/repo/.git/
+build	Run actions/checkout@v4	2026-09-01T03:17:44.507000Z ##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:44.644000Z ##[group]Fetching the repository
+build	Run actions/checkout@v4	2026-09-01T03:17:44.781000Z /usr/bin/git remote add origin https://github.com/owner/repo
+build	Run actions/checkout@v4	2026-09-01T03:17:44.918000Z /usr/bin/git fetch --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+build	Run actions/checkout@v4	2026-09-01T03:17:45.055000Z From https://github.com/owner/repo
+build	Run actions/checkout@v4	2026-09-01T03:17:45.192000Z  * branch            main       -> FETCH_HEAD
+build	Run actions/checkout@v4	2026-09-01T03:17:45.329000Z  * [new branch]      main       -> origin/main
+build	Run actions/checkout@v4	2026-09-01T03:17:45.466000Z ##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:45.603000Z ##[endgroup]
+build	Set up Python 3.11	2026-09-01T03:17:45.740000Z ##[group]Set up Python 3.11
+build	Set up Python 3.11	2026-09-01T03:17:45.877000Z Successfully set up Python 3.11.7
+build	Set up Python 3.11	2026-09-01T03:17:46.014000Z ##[endgroup]
+build	Install dependencies	2026-09-01T03:17:46.151000Z ##[group]Install dependencies
+build	Install dependencies	2026-09-01T03:17:46.288000Z ##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
+build	Install dependencies	2026-09-01T03:17:46.425000Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.7/x64/lib/python3.11/site-packages (23.3.2)
+build	Install dependencies	2026-09-01T03:17:46.562000Z Collecting pip
+build	Install dependencies	2026-09-01T03:17:46.699000Z   Downloading pip-24.0-py3-none-any.whl (2.1 MB)
+build	Install dependencies	2026-09-01T03:17:46.836000Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 50.2 MB/s eta 0:00:00
+build	Install dependencies	2026-09-01T03:17:46.973000Z Installing collected packages: pip
+build	Install dependencies	2026-09-01T03:17:47.110000Z   Attempting uninstall: pip
+build	Install dependencies	2026-09-01T03:17:47.247000Z     Found existing installation: pip 23.3.2
+build	Install dependencies	2026-09-01T03:17:47.384000Z     Uninstalling pip-23.3.2:
+build	Install dependencies	2026-09-01T03:17:47.521000Z       Successfully uninstalled pip-23.3.2
+build	Install dependencies	2026-09-01T03:17:47.658000Z Successfully installed pip-24.0
+build	Install dependencies	2026-09-01T03:17:47.795000Z ##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install pytest pytest-cov
+build	Install dependencies	2026-09-01T03:17:47.932000Z Collecting pytest
+build	Install dependencies	2026-09-01T03:17:48.069000Z   Downloading pytest-8.0.0-py3-none-any.whl (333 kB)
+build	Install dependencies	2026-09-01T03:17:48.206000Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 333.5/333.5 kB 25.8 MB/s eta 0:00:00
+build	Install dependencies	2026-09-01T03:17:48.343000Z Successfully installed pytest-8.0.0 pytest-cov-4.1.0
+build	Install dependencies	2026-09-01T03:17:48.480000Z ##[endgroup]
+build	Run tests	2026-09-01T03:17:48.617000Z ##[group]Run tests
+build	Run tests	2026-09-01T03:17:48.754000Z ##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pytest tests/ --cov=src --cov-report=xml
+build	Run tests	2026-09-01T03:17:48.891000Z ============================= test session starts ==============================
+build	Run tests	2026-09-01T03:17:49.028000Z platform linux -- Python 3.11.7, pytest-8.0.0, pluggy-1.4.0
+build	Run tests	2026-09-01T03:17:49.165000Z rootdir: /home/runner/work/repo/repo
+build	Run tests	2026-09-01T03:17:49.302000Z configfile: pyproject.toml
+build	Run tests	2026-09-01T03:17:49.439000Z plugins: cov-4.1.0
+build	Run tests	2026-09-01T03:17:49.576000Z collected 42 items
+build	Run tests	2026-09-01T03:17:49.713000Z tests/test_core.py ..................                                    [ 42%]
+build	Run tests	2026-09-01T03:17:49.850000Z tests/test_utils.py ........................                             [100%]
+build	Run tests	2026-09-01T03:17:49.987000Z ---------- coverage: platform linux, python 3.11.7-final-0 -----------
+build	Run tests	2026-09-01T03:17:50.124000Z Coverage XML written to coverage.xml
+build	Run tests	2026-09-01T03:17:50.261000Z ============================== 42 passed in 2.13s ===============================
+build	Run tests	2026-09-01T03:17:50.398000Z ##[endgroup]

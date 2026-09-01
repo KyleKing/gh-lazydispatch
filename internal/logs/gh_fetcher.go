@@ -92,7 +92,19 @@ func (f *GHFetcher) fetchJobLogs(runID, jobID int64) (string, error) {
 	return stdout, nil
 }
 
-// parseJobLogsIntoSteps parses raw job logs into separate step logs.
+// logFieldCount is how many tab-separated fields a `gh run view --log` line
+// carries: the job name, the step name, and the timestamped message.
+const logFieldCount = 3
+
+// GitHub opens the first line of a downloaded log with a byte order mark.
+const byteOrderMark = "\ufeff"
+
+// parseJobLogsIntoSteps groups a job's log lines by the step each belongs to.
+//
+// `gh run view --log` prefixes every line with "job\tstep\ttimestamp message",
+// which names the step directly. Splitting on ##[group] markers instead would
+// find none, because those sit after the prefix rather than at the start of a
+// line.
 func (*GHFetcher) parseJobLogsIntoSteps(
 	job github.Job,
 	rawLogs string,
@@ -100,72 +112,98 @@ func (*GHFetcher) parseJobLogsIntoSteps(
 	runID int64,
 	startIndex int,
 ) []*StepLogs {
-	// GitHub logs format:
-	// ##[group]Run actions/checkout@v4
-	// ... log lines ...
-	// ##[endgroup]
-	//
-	// ##[group]Install dependencies
-	// ... log lines ...
-	// ##[endgroup]
-	var stepLogs []*StepLogs
-
-	scanner := bufio.NewScanner(strings.NewReader(rawLogs))
-
-	currentStepIdx := -1
-
-	var currentLines []string
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		// Detect step boundaries
-		switch {
-		case strings.HasPrefix(line, "##[group]"):
-			// Save previous step if any
-			if currentStepIdx >= 0 && currentStepIdx < len(job.Steps) {
-				step := job.Steps[currentStepIdx]
-				stepLogs = append(stepLogs, &StepLogs{
-					StepIndex:  startIndex + currentStepIdx,
-					Workflow:   workflow,
-					RunID:      runID,
-					JobName:    job.Name,
-					StepName:   step.Name,
-					Status:     step.Status,
-					Conclusion: step.Conclusion,
-					Entries:    ParseLogOutput(strings.Join(currentLines, "\n"), step.Name),
-					FetchedAt:  time.Now(),
-				})
-			}
-
-			// Start new step
-			currentStepIdx++
-			currentLines = make([]string, 0, 1)
-			currentLines = append(currentLines, line)
-		default:
-			// Regular log line, including "##[endgroup]" markers
-			currentLines = append(currentLines, line)
-		}
+	steps := make(map[string]github.Step, len(job.Steps))
+	for _, step := range job.Steps {
+		steps[step.Name] = step
 	}
 
-	// Save last step
-	if currentStepIdx >= 0 && currentStepIdx < len(job.Steps) {
-		step := job.Steps[currentStepIdx]
+	order, byStep := groupLogLinesByStep(steps, rawLogs)
+	if len(order) == 0 {
+		return nil
+	}
+
+	stepLogs := make([]*StepLogs, 0, len(order))
+
+	for i, name := range order {
+		step := steps[name]
+
 		stepLogs = append(stepLogs, &StepLogs{
-			StepIndex:  startIndex + currentStepIdx,
+			StepIndex:  startIndex + i,
 			Workflow:   workflow,
 			RunID:      runID,
 			JobName:    job.Name,
-			StepName:   step.Name,
+			StepName:   name,
 			Status:     step.Status,
 			Conclusion: step.Conclusion,
-			Entries:    ParseLogOutput(strings.Join(currentLines, "\n"), step.Name),
+			Entries:    ParseLogOutput(strings.Join(byStep[name], "\n"), name),
 			FetchedAt:  time.Now(),
 		})
 	}
 
 	return stepLogs
 }
+
+// groupLogLinesByStep returns the step names in the order they first appear and
+// the message lines belonging to each.
+//
+// A line opens a step only when its second field names one the job declares.
+// Requiring that, rather than trusting any three tab-separated fields, is what
+// stops a log message carrying tabs of its own (a Go test summary, a formatted
+// table) from inventing a step. A line that opens nothing belongs to the step
+// already open.
+func groupLogLinesByStep(steps map[string]github.Step, rawLogs string) ([]string, map[string][]string) {
+	var order []string
+
+	byStep := make(map[string][]string)
+	current := ""
+
+	scanner := bufio.NewScanner(strings.NewReader(rawLogs))
+	scanner.Buffer(make([]byte, 0, logScanBuffer), logScanBuffer)
+
+	for scanner.Scan() {
+		line := strings.TrimPrefix(scanner.Text(), byteOrderMark)
+
+		name, message, ok := splitPrefix(line, steps)
+		if !ok {
+			if current != "" {
+				byStep[current] = append(byStep[current], line)
+			}
+
+			continue
+		}
+
+		if _, seen := byStep[name]; !seen {
+			order = append(order, name)
+		}
+
+		current = name
+		byStep[name] = append(byStep[name], message)
+	}
+
+	return order, byStep
+}
+
+// splitPrefix reads one "job\tstep\ttimestamp message" line, returning the
+// step it belongs to and the message. It reports false for a line that names no
+// declared step.
+func splitPrefix(line string, steps map[string]github.Step) (string, string, bool) {
+	fields := strings.SplitN(line, "\t", logFieldCount)
+	if len(fields) < logFieldCount {
+		return "", "", false
+	}
+
+	name := fields[1]
+	if _, declared := steps[name]; !declared {
+		return "", "", false
+	}
+
+	return name, strings.TrimPrefix(fields[2], byteOrderMark), true
+}
+
+// logScanBuffer bounds a single log line. A stack trace or a base64 payload on
+// one line runs well past bufio's 64KB default, and a line over the limit would
+// silently end the scan.
+const logScanBuffer = 1024 * 1024
 
 // FetchWorkflowLogs fetches all logs for a workflow run (all jobs).
 func (f *GHFetcher) FetchWorkflowLogs(runID int64) (string, error) {

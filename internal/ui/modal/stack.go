@@ -77,6 +77,19 @@ func (s *Stack) Pop() Context {
 	return ctx
 }
 
+// Find returns the first context on the stack that satisfies match, searching
+// from the top down. A long-running operation uses it to reach the modal
+// reporting on it, which need not be the modal the user is looking at.
+func (s *Stack) Find(match func(Context) bool) Context {
+	for i := len(s.contexts) - 1; i >= 0; i-- {
+		if match(s.contexts[i]) {
+			return s.contexts[i]
+		}
+	}
+
+	return nil
+}
+
 // Current returns the top context without removing it.
 func (s *Stack) Current() Context {
 	if len(s.contexts) == 0 {

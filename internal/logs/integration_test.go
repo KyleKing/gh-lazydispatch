@@ -788,7 +788,7 @@ func TestIntegration_LargeLogFile(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Generate 10k line log using helper
-	largeLog := testutil.GenerateLargeLogFixture(10000)
+	largeLog := testutil.AsGHRunViewLog("large-job", "Run actions/checkout@v4", testutil.GenerateLargeLogFixture(10000))
 	mockExec.AddGHRunView(runID, jobID, largeLog)
 
 	// Setup jobs response
@@ -862,7 +862,7 @@ func TestIntegration_UnicodeCharacters(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Use unicode fixture
-	unicodeLog := testutil.GenerateUnicodeLog()
+	unicodeLog := testutil.AsGHRunViewLog("unicode-job", "Build", testutil.GenerateUnicodeLog())
 	mockExec.AddGHRunView(runID, jobID, unicodeLog)
 
 	// Setup jobs response
@@ -929,7 +929,7 @@ func TestIntegration_ANSIColorCodes(t *testing.T) {
 
 	mockExec := exec.NewMockExecutor()
 
-	ansiLog := testutil.GenerateANSILog()
+	ansiLog := testutil.AsGHRunViewLog("ansi-job", "Test", testutil.GenerateANSILog())
 	mockExec.AddGHRunView(runID, jobID, ansiLog)
 
 	// Setup jobs response
@@ -973,14 +973,13 @@ func TestIntegration_ANSIColorCodes(t *testing.T) {
 		}
 	}
 
-	// Log whether ANSI codes were preserved or stripped
+	// GitHub colors its own log lines. Parsing strips the escapes, because a
+	// styled terminal line and a fenced markdown export both render them as
+	// visible garbage.
 	if foundANSI {
-		t.Logf("ANSI color codes preserved in logs")
-	} else {
-		t.Logf("ANSI color codes stripped from logs")
+		t.Error("ANSI escapes survived parsing")
 	}
 
-	// Verify content is readable regardless of ANSI handling
 	totalEntries := 0
 	for _, step := range stepLogs {
 		totalEntries += len(step.Entries)
@@ -1046,7 +1045,7 @@ func TestIntegration_VeryLargeLogFile(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Generate 50k line log
-	largeLog := testutil.GenerateLargeLogFixture(50000)
+	largeLog := testutil.AsGHRunViewLog("very-large-job", "Run tests", testutil.GenerateLargeLogFixture(50000))
 	mockExec.AddGHRunView(runID, jobID, largeLog)
 
 	// Setup jobs response
@@ -1115,7 +1114,7 @@ func TestIntegration_MixedLogContent(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Generate mixed content log
-	mixedLog := testutil.GenerateMixedLog(1000)
+	mixedLog := testutil.AsGHRunViewLog("mixed-job", "Mixed test", testutil.GenerateMixedLog(1000))
 	mockExec.AddGHRunView(runID, jobID, mixedLog)
 
 	// Setup jobs response

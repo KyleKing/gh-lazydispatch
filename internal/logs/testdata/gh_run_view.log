@@ -1,0 +1,20 @@
+test	Set up job	﻿2026-09-01T03:17:43.6026987Z Current runner version: '2.337.0'
+test	Set up job	2026-09-01T03:17:43.6052609Z ##[group]Runner Image Provisioner
+test	Set up job	2026-09-01T03:17:43.6053508Z Hosted Compute Agent
+test	Set up job	2026-09-01T03:17:43.6054119Z Version: 20260819.586
+test	Set up job	2026-09-01T03:17:43.6054819Z Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
+test	Set up job	2026-09-01T03:17:43.6055601Z Build Date: 2026-08-18T23:20:18Z
+test	Set up job	2026-09-01T03:17:43.6056272Z Worker ID: {34b6544f-204b-41dd-bb5e-d2055f7893b9}
+test	Set up job	2026-09-01T03:17:43.6057102Z Azure Region: westus
+test	Set up job	2026-09-01T03:17:43.6057663Z ##[endgroup]
+test	Set up job	2026-09-01T03:17:43.6059743Z ##[group]Operating System
+test	Set up job	2026-09-01T03:17:43.6060431Z Ubuntu
+test	Set up job	2026-09-01T03:17:43.6060939Z 24.04.4
+test	Set up job	2026-09-01T03:17:43.6061522Z LTS
+test	Set up job	2026-09-01T03:17:43.6062036Z ##[endgroup]
+test	Set up job	2026-09-01T03:17:43.6062619Z ##[group]Runner Image
+test	Set up job	2026-09-01T03:17:43.6063268Z Image: ubuntu-24.04
+test	Set up job	2026-09-01T03:17:43.6063860Z Version: 20260823.283.1
+test	Set up job	2026-09-01T03:17:43.6065039Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260823.283/images/ubuntu/Ubuntu2404-Readme.md
+test	Set up job	2026-09-01T03:17:43.6066907Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260823.283
+test	Set up job	2026-09-01T03:17:43.6067981Z ##[endgroup]

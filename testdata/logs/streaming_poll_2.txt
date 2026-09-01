@@ -1,23 +1,23 @@
-##[group]Run actions/checkout@v4
-Syncing repository: owner/repo
-##[group]Getting Git version info
-Working directory is '/home/runner/work/repo/repo'
-/usr/bin/git version
-git version 2.43.0
-##[endgroup]
-##[endgroup]
-##[group]Set up Go 1.21
-Downloading Go 1.21.5
-Fetching from https://go.dev/dl/
-Download progress: 25%
-Download progress: 50%
-Download progress: 75%
-Download progress: 100%
-Extracting Go archive
-Successfully installed Go 1.21.5
-##[endgroup]
-##[group]Build application
-##[command]/usr/local/go/bin/go build -v -o app ./cmd/app
-Building main package
-Compiling dependencies
-##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:43Z ##[group]Run actions/checkout@v4
+build	Run actions/checkout@v4	2026-09-01T03:17:43.137000Z Syncing repository: owner/repo
+build	Run actions/checkout@v4	2026-09-01T03:17:43.274000Z ##[group]Getting Git version info
+build	Run actions/checkout@v4	2026-09-01T03:17:43.411000Z Working directory is '/home/runner/work/repo/repo'
+build	Run actions/checkout@v4	2026-09-01T03:17:43.548000Z /usr/bin/git version
+build	Run actions/checkout@v4	2026-09-01T03:17:43.685000Z git version 2.43.0
+build	Run actions/checkout@v4	2026-09-01T03:17:43.822000Z ##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:43.959000Z ##[endgroup]
+build	Set up Go 1.21	2026-09-01T03:17:44.096000Z ##[group]Set up Go 1.21
+build	Set up Go 1.21	2026-09-01T03:17:44.233000Z Downloading Go 1.21.5
+build	Set up Go 1.21	2026-09-01T03:17:44.370000Z Fetching from https://go.dev/dl/
+build	Set up Go 1.21	2026-09-01T03:17:44.507000Z Download progress: 25%
+build	Set up Go 1.21	2026-09-01T03:17:44.644000Z Download progress: 50%
+build	Set up Go 1.21	2026-09-01T03:17:44.781000Z Download progress: 75%
+build	Set up Go 1.21	2026-09-01T03:17:44.918000Z Download progress: 100%
+build	Set up Go 1.21	2026-09-01T03:17:45.055000Z Extracting Go archive
+build	Set up Go 1.21	2026-09-01T03:17:45.192000Z Successfully installed Go 1.21.5
+build	Set up Go 1.21	2026-09-01T03:17:45.329000Z ##[endgroup]
+build	Build application	2026-09-01T03:17:45.466000Z ##[group]Build application
+build	Build application	2026-09-01T03:17:45.603000Z ##[command]/usr/local/go/bin/go build -v -o app ./cmd/app
+build	Build application	2026-09-01T03:17:45.740000Z Building main package
+build	Build application	2026-09-01T03:17:45.877000Z Compiling dependencies
+build	Build application	2026-09-01T03:17:46.014000Z ##[endgroup]

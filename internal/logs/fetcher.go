@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/x/ansi"
+
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
@@ -129,17 +131,49 @@ func ParseLogOutput(rawLogs, stepName string) []LogEntry {
 			continue
 		}
 
-		level := detectLogLevel(line, errorPatterns, warningPatterns)
+		stamp, content := splitTimestamp(line)
+		content = stripEscapes(content)
+		level := detectLogLevel(content, errorPatterns, warningPatterns)
 
 		entries = append(entries, LogEntry{
-			Timestamp: time.Now(), // Would extract from log line if available
-			Content:   line,
+			Timestamp: stamp,
+			Content:   content,
 			Level:     level,
 			StepName:  stepName,
 		})
 	}
 
 	return entries
+}
+
+// caretEscape matches an SGR sequence in the caret notation GitHub stores its
+// logs in: a literal "^[" rather than an ESC byte, so ansi.Strip cannot see it.
+var caretEscape = regexp.MustCompile(`\^\[\[[0-9;]*[A-Za-z]`) //nolint:gochecknoglobals // compiled once
+
+// stripEscapes removes the color GitHub writes into its own log lines. It is
+// meaningless once the viewer styles the line or a markdown export fences it,
+// and it widens every line it appears on. Both spellings occur: a real escape
+// in streamed output, caret notation in a downloaded log.
+func stripEscapes(content string) string {
+	return caretEscape.ReplaceAllString(ansi.Strip(content), "")
+}
+
+// splitTimestamp lifts the RFC3339 stamp GitHub puts at the head of every log
+// line into the entry's own field, so the viewer spends its width on the
+// message and a filter never matches a digit in a timestamp. A line without one
+// is returned whole, stamped with when it was read.
+func splitTimestamp(line string) (time.Time, string) {
+	stamp, rest, found := strings.Cut(line, " ")
+	if !found {
+		return time.Now(), line
+	}
+
+	parsed, err := time.Parse(time.RFC3339Nano, stamp)
+	if err != nil {
+		return time.Now(), line
+	}
+
+	return parsed, rest
 }
 
 // detectLogLevel determines the log level based on content.

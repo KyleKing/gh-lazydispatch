@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 const endGroupMarker = "##[endgroup]"
@@ -211,6 +212,26 @@ func GenerateMixedLog(lines int) string {
 	for i := range lines {
 		pattern := patterns[i%len(patterns)]
 		fmt.Fprintf(&sb, "%s %d\n", pattern, i)
+	}
+
+	return sb.String()
+}
+
+// logLineInterval spaces a fixture's timestamps so no two lines share one.
+const logLineInterval = 137 * time.Millisecond
+
+// AsGHRunViewLog prefixes each line of raw with the job name, step name, and a
+// timestamp, the shape `gh run view --log` emits. A fixture without that prefix
+// exercises no step-splitting at all, which is how a parser that never worked
+// against real output stayed green.
+func AsGHRunViewLog(job, step, raw string) string {
+	var sb strings.Builder
+
+	stamp := time.Date(2026, time.September, 1, 3, 17, 43, 0, time.UTC)
+
+	for _, line := range strings.Split(strings.TrimSuffix(raw, "\n"), "\n") {
+		fmt.Fprintf(&sb, "%s\t%s\t%s %s\n", job, step, stamp.Format(time.RFC3339Nano), line)
+		stamp = stamp.Add(logLineInterval)
 	}
 
 	return sb.String()

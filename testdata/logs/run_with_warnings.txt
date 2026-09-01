@@ -1,33 +1,30 @@
-##[group]Run actions/checkout@v4
-Syncing repository: owner/repo
-##[endgroup]
-##[group]Set up Python 3.11
-Successfully set up Python 3.11.7
-##[endgroup]
-##[group]Install dependencies
-##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
-WARNING: pip is being invoked by an old script wrapper. This will fail in a future version of pip.
-Collecting pip
-  Downloading pip-24.0-py3-none-any.whl (2.1 MB)
-Successfully installed pip-24.0
-WARNING: You are using pip version 23.3.2; however, version 24.0 is available.
-WARNING: You should consider upgrading via the '/usr/bin/python3 -m pip install --upgrade pip' command.
-##[endgroup]
-##[group]Run linter
-##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pylint src/
-************* Module src.core
-src/core.py:42:0: W0612: Unused variable 'temp' (unused-variable)
-src/core.py:88:0: W0102: Dangerous default value [] as argument (dangerous-default-value)
-
------------------------------------
-Your code has been rated at 8.5/10
-##[endgroup]
-##[group]Run tests
-============================= test session starts ==============================
-collected 42 items
-
-tests/test_core.py ..................                                    [ 42%]
-tests/test_utils.py ........................                             [100%]
-
-============================== 42 passed in 2.13s ===============================
-##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:43Z ##[group]Run actions/checkout@v4
+build	Run actions/checkout@v4	2026-09-01T03:17:43.137000Z Syncing repository: owner/repo
+build	Run actions/checkout@v4	2026-09-01T03:17:43.274000Z ##[endgroup]
+build	Set up Python 3.11	2026-09-01T03:17:43.411000Z ##[group]Set up Python 3.11
+build	Set up Python 3.11	2026-09-01T03:17:43.548000Z Successfully set up Python 3.11.7
+build	Set up Python 3.11	2026-09-01T03:17:43.685000Z ##[endgroup]
+build	Install dependencies	2026-09-01T03:17:43.822000Z ##[group]Install dependencies
+build	Install dependencies	2026-09-01T03:17:43.959000Z ##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
+build	Install dependencies	2026-09-01T03:17:44.096000Z WARNING: pip is being invoked by an old script wrapper. This will fail in a future version of pip.
+build	Install dependencies	2026-09-01T03:17:44.233000Z Collecting pip
+build	Install dependencies	2026-09-01T03:17:44.370000Z   Downloading pip-24.0-py3-none-any.whl (2.1 MB)
+build	Install dependencies	2026-09-01T03:17:44.507000Z Successfully installed pip-24.0
+build	Install dependencies	2026-09-01T03:17:44.644000Z WARNING: You are using pip version 23.3.2; however, version 24.0 is available.
+build	Install dependencies	2026-09-01T03:17:44.781000Z WARNING: You should consider upgrading via the '/usr/bin/python3 -m pip install --upgrade pip' command.
+build	Install dependencies	2026-09-01T03:17:44.918000Z ##[endgroup]
+build	Run linter	2026-09-01T03:17:45.055000Z ##[group]Run linter
+build	Run linter	2026-09-01T03:17:45.192000Z ##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pylint src/
+build	Run linter	2026-09-01T03:17:45.329000Z ************* Module src.core
+build	Run linter	2026-09-01T03:17:45.466000Z src/core.py:42:0: W0612: Unused variable 'temp' (unused-variable)
+build	Run linter	2026-09-01T03:17:45.603000Z src/core.py:88:0: W0102: Dangerous default value [] as argument (dangerous-default-value)
+build	Run linter	2026-09-01T03:17:45.740000Z -----------------------------------
+build	Run linter	2026-09-01T03:17:45.877000Z Your code has been rated at 8.5/10
+build	Run linter	2026-09-01T03:17:46.014000Z ##[endgroup]
+build	Run tests	2026-09-01T03:17:46.151000Z ##[group]Run tests
+build	Run tests	2026-09-01T03:17:46.288000Z ============================= test session starts ==============================
+build	Run tests	2026-09-01T03:17:46.425000Z collected 42 items
+build	Run tests	2026-09-01T03:17:46.562000Z tests/test_core.py ..................                                    [ 42%]
+build	Run tests	2026-09-01T03:17:46.699000Z tests/test_utils.py ........................                             [100%]
+build	Run tests	2026-09-01T03:17:46.836000Z ============================== 42 passed in 2.13s ===============================
+build	Run tests	2026-09-01T03:17:46.973000Z ##[endgroup]

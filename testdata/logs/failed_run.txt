@@ -1,24 +1,24 @@
-##[group]Run actions/checkout@v4
-Syncing repository: owner/repo
-##[group]Getting Git version info
-Working directory is '/home/runner/work/repo/repo'
-/usr/bin/git version
-git version 2.43.0
-Successfully set up Git version: 2.43.0
-##[endgroup]
-##[endgroup]
-##[group]Set up Python 3.11
-Successfully set up Python 3.11.7
-##[endgroup]
-##[group]Install dependencies
-##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
-Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.7/x64/lib/python3.11/site-packages (23.3.2)
-Successfully installed pip-24.0
-##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install pytest pytest-cov
-ERROR: Could not find a version that satisfies the requirement invalid-package (from versions: none)
-ERROR: No matching distribution found for invalid-package
-Error: Process completed with exit code 1.
-##[endgroup]
-##[group]Run tests
-##[error]The process '/opt/hostedtoolcache/Python/3.11.7/x64/bin/python' failed with exit code 1
-##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:43Z ##[group]Run actions/checkout@v4
+build	Run actions/checkout@v4	2026-09-01T03:17:43.137000Z Syncing repository: owner/repo
+build	Run actions/checkout@v4	2026-09-01T03:17:43.274000Z ##[group]Getting Git version info
+build	Run actions/checkout@v4	2026-09-01T03:17:43.411000Z Working directory is '/home/runner/work/repo/repo'
+build	Run actions/checkout@v4	2026-09-01T03:17:43.548000Z /usr/bin/git version
+build	Run actions/checkout@v4	2026-09-01T03:17:43.685000Z git version 2.43.0
+build	Run actions/checkout@v4	2026-09-01T03:17:43.822000Z Successfully set up Git version: 2.43.0
+build	Run actions/checkout@v4	2026-09-01T03:17:43.959000Z ##[endgroup]
+build	Run actions/checkout@v4	2026-09-01T03:17:44.096000Z ##[endgroup]
+build	Set up Python 3.11	2026-09-01T03:17:44.233000Z ##[group]Set up Python 3.11
+build	Set up Python 3.11	2026-09-01T03:17:44.370000Z Successfully set up Python 3.11.7
+build	Set up Python 3.11	2026-09-01T03:17:44.507000Z ##[endgroup]
+build	Install dependencies	2026-09-01T03:17:44.644000Z ##[group]Install dependencies
+build	Install dependencies	2026-09-01T03:17:44.781000Z ##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install --upgrade pip
+build	Install dependencies	2026-09-01T03:17:44.918000Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.7/x64/lib/python3.11/site-packages (23.3.2)
+build	Install dependencies	2026-09-01T03:17:45.055000Z Successfully installed pip-24.0
+build	Install dependencies	2026-09-01T03:17:45.192000Z ##[command]/opt/hostedtoolcache/Python/3.11.7/x64/bin/python -m pip install pytest pytest-cov
+build	Install dependencies	2026-09-01T03:17:45.329000Z ERROR: Could not find a version that satisfies the requirement invalid-package (from versions: none)
+build	Install dependencies	2026-09-01T03:17:45.466000Z ERROR: No matching distribution found for invalid-package
+build	Install dependencies	2026-09-01T03:17:45.603000Z Error: Process completed with exit code 1.
+build	Install dependencies	2026-09-01T03:17:45.740000Z ##[endgroup]
+build	Run tests	2026-09-01T03:17:45.877000Z ##[group]Run tests
+build	Run tests	2026-09-01T03:17:46.014000Z ##[error]The process '/opt/hostedtoolcache/Python/3.11.7/x64/bin/python' failed with exit code 1
+build	Run tests	2026-09-01T03:17:46.151000Z ##[endgroup]

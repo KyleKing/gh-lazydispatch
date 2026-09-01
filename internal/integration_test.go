@@ -2,6 +2,8 @@ package internal_test
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -248,16 +250,11 @@ func setupLogFetchingMocks(t *testing.T, m *exec.MockExecutor) {
 	m.AddCommand("gh",
 		[]string{"api", "repos/owner/repo/actions/runs/1001/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
 
-	logOutput := `##[group]Checkout
-Cloning repository...
-##[endgroup]
-##[group]Build
-Building project...
-##[endgroup]
-##[group]Test
-Running tests...
-All tests passed
-##[endgroup]`
+	logOutput := ghRunViewLog("build",
+		ghStep{"Checkout", []string{"Cloning repository..."}},
+		ghStep{"Build", []string{"Building project..."}},
+		ghStep{"Test", []string{"Running tests...", "All tests passed"}},
+	)
 	m.AddGHRunView(1001, 2001, logOutput)
 }
 
@@ -276,13 +273,10 @@ func setupFailedRunMocks(t *testing.T, m *exec.MockExecutor) {
 	m.AddCommand("gh",
 		[]string{"api", "repos/owner/repo/actions/runs/1002/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
 
-	logOutput := `##[group]Checkout
-Cloning repository...
-##[endgroup]
-##[group]Build
-ERROR: Build failed
-##[error]Compilation error in main.go
-##[endgroup]`
+	logOutput := ghRunViewLog("build",
+		ghStep{"Checkout", []string{"Cloning repository..."}},
+		ghStep{"Build", []string{"ERROR: Build failed", "##[error]Compilation error in main.go"}},
+	)
 	m.AddGHRunView(1002, 2002, logOutput)
 }
 
@@ -380,13 +374,10 @@ func setupChainWithLogViewingMocks(t *testing.T, mockExec *exec.MockExecutor) *t
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/5001/jobs"},
 		testutil.MustMarshalJSON(t, jobsRespCI), "", nil)
 
-	ciLogs := `##[group]Checkout
-Checking out code...
-##[endgroup]
-##[group]Run tests
-Running test suite...
-All tests passed (42 tests)
-##[endgroup]`
+	ciLogs := ghRunViewLog("test",
+		ghStep{"Checkout", []string{"Checking out code..."}},
+		ghStep{"Run tests", []string{"Running test suite...", "All tests passed (42 tests)"}},
+	)
 	mockExec.AddGHRunView(5001, 6001, ciLogs)
 
 	jobsRespDeploy := github.JobsResponse{
@@ -404,13 +395,10 @@ All tests passed (42 tests)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/5002/jobs"},
 		testutil.MustMarshalJSON(t, jobsRespDeploy), "", nil)
 
-	deployLogs := `##[group]Checkout
-Checking out code...
-##[endgroup]
-##[group]Deploy to production
-Deploying application to production...
-Deployment successful!
-##[endgroup]`
+	deployLogs := ghRunViewLog("deploy",
+		ghStep{"Checkout", []string{"Checking out code..."}},
+		ghStep{"Deploy to production", []string{"Deploying application to production...", "Deployment successful!"}},
+	)
 	mockExec.AddGHRunView(5002, 6002, deployLogs)
 
 	client := testutil.NewMockGitHubClient().
@@ -569,10 +557,9 @@ func setupChainWithErrorLogsMocks(t *testing.T, mockExec *exec.MockExecutor) *te
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/7001/jobs"},
 		testutil.MustMarshalJSON(t, jobsRespCI), "", nil)
 
-	ciLogs := `##[group]Run tests
-Running tests...
-All tests passed
-##[endgroup]`
+	ciLogs := ghRunViewLog("test",
+		ghStep{"Run tests", []string{"Running tests...", "All tests passed"}},
+	)
 	mockExec.AddGHRunView(7001, 8001, ciLogs)
 
 	// Step 2: deploy.yml succeeds but has warnings/errors in logs (runID 7002)
@@ -590,16 +577,16 @@ All tests passed
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/7002/jobs"},
 		testutil.MustMarshalJSON(t, jobsRespDeploy), "", nil)
 
-	deployLogs := `##[group]Checkout
-Checking out code...
-##[endgroup]
-##[group]Deploy
-Deploying to production...
-##[warning]Deprecation notice: API v1 will be sunset in 6 months
-##[error]Non-critical error: Cache miss for dependency X
-Using fallback configuration
-Deployment successful despite warnings
-##[endgroup]`
+	deployLogs := ghRunViewLog("deploy",
+		ghStep{"Checkout", []string{"Checking out code..."}},
+		ghStep{"Deploy", []string{
+			"Deploying to production...",
+			"##[warning]Deprecation notice: API v1 will be sunset in 6 months",
+			"##[error]Non-critical error: Cache miss for dependency X",
+			"Using fallback configuration",
+			"Deployment successful despite warnings",
+		}},
+	)
 	mockExec.AddGHRunView(7002, 8002, deployLogs)
 
 	client := testutil.NewMockGitHubClient().
@@ -677,4 +664,29 @@ func checkDeployStepWarningsAndErrors(t *testing.T, deployStepLogs []*logs.StepL
 	if !counts.foundCacheMiss {
 		t.Error("expected to find cache miss error in logs")
 	}
+}
+
+// ghStep is one step of a fabricated `gh run view --log` transcript.
+type ghStep struct {
+	name  string
+	lines []string
+}
+
+// ghRunViewLog renders steps the way `gh run view --log` does: every line
+// prefixed with the job name, the step name, and a timestamp, all tab
+// separated. Fixtures written as bare ##[group] blocks do not exercise the
+// parser, because gh never emits that shape.
+func ghRunViewLog(job string, steps ...ghStep) string {
+	var b strings.Builder
+
+	stamp := time.Date(2026, time.September, 1, 3, 17, 43, 0, time.UTC)
+
+	for _, step := range steps {
+		for _, line := range step.lines {
+			fmt.Fprintf(&b, "%s\t%s\t%s %s\n", job, step.name, stamp.Format(time.RFC3339Nano), line)
+			stamp = stamp.Add(time.Second)
+		}
+	}
+
+	return b.String()
 }

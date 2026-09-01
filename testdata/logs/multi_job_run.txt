@@ -1,40 +1,40 @@
-##[group]Run actions/checkout@v4
-Syncing repository: owner/repo
-##[group]Getting Git version info
-Working directory is '/home/runner/work/repo/repo'
-/usr/bin/git version
-git version 2.43.0
-##[endgroup]
-##[endgroup]
-##[group]Set up Go 1.21
-##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go version
-go version go1.21.6 linux/amd64
-Successfully set up Go 1.21.6
-##[endgroup]
-##[group]Build application
-##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go build -v ./...
-github.com/owner/repo/internal/config
-github.com/owner/repo/internal/exec
-github.com/owner/repo/internal/github
-github.com/owner/repo/internal/runner
-github.com/owner/repo/cmd/app
-Build completed successfully
-##[endgroup]
-##[group]Run tests
-##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go test -v -race -coverprofile=coverage.out ./...
-=== RUN   TestNewClient
---- PASS: TestNewClient (0.00s)
-=== RUN   TestClient_GetWorkflowRun
---- PASS: TestClient_GetWorkflowRun (0.01s)
-=== RUN   TestMockExecutor
---- PASS: TestMockExecutor (0.00s)
-=== RUN   TestChainExecutor
---- PASS: TestChainExecutor (0.05s)
-PASS
-coverage: 78.5% of statements
-ok  	github.com/owner/repo/internal	1.234s
-##[endgroup]
-##[group]Upload coverage
-Uploading coverage report to Codecov
-Coverage report uploaded successfully
-##[endgroup]
+test	Run actions/checkout@v4	2026-09-01T03:17:43Z ##[group]Run actions/checkout@v4
+test	Run actions/checkout@v4	2026-09-01T03:17:43.137000Z Syncing repository: owner/repo
+test	Run actions/checkout@v4	2026-09-01T03:17:43.274000Z ##[group]Getting Git version info
+test	Run actions/checkout@v4	2026-09-01T03:17:43.411000Z Working directory is '/home/runner/work/repo/repo'
+test	Run actions/checkout@v4	2026-09-01T03:17:43.548000Z /usr/bin/git version
+test	Run actions/checkout@v4	2026-09-01T03:17:43.685000Z git version 2.43.0
+test	Run actions/checkout@v4	2026-09-01T03:17:43.822000Z ##[endgroup]
+test	Run actions/checkout@v4	2026-09-01T03:17:43.959000Z ##[endgroup]
+test	Set up Go 1.21	2026-09-01T03:17:44.096000Z ##[group]Set up Go 1.21
+test	Set up Go 1.21	2026-09-01T03:17:44.233000Z ##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go version
+test	Set up Go 1.21	2026-09-01T03:17:44.370000Z go version go1.21.6 linux/amd64
+test	Set up Go 1.21	2026-09-01T03:17:44.507000Z Successfully set up Go 1.21.6
+test	Set up Go 1.21	2026-09-01T03:17:44.644000Z ##[endgroup]
+test	Build application	2026-09-01T03:17:44.781000Z ##[group]Build application
+test	Build application	2026-09-01T03:17:44.918000Z ##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go build -v ./...
+test	Build application	2026-09-01T03:17:45.055000Z github.com/owner/repo/internal/config
+test	Build application	2026-09-01T03:17:45.192000Z github.com/owner/repo/internal/exec
+test	Build application	2026-09-01T03:17:45.329000Z github.com/owner/repo/internal/github
+test	Build application	2026-09-01T03:17:45.466000Z github.com/owner/repo/internal/runner
+test	Build application	2026-09-01T03:17:45.603000Z github.com/owner/repo/cmd/app
+test	Build application	2026-09-01T03:17:45.740000Z Build completed successfully
+test	Build application	2026-09-01T03:17:45.877000Z ##[endgroup]
+test	Run tests	2026-09-01T03:17:46.014000Z ##[group]Run tests
+test	Run tests	2026-09-01T03:17:46.151000Z ##[command]/opt/hostedtoolcache/go/1.21.6/x64/bin/go test -v -race -coverprofile=coverage.out ./...
+test	Run tests	2026-09-01T03:17:46.288000Z === RUN   TestNewClient
+test	Run tests	2026-09-01T03:17:46.425000Z --- PASS: TestNewClient (0.00s)
+test	Run tests	2026-09-01T03:17:46.562000Z === RUN   TestClient_GetWorkflowRun
+test	Run tests	2026-09-01T03:17:46.699000Z --- PASS: TestClient_GetWorkflowRun (0.01s)
+test	Run tests	2026-09-01T03:17:46.836000Z === RUN   TestMockExecutor
+test	Run tests	2026-09-01T03:17:46.973000Z --- PASS: TestMockExecutor (0.00s)
+test	Run tests	2026-09-01T03:17:47.110000Z === RUN   TestChainExecutor
+test	Run tests	2026-09-01T03:17:47.247000Z --- PASS: TestChainExecutor (0.05s)
+test	Run tests	2026-09-01T03:17:47.384000Z PASS
+test	Run tests	2026-09-01T03:17:47.521000Z coverage: 78.5% of statements
+test	Run tests	2026-09-01T03:17:47.658000Z ok  	github.com/owner/repo/internal	1.234s
+test	Run tests	2026-09-01T03:17:47.795000Z ##[endgroup]
+test	Upload coverage	2026-09-01T03:17:47.932000Z ##[group]Upload coverage
+test	Upload coverage	2026-09-01T03:17:48.069000Z Uploading coverage report to Codecov
+test	Upload coverage	2026-09-01T03:17:48.206000Z Coverage report uploaded successfully
+test	Upload coverage	2026-09-01T03:17:48.343000Z ##[endgroup]

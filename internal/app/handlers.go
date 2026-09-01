@@ -282,6 +282,8 @@ func (m Model) handleWorkflowKey(num int) (tea.Model, tea.Cmd) {
 
 	if num == 0 {
 		m.selectedWorkflow = -1
+		m.syncHistoryEntries()
+
 		return m, nil
 	}
 
@@ -301,6 +303,9 @@ func (m *Model) handleUp() {
 			m.selectedWorkflow--
 			if m.selectedWorkflow >= 0 {
 				m.initializeInputs(m.workflows[m.selectedWorkflow])
+			} else {
+				// Back on the "all workflows" row, where history is unfiltered.
+				m.syncHistoryEntries()
 			}
 		}
 	case PaneHistory:
@@ -802,6 +807,7 @@ func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {
 	}
 
 	state := msg.Update.State
+	m.refreshChainStatusModal(state)
 	if state.Status == chain.ChainCompleted || state.Status == chain.ChainFailed {
 		// Convert chain step results to frecency step results for history
 		stepResults := convertToFrecencyStepResults(state.StepResults)
@@ -823,6 +829,20 @@ func (m Model) handleChainUpdate(msg ChainUpdateMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, m.chainSubscription()
+}
+
+// refreshChainStatusModal pushes the executor's latest state into the status
+// modal. The modal holds a snapshot rather than a live pointer, so without this
+// it reports the chain's first step for the whole run.
+func (m Model) refreshChainStatusModal(state chain.ChainState) {
+	found := m.modalStack.Find(func(ctx modal.Context) bool {
+		_, ok := ctx.(*modal.ChainStatusModal)
+		return ok
+	})
+
+	if statusModal, ok := found.(*modal.ChainStatusModal); ok {
+		statusModal.UpdateState(state)
+	}
 }
 
 // convertToFrecencyStepResults converts chain.StepResult to frecency.ChainStepResult.
