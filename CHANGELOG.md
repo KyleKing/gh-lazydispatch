@@ -1,3 +1,9 @@
+## v1.4.0 (2026-09-01)
+
+### Feat
+
+- **app**: add an action leader and a command bar
+
 ## v1.3.1 (2026-09-01)
 
 ### Refactor
