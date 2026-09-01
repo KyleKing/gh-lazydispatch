@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 )
 
@@ -41,7 +40,7 @@ func DrainChainUpdates(t *testing.T, updates <-chan chain.ChainUpdate, timeout t
 }
 
 // AssertCommand verifies that an executed command matches expected arguments.
-func AssertCommand(t *testing.T, cmd exec.ExecutedCommand, expectedArgs ...string) {
+func AssertCommand(t *testing.T, cmd ExecutedCommand, expectedArgs ...string) {
 	t.Helper()
 
 	if len(expectedArgs) == 0 {

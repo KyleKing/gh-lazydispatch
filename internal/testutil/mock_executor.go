@@ -1,10 +1,19 @@
-package exec
+package testutil
 
 import (
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+)
+
+// The gh argv fragments the mock keys its canned responses on.
+const (
+	ghAPISubcommand      = "api"
+	ghLogFlag            = "--log"
+	ghRunSubcommand      = "run"
+	ghViewOperation      = "view"
+	ghWorkflowSubcommand = "workflow"
 )
 
 // MockExecutor simulates command execution for testing.

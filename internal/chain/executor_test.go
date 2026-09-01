@@ -6,7 +6,6 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 )
@@ -50,7 +49,7 @@ func TestNewExecutor(t *testing.T) {
 //
 //nolint:paralleltest // mutates the package-level runner.SetExecutor mock, see comment above
 func TestChainExecutor_Stop(_ *testing.T) {
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	runner.SetExecutor(mockExec)
 
 	defer runner.SetExecutor(nil)

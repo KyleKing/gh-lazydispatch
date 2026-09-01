@@ -6,23 +6,23 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
 // newDispatchingModel wires the model to a GitHub client backed by a mock
 // executor, so the chain flow runs its real dispatch path without reaching
-// GitHub. Nothing here shells out: exec.MockExecutor is the seam, and
+// GitHub. Nothing here shells out: testutil.MockExecutor is the seam, and
 // runner.SetExecutor is package-global, which rules out t.Parallel for every
 // test that calls this.
 func newDispatchingModel(t *testing.T) Model {
 	t.Helper()
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	runner.SetExecutor(mockExec)
 	t.Cleanup(func() { runner.SetExecutor(nil) })
 

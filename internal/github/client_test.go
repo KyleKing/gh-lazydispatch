@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 )
 
 func TestNewClientWithExecutor(t *testing.T) {
@@ -50,7 +50,7 @@ func TestNewClientWithExecutor(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mockExec := exec.NewMockExecutor()
+			mockExec := testutil.NewMockExecutor()
 			client, err := github.NewClientWithExecutor(tt.repoName, mockExec)
 
 			if tt.expectError {
@@ -77,7 +77,7 @@ func TestNewClientWithExecutor(t *testing.T) {
 }
 
 // mockWorkflowRunSuccess registers a successful "gh api .../runs/<runID>" response for run.
-func mockWorkflowRunSuccess(t *testing.T, m *exec.MockExecutor, runID int64, run github.WorkflowRun) {
+func mockWorkflowRunSuccess(t *testing.T, m *testutil.MockExecutor, runID int64, run github.WorkflowRun) {
 	t.Helper()
 
 	runJSON, err := json.Marshal(run)
@@ -95,14 +95,14 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 	tests := []struct {
 		name        string
 		runID       int64
-		setupMock   func(*testing.T, *exec.MockExecutor)
+		setupMock   func(*testing.T, *testutil.MockExecutor)
 		expectError bool
 		wantStatus  string
 	}{
 		{
 			name:  "successful fetch",
 			runID: 12345,
-			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
 				mockWorkflowRunSuccess(t, m, 12345, github.WorkflowRun{
 					ID:         12345,
@@ -118,7 +118,7 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 		{
 			name:  "run in progress",
 			runID: 67890,
-			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
 				mockWorkflowRunSuccess(t, m, 67890, github.WorkflowRun{
 					ID:        67890,
@@ -133,16 +133,16 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 		{
 			name:  "API error",
 			runID: 99999,
-			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
+			setupMock: func(_ *testing.T, m *testutil.MockExecutor) {
 				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999"},
-					"", "HTTP 404: Not Found", exec.ErrMockExitStatus1)
+					"", "HTTP 404: Not Found", testutil.ErrMockExitStatus1)
 			},
 			expectError: true,
 		},
 		{
 			name:  "invalid JSON response",
 			runID: 11111,
-			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
+			setupMock: func(_ *testing.T, m *testutil.MockExecutor) {
 				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/11111"},
 					"invalid json", "", nil)
 			},
@@ -154,7 +154,7 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mockExec := exec.NewMockExecutor()
+			mockExec := testutil.NewMockExecutor()
 			tt.setupMock(t, mockExec)
 
 			client, err := github.NewClientWithExecutor("owner/repo", mockExec)
@@ -196,7 +196,7 @@ func checkWorkflowRunResult(
 }
 
 // mockWorkflowRunJobs registers a successful "gh api .../runs/<runID>/jobs" response for jobs.
-func mockWorkflowRunJobs(t *testing.T, m *exec.MockExecutor, runID int64, jobs []github.Job) {
+func mockWorkflowRunJobs(t *testing.T, m *testutil.MockExecutor, runID int64, jobs []github.Job) {
 	t.Helper()
 
 	respJSON, err := json.Marshal(github.JobsResponse{Jobs: jobs})
@@ -214,14 +214,14 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 	tests := []struct {
 		name        string
 		runID       int64
-		setupMock   func(*testing.T, *exec.MockExecutor)
+		setupMock   func(*testing.T, *testutil.MockExecutor)
 		expectError bool
 		wantJobs    int
 	}{
 		{
 			name:  "single job",
 			runID: 12345,
-			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
 				mockWorkflowRunJobs(t, m, 12345, []github.Job{
 					{
@@ -248,7 +248,7 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 		{
 			name:  "multiple jobs",
 			runID: 67890,
-			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
 				mockWorkflowRunJobs(t, m, 67890, []github.Job{
 					{ID: 1, Name: "lint", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess},
@@ -262,7 +262,7 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 		{
 			name:  "no jobs",
 			runID: 11111,
-			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
 				mockWorkflowRunJobs(t, m, 11111, []github.Job{})
 			},
@@ -272,9 +272,9 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 		{
 			name:  "API error",
 			runID: 99999,
-			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
+			setupMock: func(_ *testing.T, m *testutil.MockExecutor) {
 				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs?per_page=100"},
-					"", "HTTP 500: Internal Server Error", exec.ErrMockExitStatus1)
+					"", "HTTP 500: Internal Server Error", testutil.ErrMockExitStatus1)
 			},
 			expectError: true,
 		},
@@ -284,7 +284,7 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mockExec := exec.NewMockExecutor()
+			mockExec := testutil.NewMockExecutor()
 			tt.setupMock(t, mockExec)
 
 			client, err := github.NewClientWithExecutor("owner/repo", mockExec)
@@ -320,7 +320,7 @@ func checkWorkflowRunJobsResult(t *testing.T, jobs []github.Job, err error, expe
 }
 
 // mockLatestRunResponse registers a "gh api .../runs?..." response listing runs for a workflow query.
-func mockLatestRunResponse(t *testing.T, m *exec.MockExecutor, query string, runs []github.WorkflowRun) {
+func mockLatestRunResponse(t *testing.T, m *testutil.MockExecutor, query string, runs []github.WorkflowRun) {
 	t.Helper()
 
 	respJSON, err := json.Marshal(github.RunsResponse{WorkflowRuns: runs})
@@ -337,7 +337,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 	tests := []struct {
 		name         string
 		workflowName string
-		setupMock    func(*testing.T, *exec.MockExecutor)
+		setupMock    func(*testing.T, *testutil.MockExecutor)
 		expectError  bool
 		expectNil    bool
 		wantRunID    int64
@@ -345,7 +345,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 		{
 			name:         "latest run found",
 			workflowName: "ci.yml",
-			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
 				mockLatestRunResponse(t, m, "per_page=1&workflow=ci.yml", []github.WorkflowRun{
 					{ID: 12345, Name: "CI", Status: github.StatusQueued},
@@ -357,7 +357,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 		{
 			name:         "no workflow filter",
 			workflowName: "",
-			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
 				mockLatestRunResponse(t, m, "per_page=1", []github.WorkflowRun{
 					{ID: 99999, Name: "Any", Status: github.StatusInProgress},
@@ -369,7 +369,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 		{
 			name:         "no runs found",
 			workflowName: "nonexistent.yml",
-			setupMock: func(t *testing.T, m *exec.MockExecutor) {
+			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
 				mockLatestRunResponse(t, m, "per_page=1&workflow=nonexistent.yml", []github.WorkflowRun{})
 			},
@@ -378,9 +378,9 @@ func TestClient_GetLatestRun(t *testing.T) {
 		{
 			name:         "API rate limit",
 			workflowName: "ci.yml",
-			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
+			setupMock: func(_ *testing.T, m *testutil.MockExecutor) {
 				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=ci.yml"},
-					"", "HTTP 403: rate limit exceeded", exec.ErrMockExitStatus1)
+					"", "HTTP 403: rate limit exceeded", testutil.ErrMockExitStatus1)
 			},
 			expectError: true,
 		},
@@ -390,7 +390,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mockExec := exec.NewMockExecutor()
+			mockExec := testutil.NewMockExecutor()
 			tt.setupMock(t, mockExec)
 
 			client, err := github.NewClientWithExecutor("owner/repo", mockExec)
@@ -438,7 +438,7 @@ func checkLatestRunResult(
 func TestClient_CommandsExecuted(t *testing.T) {
 	t.Parallel()
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	resp := github.RunsResponse{
 		WorkflowRuns: []github.WorkflowRun{{ID: 1, Name: "CI"}},
@@ -493,7 +493,7 @@ func TestLatestRunsOnBranch(t *testing.T) {
 		now.Format(time.RFC3339),
 	)
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?branch=topic&per_page=100"},
 		payload, "", nil)
 

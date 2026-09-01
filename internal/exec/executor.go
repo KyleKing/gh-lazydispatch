@@ -44,7 +44,7 @@ func (*RealExecutor) Execute(name string, args ...string) (stdout, stderr string
 		panic(fmt.Sprintf(
 			"SAFETY VIOLATION: Attempted to run mutation command during test: %s %s\n"+
 				"This could modify real GitHub resources!\n"+
-				"Use exec.MockExecutor or runner.SetExecutor() in your test instead.",
+				"Use testutil.MockExecutor or runner.SetExecutor() in your test instead.",
 			name, strings.Join(args, " "),
 		))
 	}

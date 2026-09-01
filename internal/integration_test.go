@@ -9,7 +9,6 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
@@ -24,7 +23,7 @@ var errMockCommand = errors.New("mock command failed")
 //
 //nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_ChainExecutionWithLogs(t *testing.T) {
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	setupChainExecutionMocks(mockExec)
 	runner.SetExecutor(mockExec)
 
@@ -71,7 +70,7 @@ func TestEndToEnd_ChainExecutionWithLogs(t *testing.T) {
 //
 //nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_LogFetchingWithGHCLI(t *testing.T) {
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	setupLogFetchingMocks(t, mockExec)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
@@ -112,7 +111,7 @@ func TestEndToEnd_LogFetchingWithGHCLI(t *testing.T) {
 //
 //nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_FailedRunWithErrorLogs(t *testing.T) {
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	setupFailedRunMocks(t, mockExec)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
@@ -145,7 +144,7 @@ func TestEndToEnd_FailedRunWithErrorLogs(t *testing.T) {
 //
 //nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestEndToEnd_WatcherRegistration(t *testing.T) {
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	mockExec.AddCommand("gh", []string{"workflow", "run", "test.yml", "--ref", "main"}, "", "", nil)
 	runner.SetExecutor(mockExec)
 
@@ -189,7 +188,7 @@ func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 	for _, tt := range tests {
 		//nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent subtests
 		t.Run(tt.name, func(t *testing.T) {
-			mockExec := exec.NewMockExecutor()
+			mockExec := testutil.NewMockExecutor()
 			mockExec.AddCommand("gh", []string{"workflow", "run", "step1.yml", "--ref", "main"},
 				"", "dispatch failed", errMockCommand)
 			mockExec.AddCommand("gh", []string{"workflow", "run", "step2.yml", "--ref", "main"}, "", "", nil)
@@ -228,13 +227,13 @@ func TestEndToEnd_ChainFailureHandling(t *testing.T) {
 
 // Setup helpers
 
-func setupChainExecutionMocks(m *exec.MockExecutor) {
+func setupChainExecutionMocks(m *testutil.MockExecutor) {
 	m.AddCommand("gh", []string{"workflow", "run", "ci.yml", "--ref", "main"}, "", "", nil)
 	m.AddCommand("gh",
 		[]string{"workflow", "run", "deploy.yml", "--ref", "main", "-f", "environment=staging"}, "", "", nil)
 }
 
-func setupLogFetchingMocks(t *testing.T, m *exec.MockExecutor) {
+func setupLogFetchingMocks(t *testing.T, m *testutil.MockExecutor) {
 	t.Helper()
 
 	jobsResp := github.JobsResponse{
@@ -259,7 +258,7 @@ func setupLogFetchingMocks(t *testing.T, m *exec.MockExecutor) {
 	m.AddGHRunView(1001, 2001, logOutput)
 }
 
-func setupFailedRunMocks(t *testing.T, m *exec.MockExecutor) {
+func setupFailedRunMocks(t *testing.T, m *testutil.MockExecutor) {
 	t.Helper()
 
 	jobsResp := github.JobsResponse{
@@ -290,7 +289,7 @@ func setupFailedRunMocks(t *testing.T, m *exec.MockExecutor) {
 //
 //nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestIntegration_ChainExecutionWithLogViewing(t *testing.T) {
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	runner.SetExecutor(mockExec)
 
 	defer runner.SetExecutor(nil)
@@ -357,7 +356,7 @@ func TestIntegration_ChainExecutionWithLogViewing(t *testing.T) {
 // setupChainWithLogViewingMocks registers mock "gh workflow run", "gh api" (jobs),
 // and "gh run view" (logs) responses for a ci.yml -> deploy.yml chain, and
 // returns a GitHub client seeded with matching run metadata.
-func setupChainWithLogViewingMocks(t *testing.T, mockExec *exec.MockExecutor) *testutil.MockGitHubClient {
+func setupChainWithLogViewingMocks(t *testing.T, mockExec *testutil.MockExecutor) *testutil.MockGitHubClient {
 	t.Helper()
 
 	mockExec.AddCommand("gh", []string{"workflow", "run", "ci.yml", "--ref", "main"}, "", "", nil)
@@ -477,7 +476,7 @@ func checkStepLogsNoErrors(t *testing.T, label string, stepLogs []*logs.StepLogs
 //
 //nolint:paralleltest // mutates the package-level runner.SetExecutor mock; cannot run concurrent tests
 func TestIntegration_ChainWithErrorLogs(t *testing.T) {
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 	runner.SetExecutor(mockExec)
 
 	defer runner.SetExecutor(nil)
@@ -542,7 +541,7 @@ func TestIntegration_ChainWithErrorLogs(t *testing.T) {
 // (jobs), and "gh run view" (logs) responses for a ci.yml -> deploy.yml chain
 // where the deploy step's logs contain non-fatal warnings/errors, and returns
 // a GitHub client seeded with matching run metadata.
-func setupChainWithErrorLogsMocks(t *testing.T, mockExec *exec.MockExecutor) *testutil.MockGitHubClient {
+func setupChainWithErrorLogsMocks(t *testing.T, mockExec *testutil.MockExecutor) *testutil.MockGitHubClient {
 	t.Helper()
 
 	// Step 1: ci.yml succeeds (runID 7001)

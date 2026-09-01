@@ -4,9 +4,9 @@ package demo
 import (
 	"encoding/json"
 
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
@@ -33,7 +33,7 @@ const (
 
 // MockConfig holds configuration for demo mode.
 type MockConfig struct {
-	Executor *exec.MockExecutor
+	Executor *testutil.MockExecutor
 	Owner    string
 	Repo     string
 }
@@ -43,7 +43,7 @@ func NewMockConfig() *MockConfig {
 	return &MockConfig{
 		Owner:    "demo-org",
 		Repo:     "demo-repo",
-		Executor: exec.NewMockExecutor(),
+		Executor: testutil.NewMockExecutor(),
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/testutil"
@@ -17,7 +16,7 @@ import (
 // mockJobsAPI registers a "gh api .../runs/<runID>/jobs" response for a single
 // job with the given steps.
 func mockJobsAPI(
-	t *testing.T, mockExec *exec.MockExecutor, runID, jobID int64, jobName, jobStatus, jobConclusion string,
+	t *testing.T, mockExec *testutil.MockExecutor, runID, jobID int64, jobName, jobStatus, jobConclusion string,
 	steps []github.Step,
 ) {
 	t.Helper()
@@ -41,7 +40,7 @@ func TestIntegration_SuccessfulWorkflowRun(t *testing.T) {
 	jobID := int64(67890)
 
 	// Setup: Create mock executor
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Mock gh api response for GetWorkflowRunJobs
 	mockJobsAPI(t, mockExec, runID, jobID, "build", github.StatusCompleted, github.ConclusionSuccess, []github.Step{
@@ -108,7 +107,7 @@ func checkSuccessfulWorkflowRunSteps(t *testing.T, stepLogs []*logs.StepLogs) {
 
 // checkSuccessfulWorkflowRunCommands asserts the mock executor received the
 // expected "gh api" (jobs) and "gh run view" (logs) commands, in order.
-func checkSuccessfulWorkflowRunCommands(t *testing.T, cmds []exec.ExecutedCommand) {
+func checkSuccessfulWorkflowRunCommands(t *testing.T, cmds []testutil.ExecutedCommand) {
 	t.Helper()
 
 	if len(cmds) != 2 {
@@ -146,7 +145,7 @@ func TestIntegration_FailedWorkflowRun(t *testing.T) {
 	jobID := int64(67891)
 
 	// Setup: Create mock executor
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Mock gh api response with failed job
 	mockJobsAPI(t, mockExec, runID, jobID, "build", github.StatusCompleted, github.ConclusionFailure, []github.Step{
@@ -224,7 +223,7 @@ func TestIntegration_WorkflowWithWarnings(t *testing.T) {
 	jobID := int64(67892)
 
 	// Setup: Create mock executor
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Mock gh api response
 	mockJobsAPI(t, mockExec, runID, jobID, "lint", github.StatusCompleted, github.ConclusionSuccess, []github.Step{
@@ -280,7 +279,7 @@ func TestIntegration_GHCLIError(t *testing.T) {
 	jobID := int64(67893)
 
 	// Setup: Create mock executor
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Mock gh api response
 	jobsResp := github.JobsResponse{
@@ -306,7 +305,7 @@ func TestIntegration_GHCLIError(t *testing.T) {
 		jobsJSON, "", nil)
 
 	// Simulate gh CLI error (e.g., network timeout, auth failure)
-	mockExec.AddGHRunViewError(runID, jobID, "HTTP 401: Bad credentials", exec.ErrMockExitStatus1)
+	mockExec.AddGHRunViewError(runID, jobID, "HTTP 401: Bad credentials", testutil.ErrMockExitStatus1)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -342,11 +341,11 @@ func TestIntegration_GitHubAPIError(t *testing.T) {
 	runID := int64(12349)
 
 	// Setup: Create mock executor
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Mock gh api error response (e.g., rate limiting, server error)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12349/jobs?per_page=100"},
-		"", "HTTP 500: Internal Server Error", exec.ErrMockExitStatus1)
+		"", "HTTP 500: Internal Server Error", testutil.ErrMockExitStatus1)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -374,12 +373,12 @@ func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		setupMock   func(*exec.MockExecutor)
+		setupMock   func(*testutil.MockExecutor)
 		expectError bool
 	}{
 		{
 			name: "gh installed and authenticated",
-			setupMock: func(m *exec.MockExecutor) {
+			setupMock: func(m *testutil.MockExecutor) {
 				m.AddCommand("gh", []string{"--version"}, "gh version 2.40.0 (2024-01-01)", "", nil)
 				m.AddCommand("gh", []string{"auth", "status"}, "✓ Logged in to github.com as user", "", nil)
 			},
@@ -387,16 +386,16 @@ func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
 		},
 		{
 			name: "gh not installed",
-			setupMock: func(m *exec.MockExecutor) {
-				m.AddCommand("gh", []string{"--version"}, "", "command not found", exec.ErrMockExitStatus127)
+			setupMock: func(m *testutil.MockExecutor) {
+				m.AddCommand("gh", []string{"--version"}, "", "command not found", testutil.ErrMockExitStatus127)
 			},
 			expectError: true,
 		},
 		{
 			name: "gh not authenticated",
-			setupMock: func(m *exec.MockExecutor) {
+			setupMock: func(m *testutil.MockExecutor) {
 				m.AddCommand("gh", []string{"--version"}, "gh version 2.40.0", "", nil)
-				m.AddCommand("gh", []string{"auth", "status"}, "", "You are not logged in", exec.ErrMockExitStatus1)
+				m.AddCommand("gh", []string{"auth", "status"}, "", "You are not logged in", testutil.ErrMockExitStatus1)
 			},
 			expectError: true,
 		},
@@ -406,7 +405,7 @@ func TestIntegration_CheckGHCLIAvailable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mockExec := exec.NewMockExecutor()
+			mockExec := testutil.NewMockExecutor()
 			tt.setupMock(mockExec)
 
 			err := logs.CheckGHCLIAvailableWithExecutor(mockExec)
@@ -429,7 +428,7 @@ func TestIntegration_MultiJobWorkflowRun(t *testing.T) {
 	runID := int64(12350)
 	jobID := int64(67894)
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Mock multi-step job
 	jobsResp := github.JobsResponse{
@@ -539,7 +538,7 @@ func TestIntegration_LogStreaming(t *testing.T) {
 	jobID := int64(88888)
 
 	// Setup: Create mock executor with dynamic responses
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Mock job structure (3 steps)
 	goCISteps := []github.Step{
@@ -713,7 +712,7 @@ func TestIntegration_LogStreamer_IncrementalDetection(t *testing.T) {
 	jobID := int64(66666)
 
 	// Setup mock executor
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Mock job structure
 	jobsResp := github.JobsResponse{
@@ -788,7 +787,7 @@ func TestIntegration_LargeLogFile(t *testing.T) {
 	runID := int64(99999)
 	jobID := int64(88888)
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Generate 10k line log using helper
 	largeLog := testutil.AsGHRunViewLog("large-job", "Run actions/checkout@v4", testutil.GenerateLargeLogFixture(10000))
@@ -863,7 +862,7 @@ func TestIntegration_UnicodeCharacters(t *testing.T) {
 	runID := int64(99998)
 	jobID := int64(88887)
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Use unicode fixture
 	unicodeLog := testutil.AsGHRunViewLog("unicode-job", "Build", testutil.GenerateUnicodeLog())
@@ -932,7 +931,7 @@ func TestIntegration_ANSIColorCodes(t *testing.T) {
 	runID := int64(99997)
 	jobID := int64(88886)
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	ansiLog := testutil.AsGHRunViewLog("ansi-job", "Test", testutil.GenerateANSILog())
 	mockExec.AddGHRunView(runID, jobID, ansiLog)
@@ -1008,7 +1007,7 @@ func TestIntegration_NetworkTimeout(t *testing.T) {
 
 	runID := int64(99996)
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Simulate timeout by adding command that returns context error
 	mockExec.AddCommand("gh", []string{"api", fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs?per_page=100", runID)},
@@ -1048,7 +1047,7 @@ func TestIntegration_VeryLargeLogFile(t *testing.T) {
 	runID := int64(99995)
 	jobID := int64(88885)
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Generate 50k line log
 	largeLog := testutil.AsGHRunViewLog("very-large-job", "Run tests", testutil.GenerateLargeLogFixture(50000))
@@ -1118,7 +1117,7 @@ func TestIntegration_MixedLogContent(t *testing.T) {
 	runID := int64(99994)
 	jobID := int64(88884)
 
-	mockExec := exec.NewMockExecutor()
+	mockExec := testutil.NewMockExecutor()
 
 	// Generate mixed content log
 	mixedLog := testutil.AsGHRunViewLog("mixed-job", "Mixed test", testutil.GenerateMixedLog(1000))
