@@ -40,6 +40,7 @@ type ChainVariableModal struct {
 	result        ChainVariableResultMsg
 	variableOrder []string
 	editInput     textinput.Model
+	width         int
 	selectedIndex int
 	editing       bool
 	done          bool
@@ -116,6 +117,12 @@ func (m *ChainVariableModal) validateRequired() []string {
 	}
 
 	return missing
+}
+
+// SetSize records the room the modal has, so its key hints wrap rather than
+// being clipped at the border.
+func (m *ChainVariableModal) SetSize(width, _ int) {
+	m.width = width
 }
 
 // Update handles input for the chain variable modal.
@@ -341,9 +348,9 @@ func (m *ChainVariableModal) View() string {
 			s.WriteString("\n\n")
 		}
 
-		s.WriteString(ui.HelpStyle.Render(
-			"[↑↓] navigate  [←→/space] change  [e] edit  [enter] accept  [ctrl+r] default  [esc] cancel",
-		))
+		s.WriteString(renderHints(m.width,
+			"[↑↓] navigate", "[←→/space] change", "[e] edit",
+			"[enter] accept", "[ctrl+r] default", "[esc] cancel"))
 	}
 
 	return s.String()

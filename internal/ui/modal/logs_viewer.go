@@ -163,15 +163,22 @@ func NewLogsViewerModalWithError(runLogs *logs.RunLogs, width, height int) *Logs
 	return m
 }
 
+// SetSize resizes the viewport and re-wraps its content. The stack calls this
+// on every terminal resize; the modal never sees a tea.WindowSizeMsg, because
+// Update routes those before the stack is reached.
+func (m *LogsViewerModal) SetSize(width, height int) {
+	m.width = width
+	m.height = height
+	m.viewport.SetWidth(width - logsViewportWidthMargin)
+	m.viewport.SetHeight(height - logsViewportHeightMargin)
+	m.updateViewportContent()
+}
+
 // Update handles input for the logs viewer modal.
 func (m *LogsViewerModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.viewport.SetWidth(msg.Width - logsViewportWidthMargin)
-		m.viewport.SetHeight(msg.Height - logsViewportHeightMargin)
-		m.updateViewportContent()
+		m.SetSize(msg.Width, msg.Height)
 
 	case tea.KeyPressMsg:
 		if m.searchMode {
@@ -775,7 +782,7 @@ func (m *LogsViewerModal) renderHelp() string {
 
 	helpParts = append(helpParts, "[x] export", "[q] close")
 
-	return ui.HelpStyle.Render(strings.Join(helpParts, "  "))
+	return renderHints(m.width, helpParts...)
 }
 
 // exportMarkdown writes the logs the active filter kept to a markdown file in

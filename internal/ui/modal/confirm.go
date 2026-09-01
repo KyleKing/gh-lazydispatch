@@ -12,10 +12,17 @@ type ConfirmModal struct {
 	title       string
 	description string
 	keys        confirmKeyMap
+	width       int
 	selected    bool
 	defaultVal  bool
 	done        bool
 	result      bool
+}
+
+// SetSize records the room the modal has, so its key hints wrap rather than
+// being clipped at the border.
+func (m *ConfirmModal) SetSize(width, _ int) {
+	m.width = width
 }
 
 type confirmKeyMap struct {
@@ -111,7 +118,8 @@ func (m *ConfirmModal) View() string {
 	}
 
 	s += "  " + yesStyle.Render("[ Yes ]") + "  " + noStyle.Render("[ No ]")
-	s += "\n\n" + ui.HelpStyle.Render("[←→] select  [y/n] quick  [ctrl+r] default  [enter] confirm  [esc] cancel")
+	s += "\n\n" + renderHints(m.width,
+		"[←→] select", "[y/n] quick", "[ctrl+r] default", "[enter] confirm", "[esc] cancel")
 
 	return s
 }

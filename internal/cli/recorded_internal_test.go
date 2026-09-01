@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -142,5 +143,110 @@ func TestRecorded_DiagnoseCostsLessThanTheLogItRead(t *testing.T) {
 	if ratio := len(raw) / len(stdout); ratio < wantRatio {
 		t.Errorf("diagnose emitted %d bytes from a %d byte log (%dx), want at least %dx",
 			len(stdout), len(raw), ratio, wantRatio)
+	}
+}
+
+// TestRecorded_LogsRenderMarkdownForPasting covers the other output shape:
+// a document a reader drops into an issue, with the signatures at the top and
+// no terminal escapes left in the body.
+//
+//nolint:paralleltest // runRecorded calls t.Setenv, which rules out t.Parallel
+func TestRecorded_LogsRenderMarkdownForPasting(t *testing.T) {
+	stdout, stderr, code := runRecorded(t, "logs-markdown", "logs", recordedStepRun, "--format", "md")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, stderr)
+	}
+
+	for _, want := range []string{"# run-", "## Detected issues", "```"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("the document is missing %q", want)
+		}
+	}
+
+	if strings.Contains(stdout, "^[[") {
+		t.Error("the document carries terminal escapes, which a pasted issue renders verbatim")
+	}
+}
+
+//nolint:paralleltest // runRecorded calls t.Setenv, which rules out t.Parallel
+func TestRecorded_LogsRejectAnUnknownFormat(t *testing.T) {
+	_, stderr, code := runRecorded(t, "logs-markdown", "logs", recordedStepRun, "--format", "yaml")
+	if code != 2 {
+		t.Fatalf("exit %d, want 2 for an unknown format", code)
+	}
+
+	if !strings.Contains(stderr, "yaml") {
+		t.Errorf("stderr does not name the format it rejected: %q", stderr)
+	}
+}
+
+// TestRecorded_RunsListsWhatRanRecently keeps the listing to the fields that
+// decide what to do next, so asking about a hundred runs stays cheap.
+//
+//nolint:paralleltest // runRecorded calls t.Setenv, which rules out t.Parallel
+func TestRecorded_RunsListsWhatRanRecently(t *testing.T) {
+	stdout, stderr, code := runRecorded(t, "runs", "runs", "--workflow", "ci.yml", "--limit", "5")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, stderr)
+	}
+
+	var found []runSummary
+	if err := json.Unmarshal([]byte(stdout), &found); err != nil {
+		t.Fatalf("output is not JSON: %v", err)
+	}
+
+	if len(found) == 0 {
+		t.Fatal("no runs came back")
+	}
+
+	if len(found) > 5 {
+		t.Errorf("--limit 5 returned %d runs", len(found))
+	}
+
+	for _, run := range found {
+		if run.ID == 0 || run.Status == "" || run.URL == "" {
+			t.Errorf("run %+v is missing a field a caller needs", run)
+		}
+	}
+}
+
+// TestRecorded_LogsErrorsOnlySkipsTheEchoedScript is the JSON counterpart to
+// the markdown document, and the level filter's own regression test: a step's
+// script says "Error:" in every branch it never took.
+//
+//nolint:paralleltest // runRecorded calls t.Setenv, which rules out t.Parallel
+func TestRecorded_LogsErrorsOnlySkipsTheEchoedScript(t *testing.T) {
+	stdout, stderr, code := runRecorded(t, "logs-markdown", "logs", recordedStepRun, "--errors-only")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, stderr)
+	}
+
+	var export logsExport
+	if err := json.Unmarshal([]byte(stdout), &export); err != nil {
+		t.Fatalf("output is not JSON: %v", err)
+	}
+
+	if export.RunID == 0 || len(export.Steps) == 0 {
+		t.Fatalf("nothing came back: %+v", export)
+	}
+
+	kept := 0
+
+	for _, step := range export.Steps {
+		if step.StepName == "" {
+			t.Errorf("step %d came back with no name", step.StepIndex)
+		}
+
+		for _, line := range step.Lines {
+			kept++
+
+			if strings.HasPrefix(line, "##[group]Run ") || strings.HasPrefix(line, "  echo ") {
+				t.Errorf("--errors-only kept a line from the echoed script: %q", line)
+			}
+		}
+	}
+
+	if !strings.Contains(stderr, "emitted "+strconv.Itoa(kept)) {
+		t.Errorf("stderr reports %q, which does not match the %d lines emitted", strings.TrimSpace(stderr), kept)
 	}
 }
