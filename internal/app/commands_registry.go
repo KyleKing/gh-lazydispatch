@@ -20,6 +20,7 @@ func DefaultRegistry() Registry {
 	return NewRegistry(
 		branchCommand(),
 		chainCommand(),
+		runLogCommand("diagnose", "Open a run's log filtered to the failure: :diagnose <run-id>", true),
 		Command{
 			Name:        "filter",
 			Description: "Filter the config pane's inputs",
@@ -39,6 +40,7 @@ func DefaultRegistry() Registry {
 				return m, nil
 			},
 		},
+		runLogCommand("logs", "Open any run's log by ID: :logs <run-id>", false),
 		Command{
 			Name:        "quit",
 			Description: "Leave gh-lazydispatch",
@@ -65,6 +67,31 @@ func DefaultRegistry() Registry {
 		timelineCommand(),
 		workflowCommand(),
 	)
+}
+
+// runLogCommand builds `:logs` and `:diagnose`, which differ only in whether
+// the viewer opens filtered to the failure. Both take a run ID this repository
+// never dispatched, so a run found through `gh run list` or a PR's checks can be
+// read without leaving the TUI.
+func runLogCommand(name, description string, errorsOnly bool) Command {
+	return Command{
+		Name:        name,
+		Description: description,
+		Run: func(m Model, args []string) (Model, tea.Cmd) {
+			if len(args) == 0 {
+				return m, statusCmd("usage: :" + name + " <run-id>")
+			}
+
+			runID, err := strconv.ParseInt(args[0], 10, 64)
+			if err != nil {
+				return m, statusCmd(fmt.Sprintf("%q is not a run ID", args[0]))
+			}
+
+			return m, func() tea.Msg {
+				return FetchLogsMsg{RunID: runID, ErrorsOnly: errorsOnly}
+			}
+		},
+	}
 }
 
 func branchCommand() Command {

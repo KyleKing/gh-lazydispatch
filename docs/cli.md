@@ -38,15 +38,18 @@ Returns the run's conclusion and URL, every step that did not succeed, and the
 failure signatures it recognized.
 
 Each failed step carries `errors`, the lines the parser read as errors, and
-`tail`, a window of context. The window ends at the last error line rather than
-at the end of the step: when gh cannot resolve a job's steps the whole job
-becomes one step, and its last lines are the runner's teardown rather than
-anything that went wrong. `--tail 0` drops the context and keeps the errors and
-signatures.
+`tail`, a window of context. Both end at the last error line rather than at the
+end of the step: when gh cannot resolve a job's steps the whole job becomes one
+step, and its last lines are the runner's teardown rather than anything that
+went wrong. `errors` is capped at twenty and keeps the last of them for the same
+reason. `--tail 0` drops the context and keeps the errors and signatures.
 
 `signatures` are regular expressions over log text, so each one reports the
-line that matched alongside the label. A test named "handles timeouts" matches
-`Timeout`; the quoted line is what tells you it is not one.
+line that matched alongside the label. The scan reads only a step that failed,
+and only its last `logs.SignatureWindow` lines, because anywhere else in a long
+step the patterns match ordinary output rather than a cause. Read the quoted
+line before acting on the label. `AGENTS.local.md` records how those two rules
+were measured and how to re-measure them.
 
 ## logs
 

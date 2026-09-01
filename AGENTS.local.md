@@ -55,3 +55,35 @@ Routing by "is a modal open" is what stopped a chain's status modal ever seeing 
 updates, since it is the active modal for the whole run, and what dropped a modal's
 result when a keystroke raced it. `TestUpdate_AsyncMessagesReachTheirHandlersBehindAModal`
 pins that ordering.
+
+## Failure signatures and the corpus that tuned them
+
+`logs.Detect` reads only a step that failed, and only that step's last
+`logs.SignatureWindow` lines. Both numbers came from measurement, not judgment, so change
+them the same way.
+
+The demo workflows cannot answer the question these rules settle. `demo-chain-check.yml`
+prints a line matching every signature on purpose, which proves the regexes fire and says
+nothing about whether they fire on the wrong line. That needs a repository whose logs
+nobody wrote for this tool.
+
+To re-measure, take a real repository with many workflows, download `gh run view --log`
+for a stratified sample of its failed *and* successful runs, group each capture's lines by
+the `job<TAB>step` prefix, and run the candidate rule over the groups. Then read every
+match and label it by hand: the only thing that matters is whether the match names the
+cause a human would act on.
+
+The last pass covered 42 runs of a 26-workflow repository and found 12 matches, 2 of them
+real. What the false ones had in common is that log text is prose: a parametrized test ID
+reads `[access denied not retryable]`, a Storybook story is titled `Missing Secret Error`,
+and a service logs `SECRET is not set - using an ephemeral random secret` on a healthy
+run. None of that is distinguishable from a cause by any regex worth maintaining, which is
+why the rules are about *where* a match sits rather than what it says.
+
+Two conclusions worth keeping, because both were tried and rejected:
+
+- **Do not require a `##[error]` marker.** One of the two real causes was a `##[notice]`
+  carrying `HTTP/1.1 403 Forbidden`, and its run logged no `##[error]` at all
+- **Do not tie the window to `--tail`.** The other real cause sat 329 lines from its
+  step's end, well outside the 20-line excerpt, so the excerpt and the scan need separate
+  windows

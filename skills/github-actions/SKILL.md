@@ -40,6 +40,11 @@ Every command writes JSON to stdout and a line to stderr saying how many log
 lines it read and how many it emitted, so the cost is visible rather than
 assumed.
 
+The cost that is not in the token count is time. `diagnose` downloads the run's
+whole log before parsing it, which takes a second or two for a small run and
+about nine for a 35,000-line one. Ask for one run at a time rather than fanning
+out over a list.
+
 ## Commands
 
 | Command | Answers |
@@ -65,11 +70,20 @@ gh-lazydispatch export diagnose 33423560774 --tail 60   # more context
 to 20. The window ends at the last error line rather than at the end of the
 step, because a job's final lines are its teardown.
 
+`errors` holds the last twenty error-classified lines of the step, so a test
+runner that narrates thousands of passing tests before it fails reports the
+summary naming the cause rather than the narration.
+
 `signatures` names failure modes it recognizes (out of memory, out of disk,
 timeout, missing secret, permission denied, network failure) with the line that
-matched and a first thing to try. A signature is a regular expression over log
-text, so read the quoted line before acting on the label: a test named
-"handles timeouts" will match `Timeout`.
+matched and a first thing to try. It reads only a step that failed, and only
+that step's last 200 lines, because a signature is a regular expression over log
+text and log text is prose: further back in a long step it matches a
+parametrized test ID reading `[access denied not retryable]` or a story titled
+`Missing Secret Error`. Read the quoted line before acting on the label, and
+treat an empty `signatures` on a genuine failure as normal rather than as a
+parse problem. Most failures are not one of six known modes, which is what
+`failed_steps` is for.
 
 ### logs
 
