@@ -3,20 +3,13 @@ package panes
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/display"
 	"github.com/kyleking/aragonite/tui/table"
 
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
-)
-
-const justNowLabel = "just now"
-
-const (
-	hoursPerDay = 24
-	daysPerWeek = 7
 )
 
 // historyGutter is the selection indicator plus the workflow/chain type glyph.
@@ -35,23 +28,6 @@ func historyColumns() []table.Column {
 			Key: ui.ColKeyTime, Title: ui.ColTitleTime, Min: ui.ColMinLabel,
 			Max: ui.ColMaxTime, Priority: ui.PrioFirstToGo,
 		},
-	}
-}
-
-func formatTimeAgo(t time.Time) string {
-	d := time.Since(t)
-
-	switch {
-	case d < time.Minute:
-		return justNowLabel
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < hoursPerDay*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	case d < daysPerWeek*hoursPerDay*time.Hour:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/hoursPerDay))
-	default:
-		return t.Format("Jan 2")
 	}
 }
 
@@ -168,7 +144,7 @@ func (m HistoryModel) ViewContent() string {
 		cells := ui.TableRow(layout, map[string]string{
 			ui.ColKeyName:   name,
 			ui.ColKeyBranch: entry.Branch,
-			ui.ColKeyTime:   formatTimeAgo(entry.LastRunAt),
+			ui.ColKeyTime:   display.RelativeTimeCompact(entry.LastRunAt),
 		})
 
 		rowStyle := ui.TableRowStyle

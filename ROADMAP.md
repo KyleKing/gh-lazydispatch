@@ -135,10 +135,13 @@ every reopen of a run re-downloaded its log. Memory only, because aragonite's
 disk store deliberately holds counts, states, and titles rather than bodies, and
 a log is measured in megabytes.
 
-Remaining, in the order that pays off:
+Relative times come from `aragonite/display`. `RelativeTime` was too wide for a
+table column measured in single digits of cells, so the compact form
+(`RelativeTimeCompact`) went upstream rather than staying a local copy.
 
-- `formatTimeAgo` in `internal/ui/panes/history.go` to `aragonite/display`, which
-  already spells relative times and status glyphs for two other tools
+Phase 7 is complete. What is left in `internal/github` is this tool's own
+vocabulary: the status and conclusion constants, the dispatch path, and the
+mutation guard the reads travel through.
 
 ## Coverage
 

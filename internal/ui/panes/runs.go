@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/display"
 	"github.com/kyleking/aragonite/forge"
 	"github.com/kyleking/aragonite/tui/table"
 
@@ -357,7 +358,7 @@ func (m RunsModel) runCells(layout table.Layout, i int) (string, string) {
 
 	return runStatusIcon(run.Status, run.Conclusion), ui.TableRow(layout, map[string]string{
 		ui.ColKeyWorkflow: run.Name,
-		ui.ColKeyTime:     formatTimeAgo(run.CreatedAt),
+		ui.ColKeyTime:     display.RelativeTimeCompact(run.CreatedAt),
 	})
 }
 
@@ -368,7 +369,7 @@ func (m RunsModel) prCells(layout table.Layout, i int) (string, string) {
 		ui.ColKeyPR:     "#" + strconv.Itoa(pr.Number),
 		ui.ColKeyName:   pr.Title,
 		ui.ColKeyChecks: checksLabel(pr.Checks),
-		ui.ColKeyTime:   formatTimeAgo(pr.UpdatedAt),
+		ui.ColKeyTime:   display.RelativeTimeCompact(pr.UpdatedAt),
 	})
 }
 
