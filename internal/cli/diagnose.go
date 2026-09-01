@@ -92,7 +92,7 @@ func buildDiagnosis(run *github.WorkflowRun, runLogs *logs.RunLogs, tailLines in
 		Status:      run.Status,
 		Conclusion:  run.Conclusion,
 		Branch:      run.HeadBranch,
-		URL:         run.HTMLURL,
+		URL:         run.URL,
 		FailedSteps: failedSteps(runLogs, tailLines),
 		Signatures:  signatures(runLogs),
 	}

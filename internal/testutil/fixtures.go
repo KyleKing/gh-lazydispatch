@@ -2,6 +2,7 @@
 package testutil
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -235,4 +236,35 @@ func AsGHRunViewLog(job, step, raw string) string {
 	}
 
 	return sb.String()
+}
+
+// APIRun is one run as the Actions API spells it. A fixture built from
+// github.WorkflowRun would carry Go field names, which gh never emits, so the
+// parser under test would be reading a shape that does not exist.
+type APIRun struct {
+	CreatedAt  time.Time `json:"created_at,omitzero"`
+	UpdatedAt  time.Time `json:"updated_at,omitzero"`
+	Name       string    `json:"name"`
+	Status     string    `json:"status"`
+	Conclusion string    `json:"conclusion,omitempty"`
+	HTMLURL    string    `json:"html_url,omitempty"`
+	HeadBranch string    `json:"head_branch,omitempty"`
+	Event      string    `json:"event,omitempty"`
+	Path       string    `json:"path,omitempty"`
+	ID         int64     `json:"id"`
+}
+
+// APIRunListJSON renders a run listing the way the Actions API returns one.
+func APIRunListJSON(runs ...APIRun) string {
+	payload := struct {
+		WorkflowRuns []APIRun `json:"workflow_runs"`
+		TotalCount   int      `json:"total_count"`
+	}{WorkflowRuns: runs, TotalCount: len(runs)}
+
+	out, err := json.Marshal(payload)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(out)
 }

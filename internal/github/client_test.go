@@ -77,7 +77,7 @@ func TestNewClientWithExecutor(t *testing.T) {
 }
 
 // mockWorkflowRunSuccess registers a successful "gh api .../runs/<runID>" response for run.
-func mockWorkflowRunSuccess(t *testing.T, m *testutil.MockExecutor, runID int64, run github.WorkflowRun) {
+func mockWorkflowRunSuccess(t *testing.T, m *testutil.MockExecutor, runID int64, run testutil.APIRun) {
 	t.Helper()
 
 	runJSON, err := json.Marshal(run)
@@ -104,7 +104,7 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 			runID: 12345,
 			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
-				mockWorkflowRunSuccess(t, m, 12345, github.WorkflowRun{
+				mockWorkflowRunSuccess(t, m, 12345, testutil.APIRun{
 					ID:         12345,
 					Name:       "CI",
 					Status:     github.StatusCompleted,
@@ -120,7 +120,7 @@ func TestClient_GetWorkflowRun(t *testing.T) {
 			runID: 67890,
 			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
-				mockWorkflowRunSuccess(t, m, 67890, github.WorkflowRun{
+				mockWorkflowRunSuccess(t, m, 67890, testutil.APIRun{
 					ID:        67890,
 					Name:      "Deploy",
 					Status:    github.StatusInProgress,
@@ -319,16 +319,12 @@ func checkWorkflowRunJobsResult(t *testing.T, jobs []github.Job, err error, expe
 	}
 }
 
-// mockLatestRunResponse registers a "gh api .../runs?..." response listing runs for a workflow query.
-func mockLatestRunResponse(t *testing.T, m *testutil.MockExecutor, query string, runs []github.WorkflowRun) {
+// mockLatestRunResponse registers the latest-run read for a workflow file.
+func mockLatestRunResponse(t *testing.T, m *testutil.MockExecutor, workflow string, runs []testutil.APIRun) {
 	t.Helper()
 
-	respJSON, err := json.Marshal(github.RunsResponse{WorkflowRuns: runs})
-	if err != nil {
-		t.Fatalf("failed to marshal resp: %v", err)
-	}
-
-	m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?" + query}, string(respJSON), "", nil)
+	m.AddCommand("gh", []string{"api", testutil.LatestRunPath("owner", "repo", workflow)},
+		testutil.APIRunListJSON(runs...), "", nil)
 }
 
 func TestClient_GetLatestRun(t *testing.T) {
@@ -347,7 +343,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 			workflowName: "ci.yml",
 			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
-				mockLatestRunResponse(t, m, "per_page=1&workflow=ci.yml", []github.WorkflowRun{
+				mockLatestRunResponse(t, m, "ci.yml", []testutil.APIRun{
 					{ID: 12345, Name: "CI", Status: github.StatusQueued},
 				})
 			},
@@ -359,7 +355,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 			workflowName: "",
 			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
-				mockLatestRunResponse(t, m, "per_page=1", []github.WorkflowRun{
+				mockLatestRunResponse(t, m, "", []testutil.APIRun{
 					{ID: 99999, Name: "Any", Status: github.StatusInProgress},
 				})
 			},
@@ -371,7 +367,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 			workflowName: "nonexistent.yml",
 			setupMock: func(t *testing.T, m *testutil.MockExecutor) {
 				t.Helper()
-				mockLatestRunResponse(t, m, "per_page=1&workflow=nonexistent.yml", []github.WorkflowRun{})
+				mockLatestRunResponse(t, m, "nonexistent.yml", nil)
 			},
 			expectError: true,
 		},
@@ -379,7 +375,7 @@ func TestClient_GetLatestRun(t *testing.T) {
 			name:         "API rate limit",
 			workflowName: "ci.yml",
 			setupMock: func(_ *testing.T, m *testutil.MockExecutor) {
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs?per_page=1&workflow=ci.yml"},
+				m.AddCommand("gh", []string{"api", testutil.LatestRunPath("owner", "repo", "ci.yml")},
 					"", "HTTP 403: rate limit exceeded", testutil.ErrMockExitStatus1)
 			},
 			expectError: true,
@@ -440,16 +436,8 @@ func TestClient_CommandsExecuted(t *testing.T) {
 
 	mockExec := testutil.NewMockExecutor()
 
-	resp := github.RunsResponse{
-		WorkflowRuns: []github.WorkflowRun{{ID: 1, Name: "CI"}},
-	}
-	respJSON, err := json.Marshal(resp)
-	if err != nil {
-		t.Fatalf("failed to marshal resp: %v", err)
-	}
-
-	mockExec.AddCommand("gh", []string{"api", "repos/test/project/actions/runs?per_page=1&workflow=build.yml"},
-		string(respJSON), "", nil)
+	mockExec.AddCommand("gh", []string{"api", testutil.LatestRunPath("test", "project", "build.yml")},
+		testutil.APIRunListJSON(testutil.APIRun{ID: 1, Name: "CI"}), "", nil)
 
 	client, err := github.NewClientWithExecutor("test/project", mockExec)
 	if err != nil {

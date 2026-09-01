@@ -349,7 +349,7 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 	runURL := ""
 
 	if run != nil {
-		runURL = run.HTMLURL
+		runURL = run.URL
 	}
 
 	e.mu.Lock()
@@ -415,7 +415,7 @@ func (e *ChainExecutor) waitForRun(runID int64, _ config.WaitCondition) (string,
 			}
 
 			if run.Status == github.StatusCompleted {
-				return run.Conclusion, run.HTMLURL, nil
+				return run.Conclusion, run.URL, nil
 			}
 		}
 	}

@@ -3,10 +3,8 @@ package github
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -60,9 +58,7 @@ func (c *Client) GetWorkflowRun(runID int64) (*WorkflowRun, error) {
 		return nil, fmt.Errorf("fetching the run: %w", err)
 	}
 
-	converted := fromForge(*run)
-
-	return &converted, nil
+	return run, nil
 }
 
 // GetWorkflowRunJobs fetches the jobs for a workflow run, with the per-step
@@ -73,31 +69,25 @@ func (c *Client) GetWorkflowRunJobs(runID int64) ([]Job, error) {
 		return nil, fmt.Errorf("fetching the run's jobs: %w", err)
 	}
 
-	return fromForgeJobs(jobs), nil
+	return jobs, nil
 }
 
-// GetLatestRun fetches the most recent workflow run, optionally filtered by workflow name.
-func (c *Client) GetLatestRun(workflowName string) (*WorkflowRun, error) {
-	path := fmt.Sprintf("repos/%s/%s/actions/runs?per_page=1", c.owner, c.repo)
-	if workflowName != "" {
-		path += "&workflow=" + url.QueryEscape(workflowName)
-	}
-
-	stdout, stderr, err := c.executor.Execute("gh", "api", path)
+// GetLatestRun fetches the most recent run of a workflow file, or the most
+// recent run in the repository when workflowFile is empty.
+func (c *Client) GetLatestRun(workflowFile string) (*WorkflowRun, error) {
+	runs, err := ghforge.ListRuns(c.runnerContext(context.Background()), ".", c.fullName(), ghforge.RunQuery{
+		Workflow: workflowFile,
+		Limit:    1,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("gh api failed: %w (stderr: %s)", err, stderr)
+		return nil, fmt.Errorf("reading the latest run: %w", err)
 	}
 
-	var runsResp RunsResponse
-	if err := json.Unmarshal([]byte(stdout), &runsResp); err != nil {
-		return nil, fmt.Errorf("failed to parse runs: %w", err)
-	}
-
-	if len(runsResp.WorkflowRuns) == 0 {
+	if len(runs) == 0 {
 		return nil, ErrNoWorkflowRuns
 	}
 
-	return &runsResp.WorkflowRuns[0], nil
+	return &runs[0], nil
 }
 
 // Owner returns the repository owner.
@@ -134,7 +124,7 @@ func (c *Client) ListRuns(q RunQuery) ([]WorkflowRun, error) {
 		return nil, fmt.Errorf("listing runs: %w", err)
 	}
 
-	return fromForgeRuns(runs), nil
+	return runs, nil
 }
 
 // LatestRunsOnBranch returns the newest run of each workflow on a branch, which
@@ -148,7 +138,7 @@ func (c *Client) LatestRunsOnBranch(branch string, within time.Duration) ([]Work
 		return nil, fmt.Errorf("listing the branch's latest runs: %w", err)
 	}
 
-	return fromForgeRuns(runs), nil
+	return runs, nil
 }
 
 // PRScope names which pull requests a run listing should cover. Both are search

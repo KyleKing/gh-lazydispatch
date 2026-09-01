@@ -264,7 +264,7 @@ func (w *RunWatcher) pollRun(runID int64) {
 		Workflow:   run.Name,
 		Status:     run.Status,
 		Conclusion: run.Conclusion,
-		HTMLURL:    run.HTMLURL,
+		HTMLURL:    run.URL,
 		UpdatedAt:  run.UpdatedAt,
 		Jobs:       make([]JobStatus, len(jobs)),
 	}

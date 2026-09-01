@@ -170,15 +170,21 @@ func (m *MockExecutor) AddGHAPIJobs(owner, repo string, runID int64, jobs string
 	m.AddCommand("gh", []string{ghAPISubcommand, path}, jobs, "", nil)
 }
 
-// AddGHAPILatestRun mocks a gh api call for the latest workflow run.
+// AddGHAPILatestRun mocks a gh api call for the latest run of a workflow file.
+// A workflow is filtered on its own endpoint rather than a query parameter,
+// which the runs collection has none of.
 func (m *MockExecutor) AddGHAPILatestRun(owner, repo, workflow string, runID int64, status string) {
-	path := fmt.Sprintf("repos/%s/%s/actions/runs?per_page=1", owner, repo)
-	if workflow != "" {
-		path += "&workflow=" + workflow
+	m.AddCommand("gh", []string{ghAPISubcommand, LatestRunPath(owner, repo, workflow)},
+		APIRunListJSON(APIRun{ID: runID, Name: "CI", Status: status}), "", nil)
+}
+
+// LatestRunPath is the gh api path a latest-run read asks for.
+func LatestRunPath(owner, repo, workflow string) string {
+	if workflow == "" {
+		return fmt.Sprintf("repos/%s/%s/actions/runs?per_page=1", owner, repo)
 	}
 
-	runsJSON := fmt.Sprintf(`{"total_count":1,"workflow_runs":[{"id":%d,"name":"CI","status":%q}]}`, runID, status)
-	m.AddCommand("gh", []string{ghAPISubcommand, path}, runsJSON, "", nil)
+	return fmt.Sprintf("repos/%s/%s/actions/workflows/%s/runs?per_page=1", owner, repo, workflow)
 }
 
 // AddGHVersion mocks the gh --version command.

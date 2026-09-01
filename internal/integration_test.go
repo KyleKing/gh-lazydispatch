@@ -405,11 +405,11 @@ func setupChainWithLogViewingMocks(t *testing.T, mockExec *testutil.MockExecutor
 	client := testutil.NewMockGitHubClient().
 		WithRun(&github.WorkflowRun{
 			ID: 5001, Name: "CI", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
-			HTMLURL: "https://github.com/owner/repo/actions/runs/5001",
+			URL: "https://github.com/owner/repo/actions/runs/5001",
 		}).
 		WithRun(&github.WorkflowRun{
 			ID: 5002, Name: "Deploy", Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
-			HTMLURL: "https://github.com/owner/repo/actions/runs/5002",
+			URL: "https://github.com/owner/repo/actions/runs/5002",
 		})
 	client.LatestByWorkflow["ci.yml"] = 5001
 	client.LatestByWorkflow["deploy.yml"] = 5002
@@ -593,11 +593,11 @@ func setupChainWithErrorLogsMocks(t *testing.T, mockExec *testutil.MockExecutor)
 	client := testutil.NewMockGitHubClient().
 		WithRun(&github.WorkflowRun{
 			ID: 7001, Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
-			HTMLURL: "https://github.com/owner/repo/actions/runs/7001",
+			URL: "https://github.com/owner/repo/actions/runs/7001",
 		}).
 		WithRun(&github.WorkflowRun{
 			ID: 7002, Status: github.StatusCompleted, Conclusion: github.ConclusionSuccess,
-			HTMLURL: "https://github.com/owner/repo/actions/runs/7002",
+			URL: "https://github.com/owner/repo/actions/runs/7002",
 		})
 	client.LatestByWorkflow["ci.yml"] = 7001
 	client.LatestByWorkflow["deploy.yml"] = 7002

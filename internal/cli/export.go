@@ -269,7 +269,7 @@ func exportRuns(args []string, stdout, stderr io.Writer) error {
 			Status:     run.Status,
 			Conclusion: run.Conclusion,
 			Branch:     run.HeadBranch,
-			URL:        run.HTMLURL,
+			URL:        run.URL,
 			CreatedAt:  run.CreatedAt.Format(timeFormat),
 		})
 	}
