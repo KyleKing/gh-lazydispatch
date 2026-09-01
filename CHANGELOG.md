@@ -1,3 +1,9 @@
+## v1.7.0 (2026-09-01)
+
+### Feat
+
+- **ui**: show a branch's real state and give the layout its space back
+
 ## v1.6.0 (2026-09-01)
 
 ### Feat
