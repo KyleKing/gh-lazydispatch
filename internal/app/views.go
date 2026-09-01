@@ -304,8 +304,11 @@ func (m Model) leftPaneTitle() string {
 func (m Model) viewWorkflowPane(width, height int) string {
 	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
 
-	title := ui.TitleStyle.Render(m.leftPaneTitle())
 	maxLineWidth := width - paneContentMargin
+	first, last := scrollWindow(m.selectedWorkflow, len(m.workflows), height-workflowPaneChrome)
+
+	title := ui.TitleStyle.Render(m.leftPaneTitle()) +
+		ui.RenderScrollIndicator(last < len(m.workflows), first > 0)
 
 	var content strings.Builder
 
@@ -318,11 +321,9 @@ func (m Model) viewWorkflowPane(width, height int) string {
 		content.WriteString(ui.TableDefaultStyle.Render("  " + allLine))
 	}
 
-	if len(m.workflows) > 0 {
-		content.WriteString("\n")
-	}
+	for i := first; i < last; i++ {
+		wf := m.workflows[i]
 
-	for i, wf := range m.workflows {
 		name := wf.Name
 		if name == "" {
 			name = wf.Filename
@@ -330,18 +331,40 @@ func (m Model) viewWorkflowPane(width, height int) string {
 
 		line := table.Truncate(name, maxLineWidth)
 
+		content.WriteString("\n")
+
 		if i == m.selectedWorkflow {
 			content.WriteString(ui.SelectedStyle.Render("> " + line))
 		} else {
 			content.WriteString(ui.NormalStyle.Render("  " + line))
 		}
-
-		if i < len(m.workflows)-1 {
-			content.WriteString("\n")
-		}
 	}
 
 	return style.Render(title + "\n" + content.String())
+}
+
+// workflowPaneChrome is the vertical space the workflow pane spends on its
+// border, title, and the "all workflows" pseudo-entry.
+const workflowPaneChrome = 4
+
+// scrollWindow returns the half-open range of rows to draw so that selected
+// stays visible. A negative selected (the cleared workflow selection) holds the
+// window at the top.
+func scrollWindow(selected, total, rows int) (int, int) {
+	if rows < 1 {
+		rows = 1
+	}
+
+	if total <= rows {
+		return 0, total
+	}
+
+	first := 0
+	if selected >= rows {
+		first = selected - rows + 1
+	}
+
+	return first, first + rows
 }
 
 func (m Model) viewHistoryConfigPane(width, height int) string {

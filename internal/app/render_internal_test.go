@@ -1,12 +1,15 @@
 package app
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/exp/golden"
+
+	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 func newRenderModel() Model {
@@ -238,4 +241,50 @@ func TestDispatchFlowEndState(t *testing.T) {
 	content := m.View().Content
 	assertFits(t, content, 120, 40)
 	golden.RequireEqual(t, content)
+}
+
+// manyWorkflows is the shape of a real repository: irm has 26 dispatchable
+// workflows, which is more rows than the left pane has at any supported height.
+func manyWorkflows(n int) []workflow.File {
+	files := make([]workflow.File, 0, n)
+	for i := range n {
+		files = append(files, workflow.File{
+			Name:     fmt.Sprintf("Workflow %02d", i),
+			Filename: fmt.Sprintf("wf-%02d.yml", i),
+			On:       workflow.OnTrigger{Dispatch: &workflow.Dispatch{}},
+		})
+	}
+
+	return files
+}
+
+func TestView_FitsWhenWorkflowsOutnumberTheRows(t *testing.T) {
+	t.Parallel()
+
+	const workflowCount = 26
+
+	for _, tt := range renderSizes {
+		for _, selected := range []int{-1, 0, workflowCount / 2, workflowCount - 1} {
+			t.Run(fmt.Sprintf("%s/selected_%d", tt.name, selected), func(t *testing.T) {
+				t.Parallel()
+
+				m := newRenderModel()
+				m.workflows = manyWorkflows(workflowCount)
+				m.selectedWorkflow = selected
+				m = resize(t, m, tt.width, tt.height)
+
+				content := m.View().Content
+				assertFits(t, content, tt.width, tt.height)
+
+				if tt.height < MinTerminalHeight || selected < 0 {
+					return
+				}
+
+				want := fmt.Sprintf("Workflow %02d", selected)
+				if !strings.Contains(ansi.Strip(content), want) {
+					t.Errorf("selected workflow %q is outside the drawn window", want)
+				}
+			})
+		}
+	}
 }

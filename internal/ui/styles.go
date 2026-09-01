@@ -146,7 +146,9 @@ func PaneStyle(width, height int, focused bool) lipgloss.Style {
 		style = FocusedBorderStyle
 	}
 
-	return style.Width(width).Height(height)
+	// MaxHeight is what keeps a pane whose content outgrew it from pushing the
+	// footer off the terminal instead of scrolling.
+	return style.Width(width).Height(height).MaxHeight(height)
 }
 
 // FormatEmptyValue returns the display string for a value, showing ("") for empty strings.
