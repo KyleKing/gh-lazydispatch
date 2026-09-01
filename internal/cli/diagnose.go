@@ -108,7 +108,7 @@ func failedSteps(runLogs *logs.RunLogs, tailLines int) []failedStep {
 	steps := make([]failedStep, 0, len(all))
 
 	for _, step := range all {
-		if step == nil || step.Conclusion == "" || step.Conclusion == "success" || step.Conclusion == "skipped" {
+		if step == nil || !step.Failed() {
 			continue
 		}
 
@@ -146,9 +146,15 @@ func tailOf(step *logs.StepLogs, tailLines int) failedStep {
 
 		end = i + 1
 
-		if len(errorLines) < maxErrorLines {
-			errorLines = append(errorLines, entry.Content)
+		// The cap keeps the last errors, not the first. A test runner narrating
+		// 13,000 passing tests logs error-shaped progress lines for minutes
+		// before the failure, so keeping the head reports the noise and drops
+		// the summary that names the cause.
+		if len(errorLines) == maxErrorLines {
+			errorLines = errorLines[1:]
 		}
+
+		errorLines = append(errorLines, entry.Content)
 	}
 
 	start := max(end-tailLines, 0)

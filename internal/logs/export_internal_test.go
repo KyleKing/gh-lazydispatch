@@ -155,7 +155,10 @@ func TestDetect(t *testing.T) {
 			t.Parallel()
 
 			runLogs := NewRunLogs("c", "main")
-			runLogs.AddStep(&StepLogs{Workflow: "w.yml", Entries: []LogEntry{{Content: tt.line}}})
+			runLogs.AddStep(&StepLogs{
+				Workflow: "w.yml", Conclusion: "failure",
+				Entries: []LogEntry{{Content: tt.line}},
+			})
 
 			got := Detect(runLogs)
 			if len(got) != 1 || got[0].Label != tt.label {
@@ -169,7 +172,7 @@ func TestDetect_QuietLogsAndNilRun(t *testing.T) {
 	t.Parallel()
 
 	runLogs := NewRunLogs("c", "main")
-	runLogs.AddStep(&StepLogs{Workflow: "w.yml", Entries: []LogEntry{{Content: "all good"}}})
+	runLogs.AddStep(&StepLogs{Workflow: "w.yml", Conclusion: "failure", Entries: []LogEntry{{Content: "all good"}}})
 
 	if got := Detect(runLogs); len(got) != 0 {
 		t.Errorf("Detect on clean logs returned %+v", got)
@@ -187,7 +190,7 @@ func TestDetect_IgnoresTheEchoedScript(t *testing.T) {
 	t.Parallel()
 
 	runLogs := NewRunLogs("c", "main")
-	runLogs.AddStep(&StepLogs{Workflow: "w.yml", Entries: []LogEntry{
+	runLogs.AddStep(&StepLogs{Workflow: "w.yml", Conclusion: "failure", Entries: []LogEntry{
 		{Content: `##[group]Run case "$MODE" in`},
 		{Content: `  echo "Error: no space left on device"`},
 		{Content: `  echo "Error: The action timed out"`},
@@ -198,5 +201,75 @@ func TestDetect_IgnoresTheEchoedScript(t *testing.T) {
 	got := Detect(runLogs)
 	if len(got) != 1 || got[0].Label != "Network failure" {
 		t.Fatalf("Detect reported %+v, want only the signature outside the echoed script", got)
+	}
+}
+
+// TestDetect_ReadsOnlyTheFailureItself pins the two rules that took signature
+// precision on a real repository from 17% to 100%: a step that succeeded is not
+// read at all, and within a step that failed only the trailing SignatureWindow
+// lines are. Both false positives below are shapes measured in production, a
+// parametrized test ID and a story title.
+func TestDetect_ReadsOnlyTheFailureItself(t *testing.T) {
+	t.Parallel()
+
+	const denied = "[gw4] [ 65%] [access denied not retryable] SUBPASS tests/test_s3.py::test_retryability"
+
+	filler := func(n int) []LogEntry {
+		entries := make([]LogEntry, 0, n)
+		for range n {
+			entries = append(entries, LogEntry{Content: "installing collected packages"})
+		}
+
+		return entries
+	}
+
+	tests := []struct {
+		name       string
+		conclusion string
+		entries    []LogEntry
+		want       []string
+	}{
+		{
+			name:       "a step that succeeded is not read",
+			conclusion: "success",
+			entries:    []LogEntry{{Content: "MCP_OAUTH_SIGNING_SECRET is not set - using an ephemeral random secret"}},
+			want:       nil,
+		},
+		{
+			name:       "a match beyond the window is not a cause",
+			conclusion: "failure",
+			entries:    append([]LogEntry{{Content: denied}}, filler(SignatureWindow)...),
+			want:       nil,
+		},
+		{
+			name:       "a match inside the window is",
+			conclusion: "failure",
+			entries:    append(filler(SignatureWindow), LogEntry{Content: denied}),
+			want:       []string{"Permission denied"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			runLogs := NewRunLogs("c", "main")
+			runLogs.AddStep(&StepLogs{Workflow: "w.yml", Conclusion: tt.conclusion, Entries: tt.entries})
+
+			got := make([]string, 0, len(tt.want))
+			for _, d := range Detect(runLogs) {
+				got = append(got, d.Label)
+			}
+
+			if len(got) != len(tt.want) {
+				t.Fatalf("Detect returned %v, want %v", got, tt.want)
+			}
+
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("label %d is %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
 	}
 }

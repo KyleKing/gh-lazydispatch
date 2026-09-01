@@ -39,6 +39,12 @@ type StepLogs struct {
 	RunID      int64      `json:"run_id"`
 }
 
+// Failed reports whether the step is one a diagnosis should read. A step whose
+// conclusion is empty has not reported one yet, which is not a failure.
+func (s *StepLogs) Failed() bool {
+	return s.Conclusion != "" && s.Conclusion != "success" && s.Conclusion != "skipped"
+}
+
 // RunLogs contains logs for all steps in a workflow run or chain.
 type RunLogs struct {
 	ChainName string      `json:"chain_name"`
