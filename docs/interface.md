@@ -39,7 +39,7 @@ Only the selected workflow carries the values in the config pane. The rest of a 
 
 ## Panes
 
-The left column stacks what a dispatch is built from, top to bottom: the workflows that declare a `workflow_dispatch` trigger, the chains the repository configures, and the configuration the next run carries. A repository with no chains draws no chains pane, and `tab` skips it rather than stopping on an empty one.
+The left column stacks what a dispatch is built from, top to bottom: the workflows that declare a `workflow_dispatch` trigger, the chains the repository configures, and the configuration the next run carries. A repository with no chains gets a line naming the feature where the pane would be, and `tab` skips it rather than stopping on an empty one. Opening an input or a history entry in the top-left pane takes the chains pane's rows too, since nothing there acts on a chain.
 
 The right panel runs the full height of the terminal and holds four tabs: Runs, Live, History, and Flaky. `[` and `]` move between them from anywhere, since the right panel is the only tabbed thing on screen. Each tab reports what it holds in the tab bar, so the counts are readable without visiting the tab, and the names abbreviate to their initials on a narrow terminal rather than dropping the counts.
 
@@ -59,7 +59,7 @@ The History tab is this checkout's own dispatch history, so in a repository you 
 
 It loads nothing until opened, and then reads the newest run of each workflow on the branch, keyed on the workflow file *and* its display title, so a workflow that reports a mode in its title (a Pulumi preview against a Pulumi deploy) keeps one current state per mode. Runs older than four hours drop out unless they are still going, falling back to the newest three when nothing at all is that recent, because a repository that dispatches twice a week still has an answer.
 
-`s` cycles the scope between the current branch, your open pull requests, and the pull requests awaiting your review. `R` reloads. `enter` opens the run on a time axis, and the action menu (`a`) adds logs and diagnose.
+`s` cycles the scope between the current branch, your open pull requests, and the pull requests awaiting your review. `R` reloads. `enter` opens the run on a time axis, and the action menu (`a`) adds the run's log and a diagnosis of its failure.
 
 The two pull request scopes list one row per pull request carrying its own check rollup (`2+ 1x`), because that is the exact answer to whether it is green. `enter` on one of those rows expands it into the runs on its head branch, which is where the failing workflow is named. The pane names the ref it drilled into above its rows, and `s` cycles back out.
 
@@ -68,8 +68,7 @@ The two pull request scopes list one row per pull request carrying its own check
 | `s` | Next scope: branch, my PRs, awaiting my review |
 | `R` | Reload the current scope |
 | `enter` | Open the selected run on a time axis, or expand a pull request into its branch's runs |
-| `a` then `v` | Open the selected run's log |
-| `a` then `d` | Diagnose the selected run's failure |
+| `a` | Actions for the selected run, including its log and a diagnosis of its failure |
 
 `:runs [branch\|mine\|reviewing]` opens a scope by name.
 
@@ -93,9 +92,9 @@ Runs › ci  [esc] back
 
 It is a drill-down of the row that names the run rather than a tab beside it, so the breadcrumb says which list it came from. `enter` drills further into the selected job's steps, rescaling the axis to that job's own window. `esc` peels one layer per press: a job's steps, then the run, then whatever view you were in.
 
-`v` opens the run's log from here and `d` diagnoses its failure, so the timeline names the failing job and the log says why.
+The action menu (`a`) reaches the run's log and a diagnosis from here, so the timeline names the failing job and the log says why.
 
-Open one with `enter` on a Runs, Live, or Flaky row, with `a` then `t` from a History row, or with `:timeline <run-id>`. A bar with no end yet is drawn open (`▓`) against a clock that runs to now, and redraws once a second while the run is going.
+Open one with `enter` on a Runs, Live, or Flaky row, or with `:timeline`, which draws whatever is selected and takes a run id to draw one by number. A bar with no end yet is drawn open (`▓`) against a clock that runs to now, and redraws once a second while the run is going.
 
 ## Flaky
 

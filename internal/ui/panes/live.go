@@ -209,14 +209,6 @@ func (m LiveRunsModel) ViewContent() string {
 	return content.String()
 }
 
-// View renders the live runs pane with border.
-func (m LiveRunsModel) View() string {
-	style := ui.PaneStyle(m.width, m.height, m.focused)
-	title := ui.TitleStyle.Render("Live Runs")
-
-	return style.Render(title + "\n" + m.ViewContent())
-}
-
 func runStatusIcon(status, conclusion string) string {
 	switch status {
 	case github.StatusQueued:

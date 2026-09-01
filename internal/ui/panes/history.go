@@ -86,18 +86,6 @@ func (m HistoryModel) Update(_ tea.Msg) (HistoryModel, tea.Cmd) {
 	return m, nil
 }
 
-// View renders the history pane.
-func (m HistoryModel) View() string {
-	style := ui.PaneStyle(m.width, m.height, m.focused)
-
-	title := "Recent Runs"
-	if m.workflowFilter != "" {
-		title = "Recent Runs (" + m.workflowFilter + ")"
-	}
-
-	return style.Render(ui.TitleStyle.Render(title) + "\n" + m.ViewContent())
-}
-
 // ViewContent renders just the list content without the pane border.
 func (m HistoryModel) ViewContent() string {
 	if len(m.entries) == 0 {

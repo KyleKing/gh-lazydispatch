@@ -26,8 +26,9 @@ const (
 	TabFlaky
 )
 
-// tabCount is the number of tabs in the right panel.
-const tabCount = 4
+// TabCount is the number of tabs in the right panel, and the bound every
+// RightTab is valid within.
+const TabCount = 4
 
 // TabbedRightModel manages the tabbed right panel and the run detail one of its
 // rows drills into.
@@ -91,7 +92,7 @@ func (m TabbedRightModel) ActiveTab() RightTab {
 // rather than on the tab. It leaves any drilled-into detail, because naming a
 // tab is asking for that tab.
 func (m *TabbedRightModel) SetTab(tab RightTab) {
-	if tab < 0 || tab >= tabCount {
+	if tab < 0 || tab >= TabCount {
 		return
 	}
 
@@ -102,12 +103,12 @@ func (m *TabbedRightModel) SetTab(tab RightTab) {
 
 // NextTab switches to the next tab.
 func (m *TabbedRightModel) NextTab() {
-	m.SetTab((m.activeTab + 1) % tabCount)
+	m.SetTab((m.activeTab + 1) % TabCount)
 }
 
 // PrevTab switches to the previous tab.
 func (m *TabbedRightModel) PrevTab() {
-	m.SetTab((m.activeTab + tabCount - 1) % tabCount)
+	m.SetTab((m.activeTab + TabCount - 1) % TabCount)
 }
 
 func (m *TabbedRightModel) updateTabFocus() {
@@ -251,10 +252,8 @@ func (m *TabbedRightModel) MoveDown() {
 
 // View renders the tabbed panel.
 func (m TabbedRightModel) View() string {
-	style := ui.PaneStyle(m.width, m.height, m.focused)
-
 	if m.detail != nil {
-		return style.Render(m.renderCrumb() + "\n" + m.detail.ViewContent())
+		return ui.PaneBox(m.width, m.height, m.focused, m.renderCrumb()+"\n"+m.detail.ViewContent())
 	}
 
 	var content string
@@ -270,7 +269,7 @@ func (m TabbedRightModel) View() string {
 		content = m.flaky.ViewContent()
 	}
 
-	return style.Render(m.renderTabHeader() + "\n" + content)
+	return ui.PaneBox(m.width, m.height, m.focused, m.renderTabHeader()+"\n"+content)
 }
 
 // renderCrumb names the path into the detail, so backing out is obviously a

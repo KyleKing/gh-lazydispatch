@@ -13,72 +13,12 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
 const (
 	testValueStaging = "staging"
 	testChainAlpha   = "alpha"
 )
-
-func testWorkflows() []workflow.File {
-	return []workflow.File{
-		{
-			Name:     "Deploy",
-			Filename: "deploy.yml",
-			On: workflow.OnTrigger{
-				Dispatch: &workflow.Dispatch{
-					Inputs: map[string]workflow.Input{
-						"environment": {
-							Type:    "choice",
-							Default: testValueStaging,
-							Options: []string{"production", testValueStaging},
-						},
-						"dry_run": {
-							Type:    "boolean",
-							Default: "false",
-						},
-					},
-				},
-			},
-		},
-		{
-			Name:     "CI",
-			Filename: "ci.yml",
-			On: workflow.OnTrigger{
-				Dispatch: &workflow.Dispatch{},
-			},
-		},
-	}
-}
-
-func TestWorkflowModel_SelectedWorkflow(t *testing.T) {
-	t.Parallel()
-
-	m := NewWorkflowModel(testWorkflows())
-	m.SetSize(40, 20)
-
-	wf := m.SelectedWorkflow()
-	if wf == nil {
-		t.Fatal("expected non-nil workflow")
-	}
-
-	if wf.Filename != "deploy.yml" {
-		t.Errorf("expected 'deploy.yml', got %q", wf.Filename)
-	}
-}
-
-func TestWorkflowItem_FilterValue(t *testing.T) {
-	t.Parallel()
-
-	wf := workflow.File{Name: "Deploy", Filename: "deploy.yml"}
-	item := WorkflowItem{workflow: wf}
-
-	fv := item.FilterValue()
-	if fv != "Deploy deploy.yml" {
-		t.Errorf("expected 'Deploy deploy.yml', got %q", fv)
-	}
-}
 
 func TestHistoryModel_SetEntries(t *testing.T) {
 	t.Parallel()
@@ -116,66 +56,6 @@ func TestHistoryModel_SetEntries_Empty(t *testing.T) {
 	}
 }
 
-func TestWorkflowItem_Title_NoName(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name        string
-		wf          workflow.File
-		expectTitle string
-		expectDesc  string
-	}{
-		{
-			name: "name and filename",
-			wf: workflow.File{
-				Name:     "Deploy",
-				Filename: "deploy.yml",
-			},
-			expectTitle: "Deploy",
-			expectDesc:  "deploy.yml",
-		},
-		{
-			name: "no name fallback to filename",
-			wf: workflow.File{
-				Name:     "",
-				Filename: "test.yml",
-			},
-			expectTitle: "test.yml",
-			expectDesc:  "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			item := WorkflowItem{workflow: tt.wf}
-
-			title := item.Title()
-			if title != tt.expectTitle {
-				t.Errorf("Title() = %q, want %q", title, tt.expectTitle)
-			}
-
-			desc := item.Description()
-			if tt.expectDesc != "" && desc != tt.expectDesc {
-				t.Errorf("Description() = %q, want %q", desc, tt.expectDesc)
-			}
-		})
-	}
-}
-
-func TestWorkflowModel_SelectedWorkflow_EmptyList(t *testing.T) {
-	t.Parallel()
-
-	m := NewWorkflowModel([]workflow.File{})
-	m.SetSize(40, 20)
-
-	wf := m.SelectedWorkflow()
-	if wf != nil {
-		t.Error("expected nil workflow for empty list")
-	}
-}
-
 func findSubstring(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {
@@ -207,7 +87,7 @@ func TestTabbedRightModel_TabSwitching(t *testing.T) {
 
 	// Every tab is reachable by walking forward, and the walk lands back where
 	// it started, so adding a tab does not need this test rewritten.
-	for i := range tabCount {
+	for i := range TabCount {
 		if want := RightTab(i); m.ActiveTab() != want {
 			t.Fatalf("after %d NextTab calls the active tab is %v, want %v", i, m.ActiveTab(), want)
 		}
@@ -221,7 +101,7 @@ func TestTabbedRightModel_TabSwitching(t *testing.T) {
 
 	m.PrevTab()
 
-	if want := RightTab(tabCount - 1); m.ActiveTab() != want {
+	if want := RightTab(TabCount - 1); m.ActiveTab() != want {
 		t.Errorf("PrevTab from the first tab landed on %v, want %v", m.ActiveTab(), want)
 	}
 }

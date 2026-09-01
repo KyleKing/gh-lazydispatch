@@ -20,10 +20,11 @@ narrow the patterns.
 
 ## Interface
 
-A repository that configures no chains now draws no chains pane, which also
-removed the placard explaining what chains are and how to configure one. The
-feature is documented in `docs/chains.md` and reachable through `:chain`, so
-nothing is unreachable, but a first-time reader no longer trips over it.
+Opening an input's details at 80x24 gives the top-left pane eleven rows and the
+view wants about fourteen, so its current value, default, and key hints are cut
+off. The frame stays well formed because every pane truncates to the rows it
+was given. Making the config pane yield its rows while a detail is open would
+fit it, at the cost of clipping the command preview instead.
 
 ## Hooks
 

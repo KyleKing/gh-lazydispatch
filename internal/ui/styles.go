@@ -3,9 +3,11 @@ package ui
 
 import (
 	"image/color"
+	"strings"
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/kyleking/aragonite/tui/theme"
 	"github.com/sahilm/fuzzy"
 )
@@ -161,18 +163,28 @@ func ApplyTheme() {
 // what separates the width a pane is given from the width its content gets.
 const PaneBorderSize = 2
 
-// PaneStyle returns a style for a pane with optional focus. Lipgloss counts the
-// border inside Width and Height, so the pane occupies exactly the width and
-// height it is given and its content gets PaneBorderSize less.
-func PaneStyle(width, height int, focused bool) lipgloss.Style {
+// PaneBox draws content inside a pane of exactly width by height cells.
+// Content is truncated rather than wrapped, because a wrapped line costs the
+// pane the bottom border MaxHeight then clips in its place.
+func PaneBox(width, height int, focused bool, content string) string {
 	style := BorderStyle
 	if focused {
 		style = FocusedBorderStyle
 	}
 
-	// MaxHeight is what keeps a pane whose content outgrew it from pushing the
-	// footer off the terminal instead of scrolling.
-	return style.Width(width).Height(height).MaxHeight(height)
+	inner := max(width-PaneBorderSize, 0)
+	rows := max(height-PaneBorderSize, 0)
+
+	lines := strings.Split(content, "\n")
+	if len(lines) > rows {
+		lines = lines[:rows]
+	}
+
+	for i, line := range lines {
+		lines[i] = ansi.Truncate(line, inner, "…")
+	}
+
+	return style.Width(width).Height(height).MaxHeight(height).Render(strings.Join(lines, "\n"))
 }
 
 // FormatEmptyValue returns the display string for a value, showing ("") for empty strings.

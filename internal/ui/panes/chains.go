@@ -170,10 +170,9 @@ func (m ChainListModel) ViewContent() string {
 
 // View renders the chain list pane with border.
 func (m ChainListModel) View() string {
-	style := ui.PaneStyle(m.width, m.height, m.focused)
 	first, last := m.window()
 	title := ui.TitleStyle.Render("Chains") +
 		ui.RenderScrollIndicator(last < len(m.chainNames), first > 0)
 
-	return style.Render(title + "\n" + m.ViewContent())
+	return ui.PaneBox(m.width, m.height, m.focused, title+"\n"+m.ViewContent())
 }

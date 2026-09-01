@@ -3,8 +3,9 @@ package app
 import "testing"
 
 // The left column is sized from the bottom up: the config pane takes what its
-// content needs, the chains pane takes its rows or vanishes, and the workflow
-// list keeps the rest. When they do not all fit, chains gives ground first.
+// content needs, the chains pane takes its rows or gives way to the line that
+// names the feature, and the workflow list keeps the rest. When they do not all
+// fit, chains gives ground first.
 func TestLayoutFor_SizesTheLeftColumnFromTheBottomUp(t *testing.T) {
 	t.Parallel()
 
@@ -16,10 +17,16 @@ func TestLayoutFor_SizesTheLeftColumnFromTheBottomUp(t *testing.T) {
 		config     int
 		chains     int
 		workflows  int
+		wantHint   bool
 	}{
 		{
-			name: "no workflow and no chains", height: 24,
-			wantConfig: configPaneEmptyHeight, config: 5, workflows: 17,
+			name: "no workflow and no chains", height: 24, wantHint: true,
+			wantConfig: configPaneEmptyHeight, config: 5, workflows: 16,
+		},
+		{
+			name: "a pane too short for a row goes entirely", height: 22,
+			wantConfig: configPaneChrome + 4, wantChains: chainsPaneChrome + 3,
+			config: 14, chains: 0, workflows: 6,
 		},
 		{
 			name: "one input beside two chains", height: 30,
@@ -42,14 +49,14 @@ func TestLayoutFor_SizesTheLeftColumnFromTheBottomUp(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			box := layoutFor(120, tt.height, tt.wantConfig, tt.wantChains)
+			box := layoutFor(120, tt.height, tt.wantConfig, tt.wantChains, tt.wantHint)
 
 			if box.configHeight != tt.config || box.chainsHeight != tt.chains || box.workflowHeight != tt.workflows {
 				t.Errorf("config/chains/workflows are %d/%d/%d, want %d/%d/%d",
 					box.configHeight, box.chainsHeight, box.workflowHeight, tt.config, tt.chains, tt.workflows)
 			}
 
-			stacked := box.workflowHeight + box.chainsHeight + box.configHeight
+			stacked := box.workflowHeight + box.chainsHeight + box.chainsHintRows + box.configHeight
 			if stacked != box.rightHeight {
 				t.Errorf("the left column is %d rows against a right panel of %d", stacked, box.rightHeight)
 			}

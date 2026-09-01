@@ -79,20 +79,29 @@ func (m Model) viewTooSmall() string {
 
 // viewLeftColumn stacks the panes that describe what to dispatch: the workflow
 // list, the chains built from it, and the configuration the next run carries.
-// The chains pane is absent rather than empty in a repository that configures
-// none, which is also why it is skipped in the focus cycle.
+// A repository that configures no chains gets a line naming the feature in
+// place of the pane, which is also why the pane is skipped in the focus cycle.
 func (m Model) viewLeftColumn(box paneLayout) string {
 	stacked := []string{m.viewTopLeftPane(box.leftWidth, box.workflowHeight)}
 
-	if box.chainsHeight > 0 {
+	switch {
+	case box.chainsHeight > 0:
 		m.chains.SetSize(box.leftWidth, box.chainsHeight)
 		m.chains.SetFocused(m.focused == PaneChains)
 		stacked = append(stacked, m.chains.View())
+	case box.chainsHintRows > 0:
+		stacked = append(stacked, viewChainsHint(box.leftWidth))
 	}
 
 	stacked = append(stacked, m.viewConfigPane(box.leftWidth, box.configHeight))
 
 	return lipgloss.JoinVertical(lipgloss.Left, stacked...)
+}
+
+// viewChainsHint stands in for the chains pane where a repository configures
+// none, so the feature is named somewhere a reader will see it.
+func viewChainsHint(width int) string {
+	return ui.HelpStyle.Render(ansi.Truncate(" Chains: none · :chain", width, "…"))
 }
 
 // viewTopLeftPane is the workflow list, or what a selection inside it opened
@@ -238,8 +247,6 @@ func fitHints(width int, leaders, contextual, always []string) string {
 }
 
 func (m Model) viewInputDetailsPane(width, height int) string {
-	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
-
 	selectedName := m.getSelectedInputName()
 	if selectedName == "" {
 		return m.viewWorkflowPane(width, height)
@@ -271,7 +278,7 @@ func (m Model) viewInputDetailsPane(width, height int) string {
 	content.WriteString("\n\n")
 	content.WriteString(ui.HelpStyle.Render("[Esc] back  [e] edit"))
 
-	return style.Render(content.String())
+	return ui.PaneBox(width, height, m.focused == PaneWorkflows, content.String())
 }
 
 func _renderInputHeader(content *strings.Builder, name string, required bool) {
@@ -343,8 +350,6 @@ func (m Model) leftPaneTitle() string {
 }
 
 func (m Model) viewWorkflowPane(width, height int) string {
-	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
-
 	maxLineWidth := width - paneContentMargin - 1
 	first, last := ui.ScrollWindow(m.selectedWorkflow, len(m.workflows), height-workflowPaneChrome)
 
@@ -381,7 +386,7 @@ func (m Model) viewWorkflowPane(width, height int) string {
 		}
 	}
 
-	return style.Render(title + "\n" + content.String())
+	return ui.PaneBox(width, height, m.focused == PaneWorkflows, title+"\n"+content.String())
 }
 
 // workflowPaneChrome is the vertical space the workflow pane spends on its
@@ -389,8 +394,6 @@ func (m Model) viewWorkflowPane(width, height int) string {
 const workflowPaneChrome = 4
 
 func (m Model) viewHistoryConfigPane(width, height int) string {
-	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
-
 	var content strings.Builder
 
 	content.WriteString(ui.TitleStyle.Render(m.leftPaneTitle()))
@@ -398,7 +401,7 @@ func (m Model) viewHistoryConfigPane(width, height int) string {
 
 	if m.previewingHistoryEntry == nil {
 		content.WriteString(ui.SubtitleStyle.Render("No history entry selected"))
-		return style.Render(content.String())
+		return ui.PaneBox(width, height, m.focused == PaneWorkflows, content.String())
 	}
 
 	entry := m.previewingHistoryEntry
@@ -469,12 +472,10 @@ func (m Model) viewHistoryConfigPane(width, height int) string {
 		content.WriteString(ui.HelpStyle.Render("[Enter] apply & run  [Esc] back"))
 	}
 
-	return style.Render(content.String())
+	return ui.PaneBox(width, height, m.focused == PaneWorkflows, content.String())
 }
 
 func (m Model) viewConfigPane(width, height int) string {
-	style := ui.PaneStyle(width, height, m.focused == PaneConfig)
-
 	var content strings.Builder
 
 	content.WriteString(ui.TitleStyle.Render("Configuration"))
@@ -482,7 +483,7 @@ func (m Model) viewConfigPane(width, height int) string {
 
 	if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
 		content.WriteString(ui.SubtitleStyle.Render("Select a workflow"))
-		return style.Render(content.String())
+		return ui.PaneBox(width, height, m.focused == PaneConfig, content.String())
 	}
 
 	content.WriteString(m.configHeaderLine(width - ui.PaneBorderSize))
@@ -515,7 +516,7 @@ func (m Model) viewConfigPane(width, height int) string {
 
 	content.WriteString(ui.CLIPreviewStyle.Render(cliCmd))
 
-	return style.Render(content.String())
+	return ui.PaneBox(width, height, m.focused == PaneConfig, content.String())
 }
 
 // configHeaderLine spells the branch and the toggles on one line, dropping

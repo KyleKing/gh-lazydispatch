@@ -462,10 +462,3 @@ func (m RunsModel) title() string {
 
 	return m.branch
 }
-
-// View renders the runs pane with its border.
-func (m RunsModel) View() string {
-	style := ui.PaneStyle(m.width, m.height, m.focused)
-
-	return style.Render(ui.TitleStyle.Render("Runs ("+m.title()+")") + "\n" + m.ViewContent())
-}

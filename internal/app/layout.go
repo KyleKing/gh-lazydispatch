@@ -11,6 +11,7 @@ type paneLayout struct {
 	rightHeight    int
 	workflowHeight int
 	chainsHeight   int
+	chainsHintRows int
 	configHeight   int
 }
 
@@ -30,6 +31,10 @@ const chainsPaneChrome = 4
 // from the workflow list, which is the one a reader drives with.
 const chainsPaneMaxRows = 6
 
+// chainsHintHeight is the line standing in for the chains pane in a repository
+// that configures none, so the feature is named somewhere.
+const chainsHintHeight = 1
+
 // minWorkflowPaneHeight keeps a border, a title, the "all workflows" row, and
 // two workflows above whatever the panes below it need.
 const minWorkflowPaneHeight = 6
@@ -39,18 +44,32 @@ const minWorkflowPaneHeight = 6
 //
 // The left column is sized from the bottom up: the config pane takes what its
 // content needs rather than half the screen, the chains pane takes its rows or
-// vanishes when there are none, and the workflow list keeps the rest. When
+// gives way to a one-line hint when there are none, and the workflow list keeps
+// the rest. When
 // they do not all fit, the chains pane gives ground before the config pane,
 // because the config pane holds the command about to be dispatched.
-func layoutFor(width, height, wantConfig, wantChains int) paneLayout {
+func layoutFor(width, height, wantConfig, wantChains int, wantHint bool) paneLayout {
 	left := leftColumnWidth(width)
 	available := height - viewsFixedChromeHeight
 
 	config := max(wantConfig, configPaneEmptyHeight)
 	chains := wantChains
 
+	hint := 0
+	if wantHint {
+		hint = chainsHintHeight
+	}
+
+	available -= hint
+
 	if over := config + chains + minWorkflowPaneHeight - available; over > 0 {
 		chains = max(chains-over, 0)
+	}
+
+	// A chains pane too short to hold a single row is chrome with nothing in
+	// it, so it goes entirely rather than down to its border.
+	if chains < chainsPaneChrome+1 {
+		chains = 0
 	}
 
 	if over := config + chains + minWorkflowPaneHeight - available; over > 0 {
@@ -60,9 +79,10 @@ func layoutFor(width, height, wantConfig, wantChains int) paneLayout {
 	return paneLayout{
 		leftWidth:      left,
 		rightWidth:     width - left,
-		rightHeight:    available,
+		rightHeight:    available + hint,
 		workflowHeight: available - config - chains,
 		chainsHeight:   chains,
+		chainsHintRows: hint,
 		configHeight:   config,
 	}
 }
@@ -92,12 +112,11 @@ func (m Model) configPaneHeight() int {
 	return configPaneChrome + rows
 }
 
-// chainsPaneHeight is how many rows the chains pane wants, and zero when the
-// repository configures none: an empty pane in the focus cycle is a stop that
-// never has anything to say.
+// chainsPaneHeight is how many rows the chains pane wants: none without chains,
+// and none while a detail holds the top-left pane, which needs the column more.
 func (m Model) chainsPaneHeight() int {
 	n := m.chains.Count()
-	if n == 0 {
+	if n == 0 || m.viewMode != WorkflowListMode {
 		return 0
 	}
 
@@ -106,5 +125,5 @@ func (m Model) chainsPaneHeight() int {
 
 // layout resolves the current terminal size against what the stacked panes need.
 func (m Model) layout() paneLayout {
-	return layoutFor(m.width, m.height, m.configPaneHeight(), m.chainsPaneHeight())
+	return layoutFor(m.width, m.height, m.configPaneHeight(), m.chainsPaneHeight(), m.chains.Count() == 0)
 }
