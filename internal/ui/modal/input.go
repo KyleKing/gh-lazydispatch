@@ -16,9 +16,10 @@ const defaultTextInputWidth = 40
 
 // Workflow input type names, shared across the modal package.
 const (
-	inputTypeChoice  = "choice"
-	inputTypeBoolean = "boolean"
-	boolTrueValue    = "true"
+	inputTypeChoice      = "choice"
+	inputTypeBoolean     = "boolean"
+	inputTypeEnvironment = "environment"
+	boolTrueValue        = "true"
 )
 
 // InputModal presents a text input field.
@@ -179,6 +180,12 @@ func (m *InputModal) View() string {
 	if m.inputType == inputTypeChoice && len(m.options) > 0 {
 		s.WriteString("\n")
 		s.WriteString(ui.SubtitleStyle.Render("Options: " + strings.Join(m.options, " / ")))
+		s.WriteString("\n")
+	}
+
+	if m.inputType == inputTypeEnvironment {
+		s.WriteString("\n")
+		s.WriteString(ui.ErrorStyle.Render("Environment names are not fetched yet; type one and it is sent as-is."))
 		s.WriteString("\n")
 	}
 

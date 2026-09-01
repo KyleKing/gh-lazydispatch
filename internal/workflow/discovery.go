@@ -8,9 +8,18 @@ import (
 	"sort"
 )
 
-// Discover finds all workflow files in the .github/workflows directory
-// and returns only those with workflow_dispatch triggers.
-func Discover(repoRoot string) ([]File, error) {
+// ParseFailure names a workflow file that could not be read or parsed. A
+// repository holding only these looks identical to an empty one unless the
+// failures are reported alongside the workflows.
+type ParseFailure struct {
+	Err      error
+	Filename string
+}
+
+// Discover finds all workflow files in the .github/workflows directory and
+// returns those with workflow_dispatch triggers, plus the files it could not
+// parse. Only an unusable workflow directory is an error.
+func Discover(repoRoot string) ([]File, []ParseFailure, error) {
 	workflowDir := filepath.Join(repoRoot, ".github", "workflows")
 
 	patterns := []string{
@@ -23,17 +32,21 @@ func Discover(repoRoot string) ([]File, error) {
 	for _, pattern := range patterns {
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("globbing workflow files with pattern %q: %w", pattern, err)
+			return nil, nil, fmt.Errorf("globbing workflow files with pattern %q: %w", pattern, err)
 		}
 
 		files = append(files, matches...)
 	}
 
-	var workflows []File
+	var (
+		workflows []File
+		failures  []ParseFailure
+	)
 
 	for _, file := range files {
 		wf, err := parseWorkflowFile(file)
 		if err != nil {
+			failures = append(failures, ParseFailure{Filename: filepath.Base(file), Err: err})
 			continue
 		}
 
@@ -45,8 +58,11 @@ func Discover(repoRoot string) ([]File, error) {
 	sort.Slice(workflows, func(i, j int) bool {
 		return workflows[i].Filename < workflows[j].Filename
 	})
+	sort.Slice(failures, func(i, j int) bool {
+		return failures[i].Filename < failures[j].Filename
+	})
 
-	return workflows, nil
+	return workflows, failures, nil
 }
 
 func parseWorkflowFile(path string) (File, error) {

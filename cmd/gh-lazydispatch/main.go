@@ -50,15 +50,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	workflows, err := workflow.Discover(cwd)
+	workflows, failures, err := workflow.Discover(cwd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error discovering workflows: %v\n", err)
 		os.Exit(1)
 	}
 
+	for _, failure := range failures {
+		fmt.Fprintf(os.Stderr, "Warning: skipping %s: %v\n", failure.Filename, failure.Err)
+	}
+
 	if len(workflows) == 0 {
 		fmt.Println("No dispatchable workflows found in .github/workflows/")
 		fmt.Println("\nWorkflows must have 'workflow_dispatch' trigger to be dispatchable.")
+
+		if len(failures) > 0 {
+			fmt.Printf("\n%d workflow file(s) failed to parse, listed above.\n", len(failures))
+		}
+
 		os.Exit(0)
 	}
 

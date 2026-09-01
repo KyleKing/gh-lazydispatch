@@ -91,7 +91,7 @@ func TestLiveDispatch(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	t.Chdir(env.dir)
 
-	workflows, err := workflow.Discover(env.dir)
+	workflows, _, err := workflow.Discover(env.dir)
 	if err != nil {
 		t.Fatalf("discovering workflows in %s: %v", env.dir, err)
 	}

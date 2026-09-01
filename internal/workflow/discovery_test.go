@@ -18,7 +18,7 @@ func TestDiscover(t *testing.T) {
 	}
 	repoRoot := filepath.Join(filepath.Dir(currentFile), "..", "..", "testdata")
 
-	workflows, err := workflow.Discover(repoRoot)
+	workflows, failures, err := workflow.Discover(repoRoot)
 	if err != nil {
 		t.Fatalf("Discover failed: %v", err)
 	}
@@ -43,12 +43,48 @@ func TestDiscover(t *testing.T) {
 	if filenames["not-dispatchable.yml"] {
 		t.Error("not-dispatchable.yml should not be included")
 	}
+
+	if len(failures) != 0 {
+		t.Errorf("expected no parse failures, got %v", failures)
+	}
+}
+
+func TestDiscover_ReportsMalformedFilesSeparatelyFromAnEmptyRepo(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	dir := filepath.Join(tmpDir, ".github", "workflows")
+
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, "broken.yml"), []byte("on: [\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	workflows, failures, err := workflow.Discover(tmpDir)
+	if err != nil {
+		t.Fatalf("Discover failed: %v", err)
+	}
+
+	if len(workflows) != 0 {
+		t.Errorf("expected 0 workflows, got %d", len(workflows))
+	}
+
+	if len(failures) != 1 || failures[0].Filename != "broken.yml" {
+		t.Fatalf("expected broken.yml reported as a parse failure, got %v", failures)
+	}
+
+	if failures[0].Err == nil {
+		t.Error("parse failure carries no error")
+	}
 }
 
 func TestDiscover_NonExistentDir(t *testing.T) {
 	t.Parallel()
 
-	workflows, err := workflow.Discover("/nonexistent/path")
+	workflows, _, err := workflow.Discover("/nonexistent/path")
 	if err != nil {
 		t.Fatalf("Discover should not error on missing dir: %v", err)
 	}
@@ -67,7 +103,7 @@ func TestDiscover_EmptyDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	workflows, err := workflow.Discover(tmpDir)
+	workflows, _, err := workflow.Discover(tmpDir)
 	if err != nil {
 		t.Fatalf("Discover failed: %v", err)
 	}
