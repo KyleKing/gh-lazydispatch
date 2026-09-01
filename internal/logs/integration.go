@@ -2,6 +2,7 @@ package logs
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 )
@@ -90,7 +91,14 @@ func (m *Manager) GetLogsForChain(chainState chain.ChainState, branch string) (*
 
 // GetLogsForRun fetches logs for a single workflow run.
 func (m *Manager) GetLogsForRun(runID int64, workflow string) (*RunLogs, error) {
-	runLogs := NewRunLogs("", "")
+	// A run reached by ID carries no workflow name, and the viewer titles itself
+	// from this, so the ID stands in rather than leaving the title blank.
+	name := workflow
+	if name == "" {
+		name = "run " + strconv.FormatInt(runID, 10)
+	}
+
+	runLogs := NewRunLogs(name, "")
 
 	stepLogs, err := m.fetcher.FetchStepLogs(runID, workflow)
 	if err != nil {

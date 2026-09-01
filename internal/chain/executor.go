@@ -77,27 +77,63 @@ type ChainUpdate struct {
 //
 //nolint:revive // stutters but renaming to Executor would break call sites across the codebase
 type ChainExecutor struct {
-	client    GitHubClient
-	watcher   RunWatcher
-	chain     *config.Chain
-	state     *ChainState
-	variables map[string]string
-	updates   chan ChainUpdate
-	stopCh    chan struct{}
-	chainName string
-	branch    string
-	mu        sync.RWMutex
-	stopOnce  sync.Once
+	client       GitHubClient
+	watcher      RunWatcher
+	chain        *config.Chain
+	state        *ChainState
+	variables    map[string]string
+	updates      chan ChainUpdate
+	stopCh       chan struct{}
+	dispatch     Dispatcher
+	chainName    string
+	branch       string
+	pollInterval time.Duration
+	mu           sync.RWMutex
+	stopOnce     sync.Once
+}
+
+// Dispatcher starts one workflow and reports the run it started.
+//
+// The executor holds one rather than calling the runner directly, because the
+// dispatch is the one step a test cannot take: internal/exec's mutation guard
+// panics on `gh workflow run`, so the branch and failure handling around it were
+// unreachable while the call was hard-wired.
+type Dispatcher func(cfg runner.RunConfig, client GitHubClient) (int64, error)
+
+// dispatchThroughRunner is the real dispatch: it shells out to
+// `gh workflow run` and reports the run that appeared.
+func dispatchThroughRunner(cfg runner.RunConfig, client GitHubClient) (int64, error) {
+	runID, err := runner.ExecuteAndGetRunID(cfg, client)
+	if err != nil {
+		return 0, fmt.Errorf("dispatching %s: %w", cfg.Workflow, err)
+	}
+
+	return runID, nil
+}
+
+// Option configures an executor.
+type Option func(*ChainExecutor)
+
+// WithDispatcher replaces how a step starts its workflow.
+func WithDispatcher(d Dispatcher) Option {
+	return func(e *ChainExecutor) { e.dispatch = d }
+}
+
+// WithPollInterval sets how often a step waiting on a run asks about it.
+func WithPollInterval(d time.Duration) Option {
+	return func(e *ChainExecutor) { e.pollInterval = d }
 }
 
 // NewExecutor creates a new chain executor.
-func NewExecutor(client GitHubClient, w RunWatcher, chainName string, chain *config.Chain) *ChainExecutor {
+func NewExecutor(
+	client GitHubClient, w RunWatcher, chainName string, chain *config.Chain, opts ...Option,
+) *ChainExecutor {
 	stepStatuses := make([]StepStatus, len(chain.Steps))
 	for i := range stepStatuses {
 		stepStatuses[i] = StepPending
 	}
 
-	return &ChainExecutor{
+	executor := &ChainExecutor{
 		client:    client,
 		watcher:   w,
 		chain:     chain,
@@ -109,9 +145,17 @@ func NewExecutor(client GitHubClient, w RunWatcher, chainName string, chain *con
 			StepStatuses: stepStatuses,
 			Status:       ChainPending,
 		},
-		updates: make(chan ChainUpdate, 10),
-		stopCh:  make(chan struct{}),
+		updates:      make(chan ChainUpdate, 10),
+		stopCh:       make(chan struct{}),
+		dispatch:     dispatchThroughRunner,
+		pollInterval: watcher.PollInterval,
 	}
+
+	for _, opt := range opts {
+		opt(executor)
+	}
+
+	return executor
 }
 
 // PreviousStepResult contains the result of a previously completed step.
@@ -281,7 +325,7 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 		Inputs:   inputs,
 	}
 
-	runID, err := runner.ExecuteAndGetRunID(cfg, e.client)
+	runID, err := e.dispatch(cfg, e.client)
 	if err != nil {
 		suggestion := ""
 		if e.branch != "" {
@@ -354,7 +398,7 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 }
 
 func (e *ChainExecutor) waitForRun(runID int64, _ config.WaitCondition) (string, string, error) {
-	ticker := time.NewTicker(watcher.PollInterval)
+	ticker := time.NewTicker(e.pollInterval)
 	defer ticker.Stop()
 
 	for {
