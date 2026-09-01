@@ -1,3 +1,9 @@
+## v1.2.1 (2026-09-01)
+
+### Fix
+
+- **chain**: resolve a step's previous against the step above it, in one place
+
 ## v1.2.0 (2026-09-01)
 
 ### Feat
