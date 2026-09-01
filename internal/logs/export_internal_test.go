@@ -179,3 +179,24 @@ func TestDetect_QuietLogsAndNilRun(t *testing.T) {
 		t.Errorf("Detect(nil) = %+v, want nil", got)
 	}
 }
+
+// TestDetect_IgnoresTheEchoedScript pins the rule that separates a step that
+// failed from a step whose source mentions failing: GitHub folds every `run:`
+// script into the log above that step's output.
+func TestDetect_IgnoresTheEchoedScript(t *testing.T) {
+	t.Parallel()
+
+	runLogs := NewRunLogs("c", "main")
+	runLogs.AddStep(&StepLogs{Workflow: "w.yml", Entries: []LogEntry{
+		{Content: `##[group]Run case "$MODE" in`},
+		{Content: `  echo "Error: no space left on device"`},
+		{Content: `  echo "Error: The action timed out"`},
+		{Content: "##[endgroup]"},
+		{Content: "dial tcp 10.0.0.1:443: connection refused"},
+	}})
+
+	got := Detect(runLogs)
+	if len(got) != 1 || got[0].Label != "Network failure" {
+		t.Fatalf("Detect reported %+v, want only the signature outside the echoed script", got)
+	}
+}

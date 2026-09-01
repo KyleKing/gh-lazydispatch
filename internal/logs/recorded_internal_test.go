@@ -128,25 +128,19 @@ func TestRecorded_FailureSignaturesAndExport(t *testing.T) {
 		runLogs.AddStep(step)
 	}
 
-	want := map[string]bool{
-		"Out of memory": false, "Out of disk": false, "Timeout": false,
-		"Missing secret": false, "Permission denied": false, "Network failure": false,
-	}
+	// The recorded workflow is a case statement naming every signature, and
+	// GitHub echoes that script into the log above the step's own output. Only
+	// the branch that ran is a real failure, so anything else Detect reports
+	// came from reading the script rather than the run.
+	detections := Detect(runLogs)
 
-	for _, d := range Detect(runLogs) {
-		if _, expected := want[d.Label]; !expected {
-			t.Errorf("unexpected signature %q from %q", d.Label, d.Line)
-
-			continue
+	if len(detections) != 1 || detections[0].Label != "Network failure" {
+		labels := make([]string, 0, len(detections))
+		for _, d := range detections {
+			labels = append(labels, d.Label+" <- "+d.Line)
 		}
 
-		want[d.Label] = true
-	}
-
-	for label, found := range want {
-		if !found {
-			t.Errorf("%q was not detected in a run that prints a line matching it", label)
-		}
+		t.Errorf("Detect reported %v, want only the signature the run emitted", labels)
 	}
 
 	config := NewFilterConfig()

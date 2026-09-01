@@ -82,7 +82,13 @@ func Detect(runLogs *RunLogs) []Detection {
 
 		seen := make(map[string]bool, len(failurePatterns))
 
+		var echo CommandEcho
+
 		for _, entry := range step.Entries {
+			if echo.Echoed(entry.Content) {
+				continue
+			}
+
 			for _, pattern := range failurePatterns {
 				if seen[pattern.Label] || !pattern.match.MatchString(entry.Content) {
 					continue

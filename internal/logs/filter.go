@@ -55,7 +55,15 @@ func (f *Filter) Apply(runLogs *RunLogs) *FilteredResult {
 			Entries:   make([]FilteredLogEntry, 0),
 		}
 
+		var echo CommandEcho
+
 		for i, entry := range step.Entries {
+			// A level filter asks what went wrong, and a step's own script is
+			// not something that went wrong even when it says "Error:".
+			if f.filtersByLevel() && echo.Echoed(entry.Content) {
+				continue
+			}
+
 			if f.matchesEntry(&entry) {
 				filteredEntry := FilteredLogEntry{
 					Original:      entry,
@@ -73,6 +81,12 @@ func (f *Filter) Apply(runLogs *RunLogs) *FilteredResult {
 	}
 
 	return result
+}
+
+// filtersByLevel reports whether the filter narrows to errors or warnings
+// rather than passing every line through.
+func (f *Filter) filtersByLevel() bool {
+	return f.config.Level == FilterErrors || f.config.Level == FilterWarnings
 }
 
 // matchesEntry determines if a log entry matches the filter criteria.

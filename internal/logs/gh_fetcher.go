@@ -125,17 +125,25 @@ func (*GHFetcher) parseJobLogsIntoSteps(
 	stepLogs := make([]*StepLogs, 0, len(order))
 
 	for i, name := range order {
-		step := steps[name]
+		step, declared := steps[name]
+
+		stepName := name
+		if !declared {
+			// gh could not resolve these lines to a step, so they carry the
+			// job's own outcome rather than none.
+			stepName = job.Name
+			step = github.Step{Status: job.Status, Conclusion: job.Conclusion}
+		}
 
 		stepLogs = append(stepLogs, &StepLogs{
 			StepIndex:  startIndex + i,
 			Workflow:   workflow,
 			RunID:      runID,
 			JobName:    job.Name,
-			StepName:   name,
+			StepName:   stepName,
 			Status:     step.Status,
 			Conclusion: step.Conclusion,
-			Entries:    ParseLogOutput(strings.Join(byStep[name], "\n"), name),
+			Entries:    ParseLogOutput(strings.Join(byStep[name], "\n"), stepName),
 			FetchedAt:  time.Now(),
 		})
 	}
@@ -193,12 +201,19 @@ func splitPrefix(line string, steps map[string]github.Step) (string, string, boo
 	}
 
 	name := fields[1]
-	if _, declared := steps[name]; !declared {
+	if _, declared := steps[name]; !declared && name != unresolvedStep {
 		return "", "", false
 	}
 
 	return name, strings.TrimPrefix(fields[2], byteOrderMark), true
 }
+
+// unresolvedStep is what gh writes in the step field when it cannot map a
+// line to a declared step, which it does for every line of some jobs. Treating
+// it as a step of its own is what keeps those jobs from parsing to nothing;
+// only a sentinel this exact is trusted, so a message carrying tabs still
+// cannot invent a step.
+const unresolvedStep = "UNKNOWN STEP"
 
 // logScanBuffer bounds a single log line. A stack trace or a base64 payload on
 // one line runs well past bufio's 64KB default, and a line over the limit would
