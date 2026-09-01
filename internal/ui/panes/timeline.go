@@ -59,6 +59,18 @@ func (m *TimelineModel) SetSize(width, height int) {
 // SetFocused updates the focus state.
 func (m *TimelineModel) SetFocused(focused bool) { m.focused = focused }
 
+// Running reports whether anything on screen has yet to finish, which is what
+// makes the drawing go stale between frames.
+func (m TimelineModel) Running() bool {
+	for _, span := range m.spans() {
+		if span.End.IsZero() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Drilled reports whether a job's steps are on screen.
 func (m TimelineModel) Drilled() bool { return m.drilled != noDrill }
 
@@ -180,7 +192,7 @@ const (
 func (m TimelineModel) ViewContent() string {
 	if len(m.jobs) == 0 {
 		return ui.TableDimmedStyle.Render(
-			"No run selected.\n\nOpen a run from History or Live with [a] then [t]\nto see where its time went.",
+			"No run selected.\n\nOpen a run with [Enter] to see where its time went.",
 		)
 	}
 
@@ -191,10 +203,9 @@ func (m TimelineModel) ViewContent() string {
 		return ui.TableDimmedStyle.Render("Not enough room to draw a timeline.")
 	}
 
+	// The heading is not repeated here: the panel's breadcrumb already names
+	// the run and the job drilled into.
 	var s strings.Builder
-
-	s.WriteString(ui.SubtitleStyle.Render(ansi.Truncate(m.Heading(), m.width, "…")))
-	s.WriteString("\n")
 
 	for i, row := range layout.Rows {
 		s.WriteString(m.renderRow(i, row, track))

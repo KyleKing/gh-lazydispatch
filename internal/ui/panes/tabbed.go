@@ -7,7 +7,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
@@ -17,21 +16,27 @@ import (
 // RightTab represents which tab is active in the right panel.
 type RightTab int
 
-// Right panel tab values.
+// Right panel tabs, in the order a reader wants them: what GitHub says now,
+// what this session is watching, what this checkout dispatched, and how often
+// any of it passes.
 const (
-	TabHistory RightTab = iota
-	TabChains
+	TabRuns RightTab = iota
 	TabLive
-	TabTimeline
-	TabRuns
+	TabHistory
+	TabFlaky
 )
 
-// TabbedRightModel manages the tabbed right panel.
+// tabCount is the number of tabs in the right panel.
+const tabCount = 4
+
+// TabbedRightModel manages the tabbed right panel and the run detail one of its
+// rows drills into.
 type TabbedRightModel struct {
-	history   HistoryModel
-	chains    ChainListModel
+	detail    *TimelineModel
+	crumb     string
 	live      LiveRunsModel
-	timeline  TimelineModel
+	history   HistoryModel
+	flaky     FlakyModel
 	runs      RunsModel
 	activeTab RightTab
 	width     int
@@ -42,12 +47,11 @@ type TabbedRightModel struct {
 // NewTabbedRight creates a new tabbed right panel.
 func NewTabbedRight() TabbedRightModel {
 	return TabbedRightModel{
-		activeTab: TabHistory,
+		activeTab: TabRuns,
 		history:   NewHistoryModel(),
-		chains:    NewChainListModel(),
 		live:      NewLiveRunsModel(),
-		timeline:  NewTimelineModel(),
 		runs:      NewRunsModel(),
+		flaky:     NewFlakyModel(),
 	}
 }
 
@@ -63,20 +67,19 @@ func (m *TabbedRightModel) SetSize(width, height int) {
 	m.height = height
 	contentHeight := height - tabbedChromeHeight
 	m.history.SetSize(width-tabbedChromeWidth, contentHeight)
-	m.chains.SetSize(width-tabbedChromeWidth, contentHeight)
 	m.live.SetSize(width-tabbedChromeWidth, contentHeight)
-	m.timeline.SetSize(width-tabbedChromeWidth, contentHeight)
 	m.runs.SetSize(width-tabbedChromeWidth, contentHeight)
+	m.flaky.SetSize(width-tabbedChromeWidth, contentHeight)
+
+	if m.detail != nil {
+		m.detail.SetSize(width-tabbedChromeWidth, contentHeight)
+	}
 }
 
 // SetFocused updates the focus state.
 func (m *TabbedRightModel) SetFocused(focused bool) {
 	m.focused = focused
-	m.history.SetFocused(focused && m.activeTab == TabHistory)
-	m.chains.SetFocused(focused && m.activeTab == TabChains)
-	m.live.SetFocused(focused && m.activeTab == TabLive)
-	m.timeline.SetFocused(focused && m.activeTab == TabTimeline)
-	m.runs.SetFocused(focused && m.activeTab == TabRuns)
+	m.updateTabFocus()
 }
 
 // ActiveTab returns the currently active tab.
@@ -84,48 +87,74 @@ func (m TabbedRightModel) ActiveTab() RightTab {
 	return m.activeTab
 }
 
-// tabCount is the number of tabs in the right panel.
-const tabCount = 5
-
 // SetTab switches directly to one tab, for a caller that landed on the data
-// rather than on the tab.
+// rather than on the tab. It leaves any drilled-into detail, because naming a
+// tab is asking for that tab.
 func (m *TabbedRightModel) SetTab(tab RightTab) {
 	if tab < 0 || tab >= tabCount {
 		return
 	}
 
+	m.detail = nil
 	m.activeTab = tab
 	m.updateTabFocus()
 }
 
 // NextTab switches to the next tab.
 func (m *TabbedRightModel) NextTab() {
-	m.activeTab = (m.activeTab + 1) % tabCount
-	m.updateTabFocus()
+	m.SetTab((m.activeTab + 1) % tabCount)
 }
 
 // PrevTab switches to the previous tab.
 func (m *TabbedRightModel) PrevTab() {
-	m.activeTab = (m.activeTab + tabCount - 1) % tabCount
-	m.updateTabFocus()
+	m.SetTab((m.activeTab + tabCount - 1) % tabCount)
 }
 
 func (m *TabbedRightModel) updateTabFocus() {
-	m.history.SetFocused(m.focused && m.activeTab == TabHistory)
-	m.chains.SetFocused(m.focused && m.activeTab == TabChains)
-	m.live.SetFocused(m.focused && m.activeTab == TabLive)
-	m.timeline.SetFocused(m.focused && m.activeTab == TabTimeline)
-	m.runs.SetFocused(m.focused && m.activeTab == TabRuns)
+	inTab := m.focused && m.detail == nil
+	m.history.SetFocused(inTab && m.activeTab == TabHistory)
+	m.live.SetFocused(inTab && m.activeTab == TabLive)
+	m.runs.SetFocused(inTab && m.activeTab == TabRuns)
+	m.flaky.SetFocused(inTab && m.activeTab == TabFlaky)
+
+	if m.detail != nil {
+		m.detail.SetFocused(m.focused)
+	}
+}
+
+// ShowDetail replaces the tab's list with one run drawn on a time axis, keeping
+// the tab it came from in the breadcrumb. A run's timeline is a drill-down of a
+// row rather than a peer of the list holding it, so it is reached by opening a
+// row and left by backing out of one.
+func (m *TabbedRightModel) ShowDetail(crumb, title string, jobs []github.Job) {
+	detail := NewTimelineModel()
+	detail.SetRun(title, jobs)
+	detail.SetSize(m.width-tabbedChromeWidth, m.height-tabbedChromeHeight)
+
+	m.detail = &detail
+	m.crumb = crumb
+	m.updateTabFocus()
+}
+
+// Detail returns the drilled-into run, or nil while a list is on screen.
+func (m *TabbedRightModel) Detail() *TimelineModel { return m.detail }
+
+// CloseDetail backs out to the list the detail was opened from, reporting
+// whether there was one to close.
+func (m *TabbedRightModel) CloseDetail() bool {
+	if m.detail == nil {
+		return false
+	}
+
+	m.detail = nil
+	m.updateTabFocus()
+
+	return true
 }
 
 // SetHistoryEntries updates the history entries.
 func (m *TabbedRightModel) SetHistoryEntries(entries []frecency.HistoryEntry, workflowFilter string) {
 	m.history.SetEntries(entries, workflowFilter)
-}
-
-// SetChains updates the chain definitions.
-func (m *TabbedRightModel) SetChains(chains map[string]config.Chain) {
-	m.chains.SetChains(chains)
 }
 
 // SetRuns updates the live runs.
@@ -138,19 +167,9 @@ func (m *TabbedRightModel) History() *HistoryModel {
 	return &m.history
 }
 
-// Chains returns the chain list model for direct access.
-func (m *TabbedRightModel) Chains() *ChainListModel {
-	return &m.chains
-}
-
 // Live returns the live runs model for direct access.
 func (m *TabbedRightModel) Live() *LiveRunsModel {
 	return &m.live
-}
-
-// Timeline returns the timeline model for direct access.
-func (m *TabbedRightModel) Timeline() *TimelineModel {
-	return &m.timeline
 }
 
 // Runs returns the runs model for direct access.
@@ -158,9 +177,9 @@ func (m *TabbedRightModel) Runs() *RunsModel {
 	return &m.runs
 }
 
-// SetTimelineRun replaces what the Timeline tab draws.
-func (m *TabbedRightModel) SetTimelineRun(title string, jobs []github.Job) {
-	m.timeline.SetRun(title, jobs)
+// Flaky returns the pass-rate model for direct access.
+func (m *TabbedRightModel) Flaky() *FlakyModel {
+	return &m.flaky
 }
 
 // Update handles messages for the active tab.
@@ -169,47 +188,107 @@ func (m TabbedRightModel) Update(msg tea.Msg) (TabbedRightModel, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.detail != nil {
+		detail, cmd := m.detail.Update(msg)
+		*m.detail = detail
+
+		return m, cmd
+	}
+
 	var cmd tea.Cmd
 
 	switch m.activeTab {
 	case TabHistory:
 		m.history, cmd = m.history.Update(msg)
-	case TabChains:
-		m.chains, cmd = m.chains.Update(msg)
 	case TabLive:
 		m.live, cmd = m.live.Update(msg)
-	case TabTimeline:
-		m.timeline, cmd = m.timeline.Update(msg)
 	case TabRuns:
 		m.runs, cmd = m.runs.Update(msg)
+	case TabFlaky:
+		m.flaky, cmd = m.flaky.Update(msg)
 	}
 
 	return m, cmd
+}
+
+// MoveUp moves the selection up in whatever the panel is showing.
+func (m *TabbedRightModel) MoveUp() {
+	if m.detail != nil {
+		m.detail.MoveUp()
+		return
+	}
+
+	switch m.activeTab {
+	case TabHistory:
+		m.history.MoveUp()
+	case TabLive:
+		m.live.MoveUp()
+	case TabRuns:
+		m.runs.MoveUp()
+	case TabFlaky:
+		m.flaky.MoveUp()
+	}
+}
+
+// MoveDown moves the selection down in whatever the panel is showing.
+func (m *TabbedRightModel) MoveDown() {
+	if m.detail != nil {
+		m.detail.MoveDown()
+		return
+	}
+
+	switch m.activeTab {
+	case TabHistory:
+		m.history.MoveDown()
+	case TabLive:
+		m.live.MoveDown()
+	case TabRuns:
+		m.runs.MoveDown()
+	case TabFlaky:
+		m.flaky.MoveDown()
+	}
 }
 
 // View renders the tabbed panel.
 func (m TabbedRightModel) View() string {
 	style := ui.PaneStyle(m.width, m.height, m.focused)
 
-	tabs := m.renderTabHeader()
+	if m.detail != nil {
+		return style.Render(m.renderCrumb() + "\n" + m.detail.ViewContent())
+	}
 
 	var content string
 
 	switch m.activeTab {
 	case TabHistory:
 		content = m.history.ViewContent()
-	case TabChains:
-		content = m.chains.ViewContent()
 	case TabLive:
 		content = m.live.ViewContent()
-	case TabTimeline:
-		content = m.timeline.ViewContent()
 	case TabRuns:
 		content = m.runs.ViewContent()
+	case TabFlaky:
+		content = m.flaky.ViewContent()
 	}
 
-	return style.Render(tabs + "\n" + content)
+	return style.Render(m.renderTabHeader() + "\n" + content)
 }
+
+// renderCrumb names the path into the detail, so backing out is obviously a
+// direction rather than a guess.
+func (m TabbedRightModel) renderCrumb() string {
+	trail := m.crumb
+	if m.detail != nil {
+		trail += " › " + m.detail.Heading()
+	}
+
+	line := ui.TitleStyle.Render(ansi.Truncate(trail, m.width-tabbedChromeWidth-backHintWidth, "…")) +
+		ui.HelpStyle.Render("  [esc] back")
+
+	return line
+}
+
+// backHintWidth is the room renderCrumb leaves for its own hint.
+const backHintWidth = 12
 
 func (m TabbedRightModel) renderTabHeader() string {
 	tabs := m.tabLabels()
@@ -231,9 +310,9 @@ type tabLabel struct {
 }
 
 // tabLabels reports what each tab holds, so a reader sees the counts rather
-// than having to visit four tabs to find them. The Runs tab reports a verdict
-// instead of a count, since "three passed, one failed" is the answer and the
-// row total is not.
+// than having to visit them all. The Runs tab reports a verdict instead of a
+// count, since "three passed, one failed" is the answer and the row total is
+// not, and the Flaky tab reports its worst pass rate for the same reason.
 func (m TabbedRightModel) tabLabels() []tabLabel {
 	live := ""
 	if n := len(m.live.runs); n > 0 {
@@ -244,11 +323,10 @@ func (m TabbedRightModel) tabLabels() []tabLabel {
 	}
 
 	return []tabLabel{
-		{name: "History", count: countLabel(len(m.history.entries)), tab: TabHistory},
-		{name: "Chains", count: countLabel(len(m.chains.chainNames)), tab: TabChains},
-		{name: "Live", count: live, tab: TabLive},
-		{name: "Timeline", count: countLabel(len(m.timeline.jobs)), tab: TabTimeline},
 		{name: "Runs", count: m.runsVerdict(), tab: TabRuns},
+		{name: "Live", count: live, tab: TabLive},
+		{name: "History", count: countLabel(len(m.history.entries)), tab: TabHistory},
+		{name: "Flaky", count: m.flakyVerdict(), tab: TabFlaky},
 	}
 }
 
@@ -279,6 +357,17 @@ func (m TabbedRightModel) runsVerdict() string {
 	return strings.Join(parts, "")
 }
 
+// flakyVerdict reports the worst pass rate measured, which is the number that
+// decides whether the tab is worth opening.
+func (m TabbedRightModel) flakyVerdict() string {
+	rows, worst := m.flaky.Summary()
+	if rows == 0 || worst < 0 {
+		return ""
+	}
+
+	return strconv.Itoa(worst) + "%"
+}
+
 // joinTabs renders the tab bar, abbreviating each name to its initial when the
 // full names do not fit. The counts survive abbreviation, because they are what
 // the bar is for.
@@ -296,13 +385,13 @@ func (m TabbedRightModel) joinTabs(tabs []tabLabel, abbreviated bool) string {
 		}
 
 		if t.tab == m.activeTab {
-			parts = append(parts, ui.SelectedStyle.Render("["+name+"]"))
+			parts = append(parts, ui.TabActiveStyle.Render(name))
 		} else {
-			parts = append(parts, ui.SubtitleStyle.Render(" "+name+" "))
+			parts = append(parts, ui.TabInactiveStyle.Render(name))
 		}
 	}
 
-	return strings.Join(parts, " ")
+	return strings.Join(parts, "")
 }
 
 // SelectedGitHubRun returns the run selected in the Runs tab.
@@ -313,11 +402,6 @@ func (m TabbedRightModel) SelectedGitHubRun() (github.WorkflowRun, bool) {
 // SelectedHistoryEntry returns the currently selected history entry.
 func (m TabbedRightModel) SelectedHistoryEntry() *frecency.HistoryEntry {
 	return m.history.SelectedEntry()
-}
-
-// SelectedChain returns the currently selected chain.
-func (m TabbedRightModel) SelectedChain() (string, config.Chain, bool) {
-	return m.chains.SelectedChain()
 }
 
 // SelectedRun returns the currently selected run.

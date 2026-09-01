@@ -193,8 +193,8 @@ func TestTabbedRightModel_Creation(t *testing.T) {
 
 	m := NewTabbedRight()
 
-	if m.ActiveTab() != TabHistory {
-		t.Errorf("expected initial tab to be TabHistory, got %v", m.ActiveTab())
+	if m.ActiveTab() != TabRuns {
+		t.Errorf("expected initial tab to be TabRuns, got %v", m.ActiveTab())
 	}
 }
 
@@ -215,7 +215,7 @@ func TestTabbedRightModel_TabSwitching(t *testing.T) {
 		m.NextTab()
 	}
 
-	if m.ActiveTab() != TabHistory {
+	if m.ActiveTab() != TabRuns {
 		t.Errorf("a full walk forward ended on %v, want the first tab", m.ActiveTab())
 	}
 
@@ -260,36 +260,6 @@ func TestTabbedRightModel_SetHistoryEntries(t *testing.T) {
 	}
 }
 
-func TestTabbedRightModel_SetChains(t *testing.T) {
-	t.Parallel()
-
-	m := NewTabbedRight()
-	m.SetSize(80, 24)
-
-	chains := map[string]config.Chain{
-		"deploy": {
-			Description: "Deploy to prod",
-			Steps:       []config.ChainStep{{Workflow: "build.yml"}},
-		},
-	}
-
-	m.SetChains(chains)
-	m.NextTab()
-
-	name, chain, ok := m.SelectedChain()
-	if !ok {
-		t.Fatal("expected chain to be selected")
-	}
-
-	if name != "deploy" {
-		t.Errorf("expected chain name 'deploy', got %q", name)
-	}
-
-	if chain.Description != "Deploy to prod" {
-		t.Errorf("expected description 'Deploy to prod', got %q", chain.Description)
-	}
-}
-
 func TestTabbedRightModel_ViewRendering(t *testing.T) {
 	t.Parallel()
 
@@ -298,16 +268,10 @@ func TestTabbedRightModel_ViewRendering(t *testing.T) {
 	m.SetFocused(true)
 
 	view := m.View()
-	if !findSubstring(view, "History") {
-		t.Error("view should contain History tab")
-	}
-
-	if !findSubstring(view, "Chains") {
-		t.Error("view should contain Chains tab")
-	}
-
-	if !findSubstring(view, "Live") {
-		t.Error("view should contain Live tab")
+	for _, tab := range []string{"Runs", "Live", "History", "Flaky"} {
+		if !findSubstring(view, tab) {
+			t.Errorf("view should contain the %s tab", tab)
+		}
 	}
 }
 
@@ -590,18 +554,6 @@ func TestChainListModel_Navigation(t *testing.T) {
 	}
 }
 
-func TestChainListModel_ViewEmpty(t *testing.T) {
-	t.Parallel()
-
-	m := NewChainListModel()
-	m.SetSize(80, 24)
-
-	view := m.ViewContent()
-	if !findSubstring(view, "No chains configured") {
-		t.Error("empty view should indicate no chains")
-	}
-}
-
 func TestChainListModel_ViewWithChains(t *testing.T) {
 	t.Parallel()
 
@@ -620,10 +572,6 @@ func TestChainListModel_ViewWithChains(t *testing.T) {
 	view := m.ViewContent()
 	if !findSubstring(view, "deploy") {
 		t.Error("view should contain chain name")
-	}
-
-	if !findSubstring(view, "Deploy to prod") {
-		t.Error("view should contain description")
 	}
 }
 
@@ -651,12 +599,6 @@ func TestTabbedPanelFitsTheWidthItIsGiven(t *testing.T) {
 	t.Parallel()
 
 	panel := NewTabbedRight()
-	panel.SetChains(map[string]config.Chain{
-		"a-long-chain-name-that-overflows": {
-			Description: strings.Repeat("long description ", 8),
-			Steps:       []config.ChainStep{{Workflow: "one.yml"}, {Workflow: "two.yml"}},
-		},
-	})
 	panel.SetHistoryEntries([]frecency.HistoryEntry{
 		{Workflow: "a-workflow-with-a-very-long-filename.yml", Branch: "a-long-branch-name", LastRunAt: time.Now()},
 	}, "")
@@ -669,7 +611,7 @@ func TestTabbedPanelFitsTheWidthItIsGiven(t *testing.T) {
 	for _, width := range []int{40, 60, 80, 120, 200} {
 		panel.SetSize(width, panelHeight)
 
-		for _, tab := range []RightTab{TabHistory, TabChains, TabLive} {
+		for _, tab := range []RightTab{TabRuns, TabLive, TabHistory, TabFlaky} {
 			panel.activeTab = tab
 
 			lines := strings.Split(panel.View(), "\n")

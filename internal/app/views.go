@@ -45,32 +45,15 @@ func (m Model) View() tea.View {
 	footerBar := m.viewFooterBar()
 
 	box := m.layout()
-	topHeight, leftWidth := box.topHeight, box.leftWidth
 
-	var leftPane string
+	m.rightPanel.SetSize(box.rightWidth, box.rightHeight)
+	m.rightPanel.SetFocused(m.focused == PaneRight)
 
-	switch m.viewMode {
-	case InputDetailMode:
-		if m.getSelectedInputName() != "" {
-			leftPane = m.viewInputDetailsPane(leftWidth, topHeight)
-		} else {
-			leftPane = m.viewWorkflowPane(leftWidth, topHeight)
-		}
-	case HistoryPreviewMode:
-		leftPane = m.viewHistoryConfigPane(leftWidth, topHeight)
-	default:
-		leftPane = m.viewWorkflowPane(leftWidth, topHeight)
-	}
-
-	// The config pane's height follows the selected workflow's input count, so
-	// the right panel is resized on every frame rather than only on a resize.
-	m.rightPanel.SetSize(box.rightWidth, box.topHeight)
-	m.rightPanel.SetFocused(m.focused == PaneHistory)
-	rightPane := m.rightPanel.View()
-	configPane := m.viewConfigPane(m.width, box.configHeight)
-
-	top := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
-	main := lipgloss.JoinVertical(lipgloss.Left, statusBar, top, configPane, footerBar)
+	main := lipgloss.JoinVertical(lipgloss.Left,
+		statusBar,
+		lipgloss.JoinHorizontal(lipgloss.Top, m.viewLeftColumn(box), m.rightPanel.View()),
+		footerBar,
+	)
 
 	var content string
 	if m.modalStack.HasActive() {
@@ -94,27 +77,48 @@ func (m Model) viewTooSmall() string {
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, msg)
 }
 
+// viewLeftColumn stacks the panes that describe what to dispatch: the workflow
+// list, the chains built from it, and the configuration the next run carries.
+// The chains pane is absent rather than empty in a repository that configures
+// none, which is also why it is skipped in the focus cycle.
+func (m Model) viewLeftColumn(box paneLayout) string {
+	stacked := []string{m.viewTopLeftPane(box.leftWidth, box.workflowHeight)}
+
+	if box.chainsHeight > 0 {
+		m.chains.SetSize(box.leftWidth, box.chainsHeight)
+		m.chains.SetFocused(m.focused == PaneChains)
+		stacked = append(stacked, m.chains.View())
+	}
+
+	stacked = append(stacked, m.viewConfigPane(box.leftWidth, box.configHeight))
+
+	return lipgloss.JoinVertical(lipgloss.Left, stacked...)
+}
+
+// viewTopLeftPane is the workflow list, or what a selection inside it opened
+// in place: an input's details, or a history entry waiting to be applied.
+func (m Model) viewTopLeftPane(width, height int) string {
+	switch m.viewMode {
+	case InputDetailMode:
+		if m.getSelectedInputName() != "" {
+			return m.viewInputDetailsPane(width, height)
+		}
+	case HistoryPreviewMode:
+		return m.viewHistoryConfigPane(width, height)
+	case WorkflowListMode:
+	}
+
+	return m.viewWorkflowPane(width, height)
+}
+
+// viewTopStatusBar names the global context: the ref every dispatch targets,
+// and a chain's progress while one runs. What each pane holds is reported by
+// that pane, so nothing here repeats a count the tab bar already carries.
 func (m Model) viewTopStatusBar() string {
 	var parts []string
 
 	if m.branch != "" {
-		parts = append(parts, m.branch+m.runsVerdict())
-	}
-
-	if m.wfdConfig != nil && len(m.wfdConfig.Chains) > 0 {
-		parts = append(parts, fmt.Sprintf("Chains(%d)", len(m.wfdConfig.Chains)))
-	}
-
-	if m.watcher != nil {
-		runs := m.watcher.GetRuns()
-		if len(runs) > 0 {
-			active := m.rightPanel.Live().ActiveCount()
-			if active > 0 {
-				parts = append(parts, fmt.Sprintf("Live(%d*)", len(runs)))
-			} else {
-				parts = append(parts, fmt.Sprintf("Live(%d)", len(runs)))
-			}
-		}
+		parts = append(parts, m.branch)
 	}
 
 	if m.chainExecutor != nil {
@@ -147,32 +151,7 @@ func (m Model) viewFooterBar() string {
 		return ui.HelpStyle.Render(" " + m.status)
 	}
 
-	var hints []string
-
-	switch m.focused {
-	case PaneWorkflows:
-		hints = append(hints, "[j/k] select", "[Enter] run")
-	case PaneHistory:
-		switch m.rightPanel.ActiveTab() {
-		case panes.TabHistory:
-			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] apply")
-		case panes.TabChains:
-			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] run chain")
-		case panes.TabLive:
-			hints = append(hints, "[h/l] tab", "[j/k] select")
-		case panes.TabTimeline:
-			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] steps", "[Esc] jobs")
-		case panes.TabRuns:
-			open := "[Enter] logs"
-			if m.rightPanel.Runs().Scope() != panes.ScopeBranch {
-				open = "[Enter] runs"
-			}
-
-			hints = append(hints, "[h/l] tab", "[j/k] select", "[s] scope", "[R] reload", open)
-		}
-	case PaneConfig:
-		hints = append(hints, "[Enter] run", "[1-0] edit", "[/] filter")
-	}
+	hints := m.footerHints()
 
 	// The leaders and the way out are never dropped: everything else is
 	// reachable through them, and they are what a first-timer needs.
@@ -180,6 +159,57 @@ func (m Model) viewFooterBar() string {
 	always := []string{"[?] help", "[q] quit"}
 
 	return ui.HelpStyle.Render(" " + fitHints(m.width-1, leaders, hints, always))
+}
+
+// Hints repeated across panes, so the same key reads the same wherever it is
+// offered.
+const (
+	hintSelect   = "[j/k] select"
+	hintTimeline = "[Enter] timeline"
+)
+
+// footerHints are the keys worth naming for whatever has focus. They are the
+// droppable half of the footer, so each is short and the most useful comes
+// first.
+func (m Model) footerHints() []string {
+	switch m.focused {
+	case PaneWorkflows:
+		return []string{hintSelect, "[space] mark", "[Enter] run"}
+	case PaneChains:
+		return []string{hintSelect, "[Enter] run chain"}
+	case PaneConfig:
+		return []string{"[Enter] run", "[1-0] edit", "[/] filter"}
+	case PaneRight:
+		return m.rightPanelHints()
+	}
+
+	return nil
+}
+
+func (m Model) rightPanelHints() []string {
+	if m.rightPanel.Detail() != nil {
+		return []string{"[Enter] steps", "[Esc] back", "[v] logs"}
+	}
+
+	tabs := "[[/]] tab"
+
+	switch m.rightPanel.ActiveTab() {
+	case panes.TabHistory:
+		return []string{tabs, hintSelect, "[Enter] apply"}
+	case panes.TabLive:
+		return []string{tabs, hintSelect, "[space] mark", hintTimeline}
+	case panes.TabFlaky:
+		return []string{tabs, hintSelect, "[R] reload", hintTimeline}
+	case panes.TabRuns:
+		open := hintTimeline
+		if m.rightPanel.Runs().Scope() != panes.ScopeBranch {
+			open = "[Enter] runs"
+		}
+
+		return []string{tabs, hintSelect, "[s] scope", "[R] reload", open}
+	}
+
+	return nil
 }
 
 // fitHints renders leaders, then as many contextual hints as fit, then always.
@@ -315,7 +345,7 @@ func (m Model) leftPaneTitle() string {
 func (m Model) viewWorkflowPane(width, height int) string {
 	style := ui.PaneStyle(width, height, m.focused == PaneWorkflows)
 
-	maxLineWidth := width - paneContentMargin
+	maxLineWidth := width - paneContentMargin - 1
 	first, last := ui.ScrollWindow(m.selectedWorkflow, len(m.workflows), height-workflowPaneChrome)
 
 	title := ui.TitleStyle.Render(m.leftPaneTitle()) +
@@ -323,9 +353,9 @@ func (m Model) viewWorkflowPane(width, height int) string {
 
 	var content strings.Builder
 
-	// The pseudo-entry above the workflows leaves history unfiltered; `0`
-	// returns to it.
-	allLine := "all workflows"
+	// The pseudo-entry above the workflows leaves history unfiltered and widens
+	// the pass-rate view to every workflow; `0` returns to it.
+	allLine := " all workflows"
 	if m.selectedWorkflow == -1 {
 		content.WriteString(ui.SelectedStyle.Render("> " + allLine))
 	} else {
@@ -340,7 +370,7 @@ func (m Model) viewWorkflowPane(width, height int) string {
 			name = wf.Filename
 		}
 
-		line := table.Truncate(name, maxLineWidth)
+		line := ui.MarkGlyph(m.markedWorkflows.Has(wf.Filename)) + table.Truncate(name, maxLineWidth)
 
 		content.WriteString("\n")
 
@@ -463,7 +493,8 @@ func (m Model) viewConfigPane(width, height int) string {
 		content.WriteString("\n")
 	}
 
-	layout := ui.FitColumns(ui.ConfigColumns(), width-paneContentMargin, ui.RowGutterWidth)
+	room := width - ui.PaneBorderSize
+	layout := ui.FitColumns(ui.ConfigColumnsFor(room-ui.RowGutterWidth), room, ui.RowGutterWidth)
 
 	content.WriteString("\n")
 	content.WriteString(m.renderTableHeader(layout))
@@ -475,7 +506,7 @@ func (m Model) viewConfigPane(width, height int) string {
 	content.WriteString("\n")
 
 	cliCmd := m.buildCLIString()
-	maxCmdWidth := width - cliPreviewMargin
+	maxCmdWidth := room
 
 	// The command's tail carries the inputs, which is the half a reader checks.
 	if maxCmdWidth > 0 {
@@ -487,9 +518,10 @@ func (m Model) viewConfigPane(width, height int) string {
 	return style.Render(content.String())
 }
 
-// configHeaderLine spells the branch and the toggles on one line. A long branch
-// name gives way rather than wrapping, since a wrapped line costs the config
-// pane a row it did not budget for and the toggles are what the keys act on.
+// configHeaderLine spells the branch and the toggles on one line, dropping
+// segments from the right rather than wrapping. A wrapped line costs the config
+// pane a row it did not budget for, and the branch is the segment worth keeping
+// because it is what the dispatch targets.
 func (m Model) configHeaderLine(width int) string {
 	branch := m.branch
 	if branch == "" {
@@ -501,15 +533,28 @@ func (m Model) configHeaderLine(width int) string {
 		watch = "on"
 	}
 
-	tail := "    Watch: [w] " + watch + "    [r] reset all"
-	head := ": [b] "
+	head := ui.TitleStyle.Render("Branch") + ": [b] "
+	headWidth := ansi.StringWidth("Branch: [b] ")
 
-	if room := width - ansi.StringWidth(head+tail) - len("Branch"); room > 0 {
-		branch = table.TruncateLeft(branch, room)
+	tails := []string{"  Watch: [w] " + watch, "  [r] reset"}
+	room := width - headWidth - ansi.StringWidth(branch)
+
+	kept := ""
+
+	for _, tail := range tails {
+		if ansi.StringWidth(kept+tail) > room {
+			break
+		}
+
+		kept += tail
 	}
 
-	return ui.TitleStyle.Render("Branch") + head + branch + tail
+	return head + table.TruncateLeft(branch, max(width-headWidth-ansi.StringWidth(kept), minBranchWidth)) + kept
 }
+
+// minBranchWidth is the narrowest a truncated branch name still says which
+// branch it is.
+const minBranchWidth = 8
 
 func (Model) renderTableHeader(layout table.Layout) string {
 	return ui.TableHeader(layout, ui.RowGutterWidth)

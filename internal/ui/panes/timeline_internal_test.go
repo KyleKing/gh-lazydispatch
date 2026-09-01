@@ -98,10 +98,11 @@ func TestTimelinePane_DrillsIntoAJobAndBackOut(t *testing.T) {
 		t.Fatal("enter did not drill into the selected job")
 	}
 
-	view := ansi.Strip(m.ViewContent())
-	if !strings.Contains(view, "› ci") {
-		t.Errorf("the heading does not name the job drilled into:\n%s", view)
+	if heading := m.Heading(); !strings.Contains(heading, "› ci") {
+		t.Errorf("the heading does not name the job drilled into: %q", heading)
 	}
+
+	view := ansi.Strip(m.ViewContent())
 
 	// The action-reference noise GitHub puts in a step name is stripped.
 	if !strings.Contains(view, "actions/checkout") || strings.Contains(view, "3d3c42e5") {

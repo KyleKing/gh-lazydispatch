@@ -183,7 +183,8 @@ func TestJourney_RemappingAStaleHistoryEntry(t *testing.T) {
 	t.Parallel()
 
 	m := resize(t, newRenderModel(), 120, 40)
-	m.focused = PaneHistory
+	m.focused = PaneRight
+	m.rightPanel.SetTab(panes.TabHistory)
 
 	m = selectHistoryEntryWithInput(t, m, testInputEnvironment, "prod")
 	m = pressSpecial(t, m, tea.KeyEnter)
@@ -218,7 +219,8 @@ func TestJourney_ActionMenuOnlyOffersWhatApplies(t *testing.T) {
 	t.Parallel()
 
 	m := resize(t, newRenderModel(), 120, 40)
-	m.focused = PaneHistory
+	m.focused = PaneRight
+	m.rightPanel.SetTab(panes.TabHistory)
 
 	m = pressRune(t, m, 'a')
 
@@ -269,7 +271,8 @@ func TestJourney_EscapePeelsOneLayerAtATime(t *testing.T) {
 	t.Parallel()
 
 	m := resize(t, newRenderModel(), 120, 40)
-	m.focused = PaneHistory
+	m.focused = PaneRight
+	m.rightPanel.SetTab(panes.TabHistory)
 	m = selectHistoryEntryWithInput(t, m, testInputEnvironment, "prod")
 	m = pressSpecial(t, m, tea.KeyEnter)
 
@@ -277,24 +280,33 @@ func TestJourney_EscapePeelsOneLayerAtATime(t *testing.T) {
 		t.Fatal("did not enter preview mode")
 	}
 
-	m.rightPanel.SetTimelineRun("run 1", timelineTestJobs())
-	m.rightPanel.SetTab(panes.TabTimeline)
-	m.rightPanel.Timeline().Drill()
+	m.rightPanel.ShowDetail("History", "run 1", timelineTestJobs())
+	m.rightPanel.Detail().Drill()
 
 	m = pressSpecial(t, m, tea.KeyEscape)
 
-	if m.rightPanel.Timeline().Drilled() {
+	if m.rightPanel.Detail() == nil {
+		t.Fatal("escape closed the whole run rather than the job it was drilled into")
+	}
+
+	if m.rightPanel.Detail().Drilled() {
 		t.Fatal("escape did not back out of the drilled job")
 	}
 
+	m = pressSpecial(t, m, tea.KeyEscape)
+
+	if m.rightPanel.Detail() != nil {
+		t.Fatal("the second escape did not close the run")
+	}
+
 	if m.viewMode != HistoryPreviewMode {
-		t.Error("escape left preview mode in the same press that closed the drill-down")
+		t.Error("escape left preview mode in the same press that closed the run")
 	}
 
 	m = pressSpecial(t, m, tea.KeyEscape)
 
 	if m.viewMode != WorkflowListMode {
-		t.Error("the second escape did not leave preview mode")
+		t.Error("the third escape did not leave preview mode")
 	}
 }
 

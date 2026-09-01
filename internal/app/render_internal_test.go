@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/exp/golden"
 
+	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
@@ -19,6 +20,16 @@ func newRenderModel() Model {
 	m.logManager = nil
 	m.watcher = nil
 	m.wfdConfig = nil
+
+	// The chains pane is part of the left column, so the frames have to cover a
+	// repository that configures some.
+	m.chains.SetChains(map[string]config.Chain{
+		"demo-pipeline": {
+			Description: "build then deploy",
+			Steps:       []config.ChainStep{{Workflow: "build.yml"}, {Workflow: "deploy.yml"}},
+			Variables:   []config.ChainVariable{{Name: "env"}},
+		},
+	})
 
 	return m
 }
@@ -110,6 +121,27 @@ func assertFits(t *testing.T, content string, width, height int) {
 	}
 }
 
+// assertBottomPaneCloses catches the failure a width check cannot: a pane whose
+// content wraps one line too far loses its bottom border to MaxHeight rather
+// than overflowing, so the frame still fits the terminal and still reads wrong.
+func assertBottomPaneCloses(t *testing.T, content string, width, height int) {
+	t.Helper()
+
+	if width < MinTerminalWidth || height < MinTerminalHeight {
+		return
+	}
+
+	lines := strings.Split(content, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("the frame has %d lines", len(lines))
+	}
+
+	bottom := ansi.Strip(lines[len(lines)-2])
+	if !strings.HasPrefix(bottom, "╰") && !strings.HasPrefix(bottom, "┗") {
+		t.Errorf("the bottom-left pane did not close its border:\n%s", bottom)
+	}
+}
+
 var renderSizes = []struct {
 	name          string
 	width, height int
@@ -131,6 +163,7 @@ func TestViewAtSizes(t *testing.T) {
 
 			content := m.View().Content
 			assertFits(t, content, tt.width, tt.height)
+			assertBottomPaneCloses(t, content, tt.width, tt.height)
 			golden.RequireEqual(t, content)
 		})
 	}

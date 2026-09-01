@@ -90,26 +90,17 @@ func TestUpdate_Tab(t *testing.T) {
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")
 
+	// The chains pane is skipped, because this repository configures none and
+	// the layout does not draw it.
 	msg := tea.KeyPressMsg{Code: tea.KeyTab}
-	result, _ := m.Update(msg)
-	m = asModel(t, result)
 
-	if m.focused != PaneHistory {
-		t.Errorf("expected focus on PaneHistory after tab, got %d", m.focused)
-	}
+	for _, want := range []FocusedPane{PaneConfig, PaneRight, PaneWorkflows} {
+		result, _ := m.Update(msg)
+		m = asModel(t, result)
 
-	result, _ = m.Update(msg)
-	m = asModel(t, result)
-
-	if m.focused != PaneConfig {
-		t.Errorf("expected focus on PaneConfig after second tab, got %d", m.focused)
-	}
-
-	result, _ = m.Update(msg)
-	m = asModel(t, result)
-
-	if m.focused != PaneWorkflows {
-		t.Errorf("expected focus back on PaneWorkflows after third tab, got %d", m.focused)
+		if m.focused != want {
+			t.Errorf("tab landed on pane %d, want %d", m.focused, want)
+		}
 	}
 }
 
@@ -122,8 +113,8 @@ func TestUpdate_ShiftTab(t *testing.T) {
 	result, _ := m.Update(msg)
 	m = asModel(t, result)
 
-	if m.focused != PaneConfig {
-		t.Errorf("expected focus on PaneConfig after shift-tab, got %d", m.focused)
+	if m.focused != PaneRight {
+		t.Errorf("expected focus on PaneRight after shift-tab, got %d", m.focused)
 	}
 }
 
@@ -224,7 +215,7 @@ func TestUpdate_UpDown_History(t *testing.T) {
 	t.Parallel()
 
 	m := New(testWorkflows(), testHistory(), "owner/repo")
-	m.focused = PaneHistory
+	m.focused = PaneRight
 
 	entries := m.currentHistoryEntries()
 	if len(entries) < 2 {
@@ -277,6 +268,8 @@ func TestUpdate_UpDown_Config(t *testing.T) {
 	}
 }
 
+// Space marks the row under the cursor, which is what makes a verb act on a
+// set rather than on the selection.
 func TestUpdate_Space(t *testing.T) {
 	t.Parallel()
 
@@ -287,8 +280,20 @@ func TestUpdate_Space(t *testing.T) {
 	result, _ := m.Update(msg)
 	m = asModel(t, result)
 
-	if m.focused != PaneConfig {
-		t.Errorf("expected focus on PaneConfig after space, got %d", m.focused)
+	wf := m.SelectedWorkflow()
+	if wf == nil {
+		t.Fatal("no workflow is selected")
+	}
+
+	if !m.markedWorkflows.Has(wf.Filename) {
+		t.Errorf("space did not mark %s", wf.Filename)
+	}
+
+	result, _ = m.Update(msg)
+	m = asModel(t, result)
+
+	if m.markedWorkflows.Len() != 0 {
+		t.Error("a second space did not unmark the row")
 	}
 }
 

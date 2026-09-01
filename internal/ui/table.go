@@ -8,17 +8,22 @@ import (
 
 // Column keys and titles shared by more than one table.
 const (
-	ColKeyBranch   = "branch"
-	ColKeyChecks   = "checks"
-	ColKeyName     = "name"
-	ColKeyPR       = "pr"
-	ColKeyTime     = "time"
-	ColKeyWorkflow = "workflow"
-	ColTitleBranch = "Branch"
-	ColTitleChecks = "Checks"
-	ColTitleName   = "Name"
-	ColTitlePR     = "PR"
-	ColTitleTime   = "Time"
+	ColKeyBranch     = "branch"
+	ColKeyChecks     = "checks"
+	ColKeyName       = "name"
+	ColKeyPR         = "pr"
+	ColKeyPass       = "pass"
+	ColKeyRuns       = "runs"
+	ColKeyTime       = "time"
+	ColKeyWorkflow   = "workflow"
+	ColTitleBranch   = "Branch"
+	ColTitleChecks   = "Checks"
+	ColTitleName     = "Name"
+	ColTitlePR       = "PR"
+	ColTitlePass     = "Pass"
+	ColTitleRuns     = "Runs"
+	ColTitleTime     = "Time"
+	ColTitleWorkflow = "Workflow"
 )
 
 // Column sizing vocabulary shared by every table, in display cells. Naming the
@@ -52,8 +57,8 @@ const (
 	PrioThirdToGo  = 3
 )
 
-// ConfigColumns describes the workflow-input table. Name is the column a
-// reader scans, so it keeps the most weight and is the last to give ground.
+// ConfigColumns describes the workflow-input table at a width that fits every
+// column. Name is the column a reader scans, so it keeps the most weight.
 func ConfigColumns() []table.Column {
 	return []table.Column{
 		{Key: "num", Title: "#", Min: ColMinFlag, Max: ColMaxFlag},
@@ -65,6 +70,37 @@ func ConfigColumns() []table.Column {
 			Weight: WeightMid, Priority: PrioSecondToGo,
 		},
 	}
+}
+
+// configColumnsFull is the narrowest width every column fits in: the five
+// minimums plus the space between them.
+const configColumnsFull = ColMinFlag + ColWidthReq + ColMinLabel + ColMinShort + ColMinShort + 4*RowGutterWidth
+
+// configColumnsThree is the narrowest width the number, name, and value fit in.
+const configColumnsThree = ColMinFlag + ColMinLabel + ColMinShort + 2*RowGutterWidth
+
+// ConfigColumnsFor is the input table narrowed to what width holds. Dropping a
+// column by priority is not enough on its own: the header then carries an
+// overflow marker naming what it dropped, and that marker is what wraps a
+// header one cell too wide onto a second line, costing the pane the row its
+// bottom border sits on.
+func ConfigColumnsFor(width int) []table.Column {
+	cols := ConfigColumns()
+
+	switch {
+	case width >= configColumnsFull:
+		return cols
+	case width >= configColumnsThree:
+		return []table.Column{cols[0], noPriority(cols[2]), noPriority(cols[3])}
+	}
+
+	return []table.Column{cols[0], noPriority(cols[2])}
+}
+
+func noPriority(col table.Column) table.Column {
+	col.Priority = 0
+
+	return col
 }
 
 // RowGutterWidth is the "> " selection gutter and any status glyph that sit

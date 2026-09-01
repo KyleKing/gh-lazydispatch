@@ -67,11 +67,6 @@ but the last one to run. The pane holds two row shapes, and `enter` on a rollup
 drills into the runs on that pull request's head branch, which is what names the
 failing workflow.
 
-Still to build:
-
-- A flakiness view. Per-branch, one run per workflow is the whole answer; asking
-  whether a workflow is flaky is the opposite query (many runs of one workflow)
-  and wants its own screen rather than a column
 
 ## Phase 6: layout from first principles (shipped)
 
@@ -159,15 +154,68 @@ below it for different reasons:
   never touch. The mock now lives in `internal/testutil` alongside the rest of
   the test doubles, and `exec` reports 95.2% of the code that actually ships
 
+## Phase 8: the layout lazygit already settled
+
+Driving the TUI beside lazygit turned up a set of defects that share one cause:
+the layout named things by where they were built rather than by what they are.
+
+- The right panel held History, Chains, Live, Timeline, and Runs as peers, and
+  they are not peers. Chains are dispatch *targets*, like the workflows they are
+  built from, so they belong in the left column beside them. A timeline is one
+  run's detail, so it belongs behind the row that names the run
+- The Timeline tab was reachable by `a` then `t`, offered only from the History
+  and Live tabs. The default focus is the workflow list, whose menu offers no
+  such verb, so the documented route did nothing from the screen the tool opens
+  on. It is now `enter` on a Runs, Live, or Flaky row, with a breadcrumb naming
+  the list it came from and `esc` peeling one layer per press
+- `h`/`l` cycled tabs, which is what left them unavailable for the move a
+  two-column layout is actually asked for. `[`/`]` cycle tabs (from anywhere:
+  the right panel is the only tabbed thing on screen) and `h`/`l` cross between
+  the columns
+- The active tab was drawn as `[History]`. Every other bracket in this UI is a
+  key you can press, and one that is not reads as a broken hint. The active tab
+  is a filled segment
+- The same counts were printed three times: the status bar, the tab bar, and the
+  rows. The status bar now carries only what no pane reports, which is the ref
+  every dispatch targets and a running chain's progress
+- The left column was 11/30 of the terminal against workflow names half that
+  wide, and drew 26 empty rows under seven workflows. It is 30% between 24 and
+  40 cells, stacking Workflows, Chains, and Config, with the right panel running
+  the full height
+- `executionDoneMsg` had no handler at all, so a dispatch that failed looked
+  exactly like one that worked. It reports the failure, and on success moves the
+  right panel to the list that now has something to say
+
+Three defects the golden frames could not have caught, all found by rendering
+under a PTY at 80, 120, and 160 cells:
+
+- A pane whose header wrapped one line too far lost its bottom border to
+  `MaxHeight` rather than overflowing, so `assertFits` passed on a frame with a
+  missing border. `assertBottomPaneCloses` holds that now
+- Dropping a table column by priority is not enough on its own in a narrow pane:
+  the header then carries an overflow marker naming what it dropped, and that
+  marker is what wraps. `ui.ConfigColumnsFor` picks a column set that fits
+- `RunsModel.View` carried the scope in its pane title, and the tabbed panel
+  renders only `ViewContent`. The ref a pull request row drilled into had never
+  been on screen
+
+Also in this phase, from the backlog:
+
+- **Flakiness view.** One page of the repository's runs, grouped by workflow and
+  sorted flakiest first, and narrowing to the workflow selected on the left
+  without a second call. A workflow with nothing finished has no rate rather
+  than a zero one, and sorts after every measured one
+- **Live timeline redraw.** A tick while any bar on screen is still open, which
+  stops as soon as they all have an end
+- **Marks and operator-object verbs.** `space` marks a row in the workflow list
+  or the Live tab, and a verb acts on the set: `enter` confirms every dispatch at
+  once, `d` stops watching every marked run. `space` was focus-config, which
+  `tab` already does
+
 ## Deferred / v2 ideas
 
 Tracked in `DESIGN.md` and `CONTRIBUTING.md` design-decision sections:
 
-- Marks and operator-object batch verbs (`!d` over a marked set) — the palette
-  won over them. `space` is bound to focus-config, so adopting them means moving
-  that first
-- Live timeline redraw. The layout already closes an open span at `now`; what is
-  missing is a redraw tick, not arithmetic
 - Single-screen dashboard alternative to the modal-stack UX
 - SQLite-backed frecency store (currently JSON)
 - `environment`-type input resolution via repo-environments API call

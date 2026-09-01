@@ -18,6 +18,13 @@ positive, but nothing ranks or scores them. If the noise becomes a problem, the
 fix is to weight a signature by where in the step it matched rather than to
 narrow the patterns.
 
+## Interface
+
+A repository that configures no chains now draws no chains pane, which also
+removed the placard explaining what chains are and how to configure one. The
+feature is documented in `docs/chains.md` and reachable through `:chain`, so
+nothing is unreachable, but a first-time reader no longer trips over it.
+
 ## Hooks
 
 `.config/mise/mise.lock` is the lockfile CI installs from, and `mise install

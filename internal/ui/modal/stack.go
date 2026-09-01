@@ -137,8 +137,10 @@ func (s *Stack) Render(background string) string {
 	return placeCenter(background, modalView, s.width, s.height)
 }
 
+// A modal is read, not lived in, so it spends one row above and below its
+// content rather than framing a short list in blank space.
 const (
-	modalPaddingVertical   = 2
+	modalPaddingVertical   = 1
 	modalPaddingHorizontal = 3
 )
 

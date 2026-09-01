@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/kyleking/aragonite/display"
 	"github.com/kyleking/aragonite/forge"
 	"github.com/kyleking/aragonite/tui/table"
@@ -51,7 +52,10 @@ const runsGutter = ui.RowGutterWidth + 2
 // pane title, so there is no branch column.
 func runsColumns() []table.Column {
 	return []table.Column{
-		{Key: ui.ColKeyWorkflow, Title: "Workflow", Min: ui.ColMinName, Max: ui.ColMaxName, Weight: ui.WeightHigh},
+		{
+			Key: ui.ColKeyWorkflow, Title: ui.ColTitleWorkflow, Min: ui.ColMinName, Max: ui.ColMaxName,
+			Weight: ui.WeightHigh,
+		},
 		{
 			Key: ui.ColKeyTime, Title: ui.ColTitleTime, Min: ui.ColMinLabel, Max: ui.ColMaxTime,
 			Priority: ui.PrioFirstToGo,
@@ -347,10 +351,10 @@ func (m RunsModel) ViewContent() string {
 	}
 
 	if m.scope == ScopeBranch {
-		return m.viewRows(ui.FitColumns(runsColumns(), m.width, runsGutter), len(m.runs), m.runCells)
+		return m.scopeLine() + m.viewRows(ui.FitColumns(runsColumns(), m.width, runsGutter), len(m.runs), m.runCells)
 	}
 
-	return m.viewRows(ui.FitColumns(prColumns(), m.width, runsGutter), len(m.prs), m.prCells)
+	return m.scopeLine() + m.viewRows(ui.FitColumns(prColumns(), m.width, runsGutter), len(m.prs), m.prCells)
 }
 
 func (m RunsModel) runCells(layout table.Layout, i int) (string, string) {
@@ -373,6 +377,16 @@ func (m RunsModel) prCells(layout table.Layout, i int) (string, string) {
 	})
 }
 
+// scopeLine names what the rows describe. The tab bar takes the pane's title
+// row, so without this a scope drilled into a pull request's head branch reads
+// as the checkout's own.
+func (m RunsModel) scopeLine() string {
+	return ui.SubtitleStyle.Render(ansi.Truncate(m.title(), m.width, "…")) + "\n"
+}
+
+// scopeLineHeight is the row scopeLine spends.
+const scopeLineHeight = 1
+
 // viewRows draws the scrolled window of whichever row shape the scope holds.
 func (m RunsModel) viewRows(
 	layout table.Layout, total int, cells func(table.Layout, int) (string, string),
@@ -382,7 +396,7 @@ func (m RunsModel) viewRows(
 	content.WriteString(ui.TableHeader(layout, runsGutter))
 	content.WriteString("\n")
 
-	first, last := ui.ScrollWindow(m.selectedIndex, total, m.height-listPaneChrome)
+	first, last := ui.ScrollWindow(m.selectedIndex, total, m.height-listPaneChrome-scopeLineHeight)
 
 	for i := first; i < last; i++ {
 		indicator := "  "

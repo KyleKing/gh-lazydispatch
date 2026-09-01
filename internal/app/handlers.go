@@ -25,7 +25,7 @@ import (
 )
 
 // paneCount is the number of focusable panes cycled through by Tab/Shift+Tab.
-const paneCount = 3
+const paneCount = 4
 
 // boolTrueValue is the string representation of a "true" boolean workflow input.
 const boolTrueValue = "true"
@@ -41,6 +41,10 @@ var ErrNoChainStateOrRunID = errors.New("no chain state or run ID provided")
 func (m Model) handleKeyMsg(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if model, cmd, handled := m.handleGlobalKey(msg); handled {
 		return model, cmd
+	}
+
+	if model, handled := m.handleFocusKey(msg); handled {
+		return model, nil
 	}
 
 	if model, cmd, handled := m.handlePaneKey(msg); handled {
@@ -71,14 +75,6 @@ func (m Model) handleGlobalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 
 	case key.Matches(msg, m.keys.Escape):
 		m.handleEscapeKey()
-		return m, nil, true
-
-	case key.Matches(msg, m.keys.Tab):
-		m.focused = (m.focused + 1) % paneCount
-		return m, nil, true
-
-	case key.Matches(msg, m.keys.ShiftTab):
-		m.focused = (m.focused + paneCount - 1) % paneCount
 		return m, nil, true
 
 	case key.Matches(msg, m.keys.Up):
@@ -113,11 +109,33 @@ func (m Model) handleGlobalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	return m, nil, false
 }
 
+// handleFocusKey moves focus between panes. `tab` walks the whole cycle, and
+// `h`/`l` cross between the left column and the right panel, which is the move
+// a two-column layout is actually asked for.
+func (m Model) handleFocusKey(msg tea.KeyPressMsg) (tea.Model, bool) {
+	switch {
+	case key.Matches(msg, m.keys.Tab):
+		m.focusPane(m.stepPane(1))
+	case key.Matches(msg, m.keys.ShiftTab):
+		m.focusPane(m.stepPane(-1))
+	case key.Matches(msg, m.keys.PaneRight):
+		m.focusPane(PaneRight)
+	case key.Matches(msg, m.keys.PaneLeft):
+		if m.focused == PaneRight {
+			m.focusPane(m.lastLeftPane)
+		}
+	default:
+		return m, false
+	}
+
+	return m, true
+}
+
 // handlePaneKey handles keys whose behavior depends on the focused pane or active tab.
 func (m Model) handlePaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	switch {
 	case key.Matches(msg, m.keys.Space):
-		m.focusConfigFromWorkflows()
+		m.toggleMark()
 		return m, nil, true
 
 	case key.Matches(msg, m.keys.Edit):
@@ -144,17 +162,28 @@ func (m Model) handlePaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 func (m Model) handleHistoryPaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	switch {
 	case key.Matches(msg, m.keys.TabNext):
-		cmd := m.cycleHistoryTab(m.rightPanel.NextTab)
+		cmd := m.cycleRightTab(m.rightPanel.NextTab)
 
 		return m, cmd, true
 
 	case key.Matches(msg, m.keys.TabPrev):
-		cmd := m.cycleHistoryTab(m.rightPanel.PrevTab)
+		cmd := m.cycleRightTab(m.rightPanel.PrevTab)
 
 		return m, cmd, true
+	}
 
+	return m.handleRunListKey(msg)
+}
+
+// handleRunListKey handles the keys that act on whatever the right panel is
+// listing. Each is inert outside the tab it means something in, rather than
+// bound globally and silently doing nothing.
+func (m Model) handleRunListKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	tab := m.rightPanel.ActiveTab()
+
+	switch {
 	case key.Matches(msg, m.keys.Scope):
-		if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabRuns {
+		if m.focused != PaneRight || tab != panes.TabRuns {
 			return m, nil, true
 		}
 
@@ -163,24 +192,24 @@ func (m Model) handleHistoryPaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bo
 		return model, cmd, true
 
 	case key.Matches(msg, m.keys.Reload):
-		if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabRuns {
+		return m.reloadFocusedTab(tab)
+
+	case key.Matches(msg, m.keys.Clear):
+		if m.focused != PaneRight || tab != panes.TabLive {
 			return m, nil, true
 		}
 
-		model, cmd := m.reloadRuns()
+		model, cmd := m.unwatchMarkedRuns()
 
 		return model, cmd, true
 
-	case key.Matches(msg, m.keys.Clear):
-		m.clearSelectedLiveRun()
-		return m, nil, true
-
 	case key.Matches(msg, m.keys.ClearAll):
 		m.clearCompletedLiveRuns()
+
 		return m, nil, true
 
 	case key.Matches(msg, m.keys.ViewLogs):
-		if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabHistory {
+		if m.focused != PaneRight || tab != panes.TabHistory {
 			return m, nil, true
 		}
 
@@ -190,12 +219,46 @@ func (m Model) handleHistoryPaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bo
 	return m, nil, false
 }
 
-// focusConfigFromWorkflows moves focus to the config pane when Space is pressed
-// while the workflows pane is focused.
-func (m *Model) focusConfigFromWorkflows() {
-	if m.focused == PaneWorkflows {
-		m.focused = PaneConfig
+func (m Model) reloadFocusedTab(tab panes.RightTab) (tea.Model, tea.Cmd, bool) {
+	if m.focused != PaneRight {
+		return m, nil, true
 	}
+
+	if tab == panes.TabFlaky {
+		model, cmd := m.reloadFlaky()
+
+		return model, cmd, true
+	}
+
+	model, cmd := m.reloadRuns()
+
+	return model, cmd, true
+}
+
+// stepPane is the next focusable pane in one direction, skipping the chains
+// pane in a repository that configures none: the layout does not draw it, so
+// stopping on it would be a stop with nothing on screen.
+func (m Model) stepPane(step int) FocusedPane {
+	next := m.focused
+
+	for range paneCount {
+		next = FocusedPane((int(next) + step + paneCount) % paneCount)
+		if next != PaneChains || m.chains.Count() > 0 {
+			return next
+		}
+	}
+
+	return m.focused
+}
+
+// focusPane moves focus and remembers the left-column pane to come back to, so
+// `l` then `h` returns where it left rather than to the top of the column.
+func (m *Model) focusPane(pane FocusedPane) {
+	if pane != PaneRight {
+		m.lastLeftPane = pane
+	}
+
+	m.focused = pane
 }
 
 // handleEditKey opens the input modal when a config input is selected for editing.
@@ -216,25 +279,25 @@ func (m Model) handleConfigPaneAction(action func() (tea.Model, tea.Cmd)) (tea.M
 	return action()
 }
 
-// cycleHistoryTab runs cycle (NextTab/PrevTab) only when the history pane is
-// focused, and loads whatever the tab it lands on needs.
-func (m *Model) cycleHistoryTab(cycle func()) tea.Cmd {
-	if m.focused != PaneHistory {
-		return nil
-	}
-
+// cycleRightTab moves the right panel's tabs and loads whatever the tab it
+// lands on needs. It is not guarded on focus: the right panel is the only
+// tabbed thing on screen, so `[` and `]` mean the same wherever the cursor is.
+func (m *Model) cycleRightTab(cycle func()) tea.Cmd {
 	cycle()
 
-	return m.loadRunsIfNeeded()
+	return tea.Batch(m.loadRunsIfNeeded(), m.loadFlakyIfNeeded())
 }
 
-// handleEscapeKey backs out one level, innermost first: a timeline drilled
-// into a job, then a preview or input detail, then nothing. Peeling one layer
-// per press is what keeps escape from throwing away two states at once.
+// handleEscapeKey backs out one level, innermost first: a job's steps, then the
+// run they belong to, then a preview or input detail, then nothing. Peeling one
+// layer per press is what keeps escape from throwing away two states at once.
 func (m *Model) handleEscapeKey() {
-	if m.focused == PaneHistory && m.rightPanel.ActiveTab() == panes.TabTimeline &&
-		m.rightPanel.Timeline().Drilled() {
-		m.rightPanel.Timeline().Undrill()
+	if detail := m.rightPanel.Detail(); detail != nil {
+		if detail.Drilled() {
+			detail.Undrill()
+		} else {
+			m.rightPanel.CloseDetail()
+		}
 
 		return
 	}
@@ -248,24 +311,9 @@ func (m *Model) handleEscapeKey() {
 	m.previewingHistoryEntry = nil
 }
 
-// clearSelectedLiveRun stops watching the currently selected run in the Live tab.
-func (m *Model) clearSelectedLiveRun() {
-	if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabLive {
-		return
-	}
-
-	run, ok := m.rightPanel.SelectedRun()
-	if !ok || m.watcher == nil {
-		return
-	}
-
-	m.watcher.Unwatch(run.RunID)
-	m.rightPanel.SetRuns(m.watcher.GetRuns())
-}
-
 // clearCompletedLiveRuns stops watching all completed runs in the Live tab.
 func (m *Model) clearCompletedLiveRuns() {
-	if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabLive {
+	if m.focused != PaneRight || m.rightPanel.ActiveTab() != panes.TabLive {
 		return
 	}
 
@@ -317,6 +365,7 @@ func (m Model) handleWorkflowKey(num int) (tea.Model, tea.Cmd) {
 	if num == 0 {
 		m.selectedWorkflow = -1
 		m.syncHistoryEntries()
+		m.syncSelectedWorkflow()
 
 		return m, nil
 	}
@@ -325,6 +374,7 @@ func (m Model) handleWorkflowKey(num int) (tea.Model, tea.Cmd) {
 	if workflowIdx < len(m.workflows) {
 		m.selectedWorkflow = workflowIdx
 		m.initializeInputs(m.workflows[workflowIdx])
+		m.syncSelectedWorkflow()
 	}
 
 	return m, nil
@@ -341,20 +391,13 @@ func (m *Model) handleUp() {
 				// Back on the "all workflows" row, where history is unfiltered.
 				m.syncHistoryEntries()
 			}
+
+			m.syncSelectedWorkflow()
 		}
-	case PaneHistory:
-		switch m.rightPanel.ActiveTab() {
-		case panes.TabHistory:
-			m.rightPanel.History().MoveUp()
-		case panes.TabChains:
-			m.rightPanel.Chains().MoveUp()
-		case panes.TabLive:
-			m.rightPanel.Live().MoveUp()
-		case panes.TabTimeline:
-			m.rightPanel.Timeline().MoveUp()
-		case panes.TabRuns:
-			m.rightPanel.Runs().MoveUp()
-		}
+	case PaneChains:
+		m.chains.MoveUp()
+	case PaneRight:
+		m.rightPanel.MoveUp()
 	case PaneConfig:
 		if m.selectedInput < 0 {
 			m.selectedInput = 0
@@ -379,20 +422,13 @@ func (m *Model) handleDown() {
 			if m.selectedWorkflow >= 0 {
 				m.initializeInputs(m.workflows[m.selectedWorkflow])
 			}
+
+			m.syncSelectedWorkflow()
 		}
-	case PaneHistory:
-		switch m.rightPanel.ActiveTab() {
-		case panes.TabHistory:
-			m.rightPanel.History().MoveDown()
-		case panes.TabChains:
-			m.rightPanel.Chains().MoveDown()
-		case panes.TabLive:
-			m.rightPanel.Live().MoveDown()
-		case panes.TabTimeline:
-			m.rightPanel.Timeline().MoveDown()
-		case panes.TabRuns:
-			m.rightPanel.Runs().MoveDown()
-		}
+	case PaneChains:
+		m.chains.MoveDown()
+	case PaneRight:
+		m.rightPanel.MoveDown()
 	case PaneConfig:
 		if m.selectedInput < 0 {
 			m.selectedInput = 0
@@ -412,44 +448,70 @@ func (m *Model) handleDown() {
 func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	switch m.focused {
 	case PaneWorkflows:
-		return m.executeWorkflow()
-	case PaneHistory:
-		switch m.rightPanel.ActiveTab() {
-		case panes.TabLive:
-		case panes.TabHistory:
-			entry := m.rightPanel.SelectedHistoryEntry()
-			if entry != nil {
-				if m.viewMode == HistoryPreviewMode {
-					m.branch = entry.Branch
-					m.inputs = make(map[string]string)
-
-					for k, v := range entry.Inputs {
-						m.inputs[k] = v
-					}
-
-					m.viewMode = WorkflowListMode
-					m.previewingHistoryEntry = nil
-
-					return m.executeWorkflow()
-				}
-
-				m.viewMode = HistoryPreviewMode
-				m.previewingHistoryEntry = entry
-			}
-		case panes.TabChains:
-			if name, chainDef, ok := m.rightPanel.SelectedChain(); ok {
-				return m.startChainFlow(name, chainDef)
-			}
-		case panes.TabTimeline:
-			m.rightPanel.Timeline().Drill()
-		case panes.TabRuns:
-			return m.openSelectedRunsRow()
+		if m.markedWorkflows.Len() > 0 {
+			return m.runMarkedWorkflows()
 		}
+
+		return m.executeWorkflow()
+	case PaneChains:
+		if name, chainDef, ok := m.chains.SelectedChain(); ok {
+			return m.startChainFlow(name, chainDef)
+		}
+	case PaneRight:
+		return m.enterInRightPanel()
 	case PaneConfig:
 		return m.executeWorkflow()
 	}
 
 	return m, nil
+}
+
+// enterInRightPanel opens whatever the right panel has under the cursor.
+func (m Model) enterInRightPanel() (tea.Model, tea.Cmd) {
+	if detail := m.rightPanel.Detail(); detail != nil {
+		detail.Drill()
+
+		return m, nil
+	}
+
+	switch m.rightPanel.ActiveTab() {
+	case panes.TabLive, panes.TabFlaky:
+		return m.timelineForSelection()
+	case panes.TabRuns:
+		return m.openSelectedRunsRow()
+	case panes.TabHistory:
+		return m.enterHistoryEntry()
+	}
+
+	return m, nil
+}
+
+// enterHistoryEntry previews a past dispatch's inputs, and runs them on the
+// second press: one key to see what would be sent, one to send it.
+func (m Model) enterHistoryEntry() (tea.Model, tea.Cmd) {
+	entry := m.rightPanel.SelectedHistoryEntry()
+	if entry == nil {
+		return m, nil
+	}
+
+	if m.viewMode != HistoryPreviewMode {
+		m.viewMode = HistoryPreviewMode
+		m.previewingHistoryEntry = entry
+
+		return m, nil
+	}
+
+	m.branch = entry.Branch
+	m.inputs = make(map[string]string, len(entry.Inputs))
+
+	for k, v := range entry.Inputs {
+		m.inputs[k] = v
+	}
+
+	m.viewMode = WorkflowListMode
+	m.previewingHistoryEntry = nil
+
+	return m.executeWorkflow()
 }
 
 func (m Model) startChainFlow(name string, chainDef config.Chain) (tea.Model, tea.Cmd) {
@@ -598,6 +660,28 @@ func (m Model) validateAllInputs(wf workflow.File) map[string][]string {
 
 type executionDoneMsg struct {
 	err error
+}
+
+// handleExecutionDone reports a failed dispatch and moves the right panel to
+// the list that now has something to say. The message had no handler at all
+// before, so a dispatch that failed looked exactly like one that worked.
+func (m Model) handleExecutionDone(msg executionDoneMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		return m, statusCmd("dispatch failed: " + msg.err.Error())
+	}
+
+	m.syncHistoryEntries()
+
+	tab := panes.TabHistory
+	if m.watchRun {
+		tab = panes.TabLive
+	}
+
+	m.rightPanel.SetTab(tab)
+	m.focusPane(PaneRight)
+	m.rightPanel.Runs().Invalidate()
+
+	return m, nil
 }
 
 func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
@@ -767,8 +851,17 @@ func (m Model) handleInputResult(msg modal.InputResultMsg) (tea.Model, tea.Cmd) 
 	return m, nil
 }
 
-//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleConfirmResult(msg modal.ConfirmResultMsg) (tea.Model, tea.Cmd) {
+	if len(m.pendingRuns) > 0 {
+		if !msg.Value {
+			m.pendingRuns = nil
+
+			return m, nil
+		}
+
+		return m.dispatchPending()
+	}
+
 	if m.pendingInputName != "" {
 		if msg.Value {
 			m.inputs[m.pendingInputName] = boolTrueValue
@@ -939,6 +1032,12 @@ func (m Model) handleValidationErrorResult(msg modal.ValidationErrorResultMsg) (
 }
 
 func (m Model) doExecuteWorkflow(cfg runner.RunConfig) (tea.Model, tea.Cmd) {
+	return m, m.dispatchCmd(cfg)
+}
+
+// dispatchCmd records the dispatch and hands back the command that runs it, so
+// one workflow and a marked set travel exactly the same path.
+func (m Model) dispatchCmd(cfg runner.RunConfig) tea.Cmd {
 	m.history.Record(m.repo, cfg.Workflow, cfg.Branch, cfg.Inputs)
 	//nolint:errcheck,gosec // best-effort persistence; failed history write doesn't block dispatching the workflow
 	m.history.Save()
@@ -946,7 +1045,7 @@ func (m Model) doExecuteWorkflow(cfg runner.RunConfig) (tea.Model, tea.Cmd) {
 	//nolint:gosec,noctx // shells out to trusted gh CLI by design; tea.ExecProcess has no context to thread through
 	cmd := exec.Command("gh", runner.BuildArgs(cfg)...)
 
-	return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
 		return executionDoneMsg{err: err}
 	})
 }

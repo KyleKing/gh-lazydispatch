@@ -1,9 +1,11 @@
 package app
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/kyleking/aragonite/forge"
 
 	"github.com/kyleking/gh-lazydispatch/internal/github"
@@ -71,9 +73,9 @@ func TestLoadRunsIfNeeded_OnlyOnTheRunsTab(t *testing.T) {
 	t.Parallel()
 
 	m := newRenderModel()
-	m.focused = PaneHistory
+	m.focused = PaneRight
 
-	for _, tab := range tabsUpTo(panes.TabRuns) {
+	for _, tab := range []panes.RightTab{panes.TabLive, panes.TabHistory, panes.TabFlaky} {
 		m.rightPanel.SetTab(tab)
 
 		if cmd := m.loadRunsIfNeeded(); cmd != nil {
@@ -95,22 +97,16 @@ func TestLoadRunsIfNeeded_OnlyOnTheRunsTab(t *testing.T) {
 	}
 }
 
-func tabsUpTo(limit panes.RightTab) []panes.RightTab {
-	tabs := make([]panes.RightTab, 0, int(limit))
-	for tab := panes.TabHistory; tab < limit; tab++ {
-		tabs = append(tabs, tab)
-	}
-
-	return tabs
-}
-
-func TestRunsVerdict_ReportsTheBranchStateInTheStatusBar(t *testing.T) {
+// The Runs tab reports its verdict in the tab bar, so what the tab holds is
+// readable without going there.
+func TestRunsVerdict_ReportsTheBranchStateInTheTabBar(t *testing.T) {
 	t.Parallel()
 
 	m := newRenderModel()
+	m.rightPanel.SetSize(80, 20)
 
-	if verdict := m.runsVerdict(); verdict != "" {
-		t.Errorf("an unloaded Runs tab reported %q", verdict)
+	if view := ansi.Strip(m.rightPanel.View()); !strings.Contains(view, "Runs ") {
+		t.Errorf("an unloaded Runs tab reported a verdict:\n%s", view)
 	}
 
 	m.rightPanel.Runs().SetRuns(panes.ScopeBranch, "main", []github.WorkflowRun{
@@ -119,8 +115,8 @@ func TestRunsVerdict_ReportsTheBranchStateInTheStatusBar(t *testing.T) {
 		run(3, "Nightly", time.Minute, github.StatusInProgress, ""),
 	})
 
-	if verdict := m.runsVerdict(); verdict != " 1+ 1x 1*" {
-		t.Errorf("verdict is %q, want one of each", verdict)
+	if view := ansi.Strip(m.rightPanel.View()); !strings.Contains(view, "Runs 1+1x1*") {
+		t.Errorf("the tab bar does not report one of each:\n%s", view)
 	}
 }
 
@@ -139,8 +135,10 @@ func TestRunsPRScope_RollupsReportAndDrillIntoTheirBranch(t *testing.T) {
 		{Number: 8, Title: "Bump the linter", HeadRef: "lint", Checks: forge.ChecksStatus{Total: 1, Pending: 1}},
 	})
 
-	if verdict := m.runsVerdict(); verdict != " 1x 1*" {
-		t.Errorf("verdict is %q, want a failing and a pending pull request", verdict)
+	m.rightPanel.SetSize(80, 20)
+
+	if view := ansi.Strip(m.rightPanel.View()); !strings.Contains(view, "Runs 1x1*") {
+		t.Errorf("the tab bar does not report a failing and a pending pull request:\n%s", view)
 	}
 
 	if got := m.runsTarget(); got != "#7" {

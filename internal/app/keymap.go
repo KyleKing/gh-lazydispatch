@@ -8,32 +8,34 @@ import (
 
 // KeyMap defines all keyboard shortcuts for the application.
 type KeyMap struct {
-	Actions  key.Binding
-	Branch   key.Binding
-	Command  key.Binding
-	Chain    key.Binding
-	Clear    key.Binding
-	ClearAll key.Binding
-	Copy     key.Binding
-	Down     key.Binding
-	Edit     key.Binding
-	Enter    key.Binding
-	Escape   key.Binding
-	Filter   key.Binding
-	Help     key.Binding
-	LiveView key.Binding
-	Quit     key.Binding
-	Reload   key.Binding
-	Reset    key.Binding
-	Scope    key.Binding
-	ShiftTab key.Binding
-	Space    key.Binding
-	Tab      key.Binding
-	TabNext  key.Binding
-	TabPrev  key.Binding
-	Up       key.Binding
-	ViewLogs key.Binding
-	Watch    key.Binding
+	Actions   key.Binding
+	Branch    key.Binding
+	Command   key.Binding
+	Chain     key.Binding
+	Clear     key.Binding
+	ClearAll  key.Binding
+	Copy      key.Binding
+	Down      key.Binding
+	Edit      key.Binding
+	Enter     key.Binding
+	Escape    key.Binding
+	Filter    key.Binding
+	Help      key.Binding
+	LiveView  key.Binding
+	Quit      key.Binding
+	Reload    key.Binding
+	Reset     key.Binding
+	Scope     key.Binding
+	PaneLeft  key.Binding
+	PaneRight key.Binding
+	ShiftTab  key.Binding
+	Space     key.Binding
+	Tab       key.Binding
+	TabNext   key.Binding
+	TabPrev   key.Binding
+	Up        key.Binding
+	ViewLogs  key.Binding
+	Watch     key.Binding
 
 	Input0 key.Binding
 	Input1 key.Binding
@@ -73,32 +75,34 @@ func makeNumberedBinding(num int, prefix string) key.Binding {
 // DefaultKeyMap returns the default keyboard shortcuts.
 func DefaultKeyMap() KeyMap {
 	return KeyMap{
-		Actions:  key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "actions for what has focus")),
-		Branch:   key.NewBinding(key.WithKeys("b"), key.WithHelp("b", nameBranch)),
-		Command:  key.NewBinding(key.WithKeys(":"), key.WithHelp(":", "command bar")),
-		Chain:    key.NewBinding(key.WithKeys("C"), key.WithHelp("C", "run chain")),
-		Clear:    key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "clear run")),
-		ClearAll: key.NewBinding(key.WithKeys("D"), key.WithHelp("D", "clear all")),
-		Copy:     key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "copy to clipboard")),
-		Down:     key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
-		Edit:     key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
-		Enter:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select/run")),
-		Escape:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
-		Filter:   key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
-		Help:     key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
-		LiveView: key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "live view")),
-		Quit:     key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
-		Reload:   key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "reload runs")),
-		Reset:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reset inputs")),
-		Scope:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "run scope")),
-		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev pane")),
-		Space:    key.NewBinding(key.WithKeys("space"), key.WithHelp("space", "select")),
-		Tab:      key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next pane")),
-		TabNext:  key.NewBinding(key.WithKeys("l", "right"), key.WithHelp("l", "next tab")),
-		TabPrev:  key.NewBinding(key.WithKeys("h", "left"), key.WithHelp("h", "prev tab")),
-		Up:       key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
-		ViewLogs: key.NewBinding(key.WithKeys("v"), key.WithHelp("v", "view logs")),
-		Watch:    key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "watch")),
+		Actions:   key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "actions for what has focus")),
+		Branch:    key.NewBinding(key.WithKeys("b"), key.WithHelp("b", nameBranch)),
+		Command:   key.NewBinding(key.WithKeys(":"), key.WithHelp(":", "command bar")),
+		Chain:     key.NewBinding(key.WithKeys("C"), key.WithHelp("C", "run chain")),
+		Clear:     key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "clear run")),
+		ClearAll:  key.NewBinding(key.WithKeys("D"), key.WithHelp("D", "clear all")),
+		Copy:      key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "copy to clipboard")),
+		Down:      key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
+		Edit:      key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
+		Enter:     key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select/run")),
+		Escape:    key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+		Filter:    key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
+		Help:      key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+		LiveView:  key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "live view")),
+		Quit:      key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+		Reload:    key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "reload runs")),
+		Reset:     key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reset inputs")),
+		Scope:     key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "run scope")),
+		PaneLeft:  key.NewBinding(key.WithKeys("h", "left"), key.WithHelp("h", "focus the left column")),
+		PaneRight: key.NewBinding(key.WithKeys("l", "right"), key.WithHelp("l", "focus the right panel")),
+		ShiftTab:  key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev pane")),
+		Space:     key.NewBinding(key.WithKeys("space"), key.WithHelp("space", "mark the selected row")),
+		Tab:       key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next pane")),
+		TabNext:   key.NewBinding(key.WithKeys("]"), key.WithHelp("]", "next tab")),
+		TabPrev:   key.NewBinding(key.WithKeys("["), key.WithHelp("[", "prev tab")),
+		Up:        key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
+		ViewLogs:  key.NewBinding(key.WithKeys("v"), key.WithHelp("v", "view logs")),
+		Watch:     key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "watch")),
 
 		Input0: makeNumberedBinding(0, "input"),
 		Input1: makeNumberedBinding(1, "input"),
@@ -150,11 +154,11 @@ func (k KeyMap) ShortHelp() []key.Binding {
 func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Tab, k.ShiftTab, k.Up, k.Down},
-		{k.TabNext, k.TabPrev, k.Clear, k.ClearAll},
+		{k.TabNext, k.TabPrev, k.PaneLeft, k.PaneRight},
+		{k.Clear, k.ClearAll, k.Space, k.Scope},
 		{k.Enter, k.Edit, k.Escape, k.Branch},
 		{k.Watch, k.Filter, k.Copy, k.Reset},
-		{k.LiveView, k.ViewLogs, k.Chain, k.Space},
-		{k.Scope, k.Reload},
+		{k.LiveView, k.ViewLogs, k.Chain, k.Reload},
 		{k.Input1, k.Input2, k.Input3, k.Input0},
 		{k.Quit, k.Help},
 	}

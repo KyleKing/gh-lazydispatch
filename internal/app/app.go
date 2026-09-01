@@ -13,6 +13,8 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
@@ -22,11 +24,13 @@ import (
 // FocusedPane represents which pane currently has focus.
 type FocusedPane int
 
-// Panes available in the TUI, in tab order.
+// Panes available in the TUI, in tab order: the left column top to bottom,
+// then the right panel.
 const (
 	PaneWorkflows FocusedPane = iota
-	PaneHistory
+	PaneChains
 	PaneConfig
+	PaneRight
 )
 
 // ViewMode represents the current view mode.
@@ -39,10 +43,13 @@ const (
 	InputDetailMode
 )
 
-// leftPaneWidthNumerator/Denominator sizes the left pane as a fraction of terminal width.
+// leftPaneWidthNumerator/Denominator sizes the left column as a fraction of
+// terminal width, between leftPaneMinWidth and leftPaneMaxWidth cells.
 const (
-	leftPaneWidthNumerator   = 11
-	leftPaneWidthDenominator = 30
+	leftPaneWidthNumerator   = 3
+	leftPaneWidthDenominator = 10
+	leftPaneMinWidth         = 24
+	leftPaneMaxWidth         = 40
 )
 
 // Model is the root bubbletea model for the application.
@@ -61,6 +68,10 @@ type Model struct {
 	logManager              *logs.Manager
 	previewingHistoryEntry  *frecency.HistoryEntry
 	registry                Registry
+	chains                  panes.ChainListModel
+	detailRunName           string
+	markedWorkflows         ui.MarkSet
+	pendingRuns             []runner.RunConfig
 	commandInput            textinput.Model
 	completions             []Candidate
 	pendingActions          []paneAction
@@ -78,7 +89,9 @@ type Model struct {
 	pendingChainCommands    []string
 	workflows               []workflow.File
 	rightPanel              panes.TabbedRightModel
+	detailRunID             int64
 	height                  int
+	lastLeftPane            FocusedPane
 	viewMode                ViewMode
 	focused                 FocusedPane
 	selectedWorkflow        int
@@ -115,6 +128,7 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 		selectedInput:    -1,
 		selectedWorkflow: -1,
 		rightPanel:       panes.NewTabbedRight(),
+		chains:           panes.NewChainListModel(),
 		registry:         DefaultRegistry(),
 		commandInput:     newCommandInput(),
 	}
@@ -128,7 +142,7 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 
 	if cfg, err := config.Load("."); err == nil && cfg != nil {
 		m.wfdConfig = cfg
-		m.rightPanel.SetChains(cfg.Chains)
+		m.chains.SetChains(cfg.Chains)
 	}
 
 	if len(workflows) > 0 {
@@ -142,8 +156,11 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 }
 
 // Init implements tea.Model.
-func (Model) Init() tea.Cmd {
-	return nil
+// Init loads the tab the panel opens on. The question a reader starts with is
+// whether their branch is green, so that answer is fetched rather than waiting
+// for them to find the tab holding it.
+func (m Model) Init() tea.Cmd {
+	return m.loadRunsIfNeeded()
 }
 
 // Update implements tea.Model.
@@ -175,6 +192,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if model, cmd, handled := m.handleRunsMsg(msg); handled {
 		return model, cmd
+	}
+
+	if model, cmd, handled := m.handleFlakyMsg(msg); handled {
+		return model, cmd
+	}
+
+	if done, ok := msg.(executionDoneMsg); ok {
+		return m.handleExecutionDone(done)
 	}
 
 	if status, ok := msg.(StatusMsg); ok {
@@ -213,7 +238,7 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) Model {
 	m.modalStack.SetSize(msg.Width, msg.Height)
 
 	box := m.layout()
-	m.rightPanel.SetSize(box.rightWidth, box.topHeight)
+	m.rightPanel.SetSize(box.rightWidth, box.rightHeight)
 
 	return m
 }

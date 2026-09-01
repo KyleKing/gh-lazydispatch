@@ -35,19 +35,19 @@ func TestKeyRouting_DigitsFollowFocusedPane(t *testing.T) {
 	}
 }
 
-func TestKeyRouting_LMovesTabsAndLOpensLiveView(t *testing.T) {
+func TestKeyRouting_BracketMovesTabsAndLOpensLiveView(t *testing.T) {
 	t.Parallel()
 
 	m := resize(t, newRenderModel(), 120, 40)
-	m.focused = PaneHistory
+	m.focused = PaneRight
 
-	m = pressRune(t, m, 'l')
-	if got := m.rightPanel.ActiveTab(); got != panes.TabChains {
-		t.Fatalf("l moved to tab %v, want %v", got, panes.TabChains)
+	m = pressRune(t, m, ']')
+	if got := m.rightPanel.ActiveTab(); got != panes.TabLive {
+		t.Fatalf("] moved to tab %v, want %v", got, panes.TabLive)
 	}
 
 	if m.modalStack.HasActive() {
-		t.Fatal("l opened a modal instead of switching tabs")
+		t.Fatal("] opened a modal instead of switching tabs")
 	}
 
 	m.watcher = nil

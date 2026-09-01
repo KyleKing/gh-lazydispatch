@@ -1,8 +1,6 @@
 package app
 
 import (
-	"strconv"
-	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -167,15 +165,16 @@ func (m Model) reloadRuns() (tea.Model, tea.Cmd) {
 	return m, m.fetchRunsCmd(runs.Scope(), m.runsRef())
 }
 
-// openSelectedRunsRow opens the selected run's log, or expands a pull request
-// row into the runs on its head branch. A rollup says a pull request is red and
-// the runs behind it say which workflow is.
+// openSelectedRunsRow draws the selected run on a time axis, or expands a pull
+// request row into the runs on its head branch. A rollup says a pull request is
+// red and the runs behind it say which workflow is; the timeline then says
+// which job, and `v` from there opens its log.
 func (m Model) openSelectedRunsRow() (tea.Model, tea.Cmd) {
 	runs := m.rightPanel.Runs()
 
 	pr, ok := runs.SelectedPR()
 	if !ok {
-		return m.logsForSelectedRun()
+		return m.timelineForSelection()
 	}
 
 	runs.DrillToBranch(pr.HeadRef)
@@ -194,13 +193,13 @@ func (m Model) logsForSelectedRun() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) selectedRunLogCmd(errorsOnly bool) tea.Cmd {
-	run, ok := m.rightPanel.SelectedGitHubRun()
+	runID, name, ok := m.selectedRun()
 	if !ok {
-		return nil
+		return statusCmd("no run selected")
 	}
 
 	return func() tea.Msg {
-		return FetchLogsMsg{RunID: run.ID, Workflow: run.Name, ErrorsOnly: errorsOnly}
+		return FetchLogsMsg{RunID: runID, Workflow: name, ErrorsOnly: errorsOnly}
 	}
 }
 
@@ -210,33 +209,6 @@ func runsActions() []paneAction {
 		{key: "R", name: "reload", run: Model.reloadRuns},
 		{key: "s", name: "switch scope", run: Model.cycleRunsScope},
 		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
-		{key: "v", name: "view logs", run: Model.logsForSelectedRun},
+		{key: "v", name: nameViewLogs, run: Model.logsForSelectedRun},
 	}
-}
-
-// runsVerdict spells the loaded scope's state for the status bar, so "is my
-// branch green" is answered without the Runs tab being open.
-func (m Model) runsVerdict() string {
-	runs := m.rightPanel.Runs()
-	if !runs.Loaded() {
-		return ""
-	}
-
-	passed, failed, active := runs.Summary()
-	if passed+failed+active == 0 {
-		return ""
-	}
-
-	var verdict strings.Builder
-
-	for _, part := range []struct {
-		glyph string
-		count int
-	}{{"+", passed}, {"x", failed}, {"*", active}} {
-		if part.count > 0 {
-			verdict.WriteString(" " + strconv.Itoa(part.count) + part.glyph)
-		}
-	}
-
-	return verdict.String()
 }

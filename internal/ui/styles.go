@@ -46,6 +46,8 @@ var (
 	NormalStyle        lipgloss.Style
 	SelectedStyle      lipgloss.Style
 	SubtitleStyle      lipgloss.Style
+	TabActiveStyle     lipgloss.Style
+	TabInactiveStyle   lipgloss.Style
 	TableDefaultStyle  lipgloss.Style
 	TableDimmedStyle   lipgloss.Style
 	TableHeaderStyle   lipgloss.Style
@@ -115,6 +117,19 @@ func ApplyTheme() {
 
 	SubtitleStyle = lipgloss.NewStyle().
 		Foreground(SoftMutedColor)
+
+	// The active tab is a filled segment rather than a bracketed name: every
+	// other bracket in this UI is a key you can press, and one that is not
+	// reads as a broken hint.
+	TabActiveStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(ModalBgColor).
+		Background(PrimaryColor).
+		Padding(0, 1)
+
+	TabInactiveStyle = lipgloss.NewStyle().
+		Foreground(MutedColor).
+		Padding(0, 1)
 
 	TableDefaultStyle = lipgloss.NewStyle().
 		Foreground(SoftMutedColor)

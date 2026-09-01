@@ -95,7 +95,7 @@ func runsCommand() Command {
 				scope = named
 			}
 
-			m.focused = PaneHistory
+			m.focused = PaneRight
 			m.rightPanel.SetTab(panes.TabRuns)
 			m.rightPanel.Runs().SetScope(scope)
 
@@ -212,6 +212,7 @@ func workflowCommand() Command {
 				m.selectedWorkflow = i
 				m.initializeInputs(wf)
 				m.syncHistoryEntries()
+				m.syncSelectedWorkflow()
 
 				return m, nil
 			}

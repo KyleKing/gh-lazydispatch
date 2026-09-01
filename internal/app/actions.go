@@ -15,6 +15,8 @@ import (
 const (
 	keyEnter           = "enter"
 	nameBranch         = "branch"
+	nameRunsTab        = "Runs"
+	nameViewLogs       = "view logs"
 	nameTimelineAction = "timeline for this run"
 	nameWorkflow       = "workflow"
 	paneWorkflows      = "Workflows"
@@ -42,34 +44,44 @@ type actionMenu struct {
 func (m Model) actionsFor() actionMenu {
 	switch m.focused {
 	case PaneWorkflows:
-		return actionMenu{title: paneWorkflows, target: m.selectedWorkflowName(), actions: workflowActions()}
+		return actionMenu{title: paneWorkflows, target: m.selectedWorkflowName(), actions: m.workflowActions()}
+
+	case PaneChains:
+		return actionMenu{title: "Chains", target: m.chainsTarget(), actions: chainActions()}
 
 	case PaneConfig:
 		return actionMenu{title: "Configuration", target: m.selectedWorkflowName(), actions: configActions()}
 
-	case PaneHistory:
+	case PaneRight:
+		if m.rightPanel.Detail() != nil {
+			return actionMenu{title: "Run", target: m.timelineTarget(), actions: timelineActions()}
+		}
+
 		switch m.rightPanel.ActiveTab() {
 		case panes.TabHistory:
 			return actionMenu{title: "History", target: m.historyTarget(), actions: m.historyActions()}
-		case panes.TabChains:
-			return actionMenu{title: "Chains", target: m.chainsTarget(), actions: chainActions()}
 		case panes.TabLive:
-			return actionMenu{title: "Live", target: m.liveTarget(), actions: liveActions()}
-		case panes.TabTimeline:
-			return actionMenu{title: "Timeline", target: m.timelineTarget(), actions: timelineActions()}
+			return actionMenu{title: "Live", target: m.liveTarget(), actions: m.liveActions()}
+		case panes.TabFlaky:
+			return actionMenu{title: "Flaky", target: m.flakyTarget(), actions: flakyActions()}
 		case panes.TabRuns:
-			return actionMenu{title: "Runs", target: m.runsTarget(), actions: runsActions()}
+			return actionMenu{title: nameRunsTab, target: m.runsTarget(), actions: runsActions()}
 		}
 	}
 
-	return actionMenu{title: paneWorkflows, actions: workflowActions()}
+	return actionMenu{title: paneWorkflows, actions: m.workflowActions()}
 }
 
-func workflowActions() []paneAction {
+func (m Model) workflowActions() []paneAction {
+	run := paneAction{key: keyEnter, name: "run the selected workflow", run: Model.executeWorkflow}
+	if n := m.markedWorkflows.Len(); n > 0 {
+		run = paneAction{key: keyEnter, name: "run the " + markLabel(n) + " workflows", run: Model.runMarkedWorkflows}
+	}
+
 	return []paneAction{
 		{key: "b", name: nameBranch, run: Model.openBranchModal},
 		{key: "c", name: "run a chain", run: Model.openChainSelectModal},
-		{key: keyEnter, name: "run the selected workflow", run: Model.executeWorkflow},
+		run,
 		{key: "w", name: "toggle watch after dispatch", run: Model.toggleWatch},
 	}
 }
@@ -87,7 +99,7 @@ func configActions() []paneAction {
 func (m Model) historyActions() []paneAction {
 	actions := []paneAction{
 		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
-		{key: "v", name: "view logs", run: Model.viewSelectedLogs},
+		{key: "v", name: nameViewLogs, run: Model.viewSelectedLogs},
 	}
 
 	// Remapping only means something for an entry whose inputs no longer fit
@@ -106,11 +118,13 @@ func chainActions() []paneAction {
 	}
 }
 
-func liveActions() []paneAction {
+func (m Model) liveActions() []paneAction {
+	marked := m.rightPanel.Live().MarkCount()
+
 	return []paneAction{
 		{key: "L", name: "open the live overview", run: Model.openLiveViewModal},
 		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
-		{key: "d", name: "stop watching the selected run", run: Model.clearSelectedRunAction},
+		{key: "d", name: "stop watching " + markLabel(marked), run: Model.unwatchMarkedRuns},
 		{key: "D", name: "stop watching every completed run", run: Model.clearCompletedRunsAction},
 	}
 }
@@ -161,18 +175,12 @@ func (m Model) viewSelectedLogs() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) runSelectedChain() (tea.Model, tea.Cmd) {
-	name, chainDef, ok := m.rightPanel.SelectedChain()
+	name, chainDef, ok := m.chains.SelectedChain()
 	if !ok {
 		return m, statusCmd("no chain selected")
 	}
 
 	return m.startChainFlow(name, chainDef)
-}
-
-func (m Model) clearSelectedRunAction() (tea.Model, tea.Cmd) {
-	m.clearSelectedLiveRun()
-
-	return m, nil
 }
 
 func (m Model) clearCompletedRunsAction() (tea.Model, tea.Cmd) {
@@ -183,6 +191,10 @@ func (m Model) clearCompletedRunsAction() (tea.Model, tea.Cmd) {
 
 // selectedWorkflowName names what a workflow or config verb would act on.
 func (m Model) selectedWorkflowName() string {
+	if n := m.markedWorkflows.Len(); n > 0 {
+		return markLabel(n) + " workflows on " + m.branchLabel()
+	}
+
 	if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {
 		return "all workflows"
 	}
@@ -214,7 +226,7 @@ func (m Model) historyTarget() string {
 }
 
 func (m Model) chainsTarget() string {
-	name, chainDef, ok := m.rightPanel.SelectedChain()
+	name, chainDef, ok := m.chains.SelectedChain()
 	if !ok {
 		return "no chain selected"
 	}
@@ -223,6 +235,10 @@ func (m Model) chainsTarget() string {
 }
 
 func (m Model) liveTarget() string {
+	if n := m.rightPanel.Live().MarkCount(); n > 0 {
+		return markLabel(n) + " runs"
+	}
+
 	run, ok := m.rightPanel.SelectedRun()
 	if !ok {
 		return "no run selected"
@@ -233,21 +249,54 @@ func (m Model) liveTarget() string {
 
 func timelineActions() []paneAction {
 	return []paneAction{
+		{key: "d", name: "diagnose the failure", run: Model.diagnoseSelectedRun},
 		{key: keyEnter, name: "drill into the selected job's steps", run: Model.drillTimeline},
-		{key: "esc", name: "back out to the jobs", run: Model.undrillTimeline},
+		{key: "esc", name: "back out of the run", run: Model.undrillTimeline},
+		{key: "v", name: nameViewLogs, run: Model.logsForSelectedRun},
+	}
+}
+
+func flakyActions() []paneAction {
+	return []paneAction{
+		{key: "R", name: "reload the run history", run: Model.reloadFlaky},
+		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
+		{key: "v", name: nameViewLogs, run: Model.logsForSelectedRun},
 	}
 }
 
 func (m Model) drillTimeline() (tea.Model, tea.Cmd) {
-	m.rightPanel.Timeline().Drill()
+	if detail := m.rightPanel.Detail(); detail != nil {
+		detail.Drill()
+	}
 
 	return m, nil
 }
 
+// undrillTimeline peels one layer: a job's steps first, then the run itself.
 func (m Model) undrillTimeline() (tea.Model, tea.Cmd) {
-	m.rightPanel.Timeline().Undrill()
+	detail := m.rightPanel.Detail()
+	if detail == nil {
+		return m, nil
+	}
+
+	if detail.Drilled() {
+		detail.Undrill()
+
+		return m, nil
+	}
+
+	m.rightPanel.CloseDetail()
 
 	return m, nil
+}
+
+// flakyTarget names the row a pass-rate verb would act on.
+func (m Model) flakyTarget() string {
+	if run, ok := m.rightPanel.Flaky().SelectedRun(); ok {
+		return run.Name + " on " + run.HeadBranch
+	}
+
+	return m.rightPanel.Flaky().Title()
 }
 
 func (m Model) runsTarget() string {
@@ -263,5 +312,9 @@ func (m Model) runsTarget() string {
 }
 
 func (m Model) timelineTarget() string {
-	return m.rightPanel.Timeline().Heading()
+	if detail := m.rightPanel.Detail(); detail != nil {
+		return detail.Heading()
+	}
+
+	return "no run open"
 }

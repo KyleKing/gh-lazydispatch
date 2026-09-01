@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -11,13 +12,16 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
-// liveGutter is the selection indicator plus the run status glyph.
-const liveGutter = ui.RowGutterWidth + 2
+// liveGutter is the selection indicator, the mark cell, and the status glyph.
+const liveGutter = ui.RowGutterWidth + 3
 
 // liveColumns describes the live-runs table.
 func liveColumns() []table.Column {
 	return []table.Column{
-		{Key: ui.ColKeyWorkflow, Title: "Workflow", Min: ui.ColMinName, Max: ui.ColMaxName, Weight: ui.WeightHigh},
+		{
+			Key: ui.ColKeyWorkflow, Title: ui.ColTitleWorkflow, Min: ui.ColMinName, Max: ui.ColMaxName,
+			Weight: ui.WeightHigh,
+		},
 		{Key: "status", Title: "Status", Min: ui.ColMinLabel, Max: ui.ColMaxStatus, Weight: ui.WeightLow},
 	}
 }
@@ -26,6 +30,7 @@ const statusUnknown = "unknown"
 
 // LiveRunsModel manages the live runs display.
 type LiveRunsModel struct {
+	marks         ui.MarkSet
 	runs          []watcher.WatchedRun
 	selectedIndex int
 	width         int
@@ -70,6 +75,42 @@ func (m *LiveRunsModel) MoveDown() {
 		m.selectedIndex++
 	}
 }
+
+// ToggleMark marks or unmarks the run under the cursor, which is what makes a
+// verb act on a set rather than on one row.
+func (m *LiveRunsModel) ToggleMark() {
+	if run, ok := m.SelectedRun(); ok {
+		m.marks.Toggle(strconv.FormatInt(run.RunID, 10))
+	}
+}
+
+// MarkedRuns are the run IDs marked, or the selection when nothing is marked:
+// a verb always has something to act on.
+func (m LiveRunsModel) MarkedRuns() []int64 {
+	if m.marks.Len() == 0 {
+		if run, ok := m.SelectedRun(); ok {
+			return []int64{run.RunID}
+		}
+
+		return nil
+	}
+
+	ids := make([]int64, 0, m.marks.Len())
+
+	for _, key := range m.marks.Keys() {
+		if id, err := strconv.ParseInt(key, 10, 64); err == nil {
+			ids = append(ids, id)
+		}
+	}
+
+	return ids
+}
+
+// MarkCount is how many runs are marked.
+func (m LiveRunsModel) MarkCount() int { return m.marks.Len() }
+
+// ClearMarks drops every mark, which finishing a batch verb does.
+func (m *LiveRunsModel) ClearMarks() { m.marks.Clear() }
 
 // SelectedRun returns the currently selected run.
 func (m LiveRunsModel) SelectedRun() (watcher.WatchedRun, bool) {
@@ -151,7 +192,9 @@ func (m LiveRunsModel) ViewContent() string {
 			rowStyle = ui.TableSelectedStyle
 		}
 
-		content.WriteString(rowStyle.Render(indicator + icon + " " + cells))
+		mark := ui.MarkGlyph(m.marks.Has(strconv.FormatInt(run.RunID, 10)))
+
+		content.WriteString(rowStyle.Render(indicator + mark + icon + " " + cells))
 
 		if i < last-1 {
 			content.WriteString("\n")

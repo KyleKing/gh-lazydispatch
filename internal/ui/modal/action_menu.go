@@ -23,7 +23,8 @@ type ActionResultMsg struct {
 
 // ActionMenuModal lists the verbs that apply to whatever has focus. It holds
 // only their names and keys: the caller owns what they do, which is what lets
-// the same menu serve every pane.
+// the same menu serve every pane. Keys are spelled `[b]` here as they are in
+// the footer, so the same key reads the same in both places.
 type ActionMenuModal struct {
 	title    string
 	target   string
@@ -126,7 +127,7 @@ func (m *ActionMenuModal) View() string {
 			style = ui.SelectedStyle
 		}
 
-		s.WriteString(style.Render(cursor + item.Key + "  " + item.Name))
+		s.WriteString(style.Render(cursor + "[" + item.Key + "] " + item.Name))
 		s.WriteString("\n")
 	}
 

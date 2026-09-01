@@ -147,9 +147,9 @@ func TestJourney_ClearingLiveRuns(t *testing.T) {
 		t.Errorf("clearing from the wrong pane dropped runs: %d left", got)
 	}
 
-	m.focused = PaneHistory
+	m.focused = PaneRight
 	for m.rightPanel.ActiveTab() != panes.TabLive {
-		m = pressRune(t, m, 'l')
+		m = pressRune(t, m, ']')
 	}
 
 	m = pressRune(t, m, 'd')
@@ -165,7 +165,8 @@ func TestJourney_EscapeReturnsToTheWorkflowList(t *testing.T) {
 	t.Parallel()
 
 	m := resize(t, newRenderModel(), 120, 40)
-	m.focused = PaneHistory
+	m.focused = PaneRight
+	m.rightPanel.SetTab(panes.TabHistory)
 	m = selectHistoryEntryWithInput(t, m, testInputEnvironment, "prod")
 	m = pressSpecial(t, m, tea.KeyEnter)
 
