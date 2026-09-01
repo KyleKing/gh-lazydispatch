@@ -1,6 +1,7 @@
 package modal
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -281,5 +282,33 @@ func TestLogsViewerModal_Streaming(t *testing.T) {
 
 	if !modal.autoScroll {
 		t.Error("expected autoScroll to be enabled")
+	}
+}
+
+//nolint:paralleltest // t.Chdir rules out t.Parallel
+func TestLogsViewerModal_ExportWritesMarkdownToTheWorkingDirectory(t *testing.T) {
+	t.Chdir(t.TempDir())
+
+	modal := NewLogsViewerModal(createTestRunLogs(), 80, 24)
+
+	_, _ = modal.Update(tea.KeyPressMsg{Code: 'x', Text: "x"})
+
+	if !strings.HasPrefix(modal.exportStatus, "exported to ") {
+		t.Fatalf("export status = %q, want an exported-to path", modal.exportStatus)
+	}
+
+	path := strings.TrimPrefix(modal.exportStatus, "exported to ")
+
+	written, err := os.ReadFile(path) //nolint:gosec // the path is the one the modal just reported writing
+	if err != nil {
+		t.Fatalf("reading the export: %v", err)
+	}
+
+	if !strings.Contains(string(written), "```") {
+		t.Errorf("export carries no fenced log body:\n%s", written)
+	}
+
+	if !strings.Contains(modal.View(), "exported to ") {
+		t.Error("the footer does not report the export")
 	}
 }

@@ -37,9 +37,20 @@ Inside the viewer:
 | `/`                 | Search                                             |
 | `n` / `N`           | Next or previous match                             |
 | `i`                 | Toggle case sensitivity                            |
+| `a` / `w` / `e`     | Filter to all, warnings, or errors                 |
+| `enter` / `space`   | Fold or unfold the step under the cursor           |
+| `E` / `C`           | Unfold or fold every step                          |
+| `s`                 | Toggle auto-scroll while streaming                 |
+| `x`                 | Export what the filter kept to a markdown file     |
 | `o`                 | Open the run in a browser                          |
 | `q` or `esc`        | Close the viewer                                   |
 
 Logs keep streaming while a run is active, and opening the viewer from a failed chain starts it filtered to errors.
+
+`x` writes `lazydispatch-<name>-<timestamp>.md` into the working directory: one
+section per step with its status, the log lines the active filter kept, and a
+"Detected issues" list naming the failure signatures found (out of memory, out
+of disk, timeout, missing secret, permission denied, network failure) with what
+to try about each. The footer reports the path it wrote.
 
 Log viewing needs the `gh` CLI installed and logged in.

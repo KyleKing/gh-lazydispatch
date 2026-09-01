@@ -2,6 +2,8 @@ package modal
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -50,6 +52,7 @@ type LogsViewerModal struct {
 	collapsedSteps map[int]bool
 	runLogs        *logs.RunLogs
 	liveStatus     string
+	exportStatus   string
 	keys           logsViewerKeyMap
 	matches        []MatchLocation
 	searchInput    textinput.Model
@@ -79,6 +82,7 @@ type logsViewerKeyMap struct {
 	QuickFilterErrors   key.Binding
 	ToggleCaseSensitive key.Binding
 	ToggleAutoScroll    key.Binding
+	Export              key.Binding
 }
 
 func defaultLogsViewerKeyMap() logsViewerKeyMap {
@@ -97,6 +101,7 @@ func defaultLogsViewerKeyMap() logsViewerKeyMap {
 		QuickFilterErrors:   key.NewBinding(key.WithKeys("e")),
 		ToggleCaseSensitive: key.NewBinding(key.WithKeys("i")),
 		ToggleAutoScroll:    key.NewBinding(key.WithKeys("s")),
+		Export:              key.NewBinding(key.WithKeys("x")),
 	}
 }
 
@@ -234,7 +239,15 @@ func (m *LogsViewerModal) handleViewerKey(msg tea.KeyPressMsg) (Context, tea.Cmd
 	case key.Matches(msg, m.keys.PrevMatch):
 		m.jumpToPrevMatch()
 		return m, nil, true
+	}
 
+	return m.handleSectionKey(msg)
+}
+
+// handleSectionKey handles the keys that reshape the view rather than the
+// filter: section folding, auto-scroll, and export.
+func (m *LogsViewerModal) handleSectionKey(msg tea.KeyPressMsg) (Context, tea.Cmd, bool) {
+	switch {
 	case key.Matches(msg, m.keys.ToggleStep):
 		m.toggleStepAtCursor()
 		return m, nil, true
@@ -249,6 +262,10 @@ func (m *LogsViewerModal) handleViewerKey(msg tea.KeyPressMsg) (Context, tea.Cmd
 
 	case key.Matches(msg, m.keys.ToggleAutoScroll):
 		m.toggleAutoScroll()
+		return m, nil, true
+
+	case key.Matches(msg, m.keys.Export):
+		m.exportMarkdown()
 		return m, nil, true
 	}
 
@@ -614,6 +631,11 @@ func (m *LogsViewerModal) View() string {
 	s.WriteString(m.viewport.View())
 	s.WriteString("\n\n")
 
+	if m.exportStatus != "" {
+		s.WriteString(ui.SubtitleStyle.Render(m.exportStatus))
+		s.WriteString("\n")
+	}
+
 	// Help
 	s.WriteString(m.renderHelp())
 
@@ -731,9 +753,50 @@ func (m *LogsViewerModal) renderHelp() string {
 		helpParts = append(helpParts, "[s] auto-scroll: "+autoScrollStatus)
 	}
 
-	helpParts = append(helpParts, "[q] close")
+	helpParts = append(helpParts, "[x] export", "[q] close")
 
 	return ui.HelpStyle.Render(strings.Join(helpParts, "  "))
+}
+
+// exportMarkdown writes the logs the active filter kept to a markdown file in
+// the working directory, reporting the path or the failure in the footer.
+func (m *LogsViewerModal) exportMarkdown() {
+	doc, err := logs.ExportAsMarkdown(m.runLogs, m.filterCfg)
+	if err != nil {
+		m.exportStatus = "export failed: " + err.Error()
+		return
+	}
+
+	path := exportFilename(m.runLogs)
+	if err := os.WriteFile(path, []byte(doc), exportFileMode); err != nil {
+		m.exportStatus = "export failed: " + err.Error()
+		return
+	}
+
+	m.exportStatus = "exported to " + path
+}
+
+// exportFileMode is the permission a written log export carries: readable by
+// the user who ran the export and nobody else.
+const exportFileMode = 0o600
+
+// exportFilename names the export after the run and the moment it was taken,
+// so two exports of one chain never collide.
+func exportFilename(runLogs *logs.RunLogs) string {
+	name := "run"
+	if runLogs != nil && runLogs.ChainName != "" {
+		name = runLogs.ChainName
+	}
+
+	name = strings.Map(func(r rune) rune {
+		if r == filepath.Separator || r == ' ' || r == os.PathListSeparator {
+			return '-'
+		}
+
+		return r
+	}, name)
+
+	return fmt.Sprintf("lazydispatch-%s-%s.md", name, time.Now().Format("20060102-150405"))
 }
 
 // EnableStreaming enables streaming mode for this viewer.
