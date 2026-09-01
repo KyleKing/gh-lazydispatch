@@ -1,0 +1,217 @@
+package app
+
+import (
+	"strings"
+	"testing"
+
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/kyleking/gh-lazydispatch/internal/config"
+)
+
+const (
+	testChainName = "deploy-pipeline"
+	testChainVar  = "target"
+)
+
+// testChainConfig is a chain whose second step reads both a variable and the
+// step above it, so a preview that interpolates either one wrong shows up in
+// the rendered command.
+func testChainConfig() *config.WfdConfig {
+	return &config.WfdConfig{
+		Version: 1,
+		Chains: map[string]config.Chain{
+			testChainName: {
+				Description: "build then deploy",
+				Variables: []config.ChainVariable{
+					{
+						Name:     testChainVar,
+						Type:     "choice",
+						Default:  testValueStaging,
+						Options:  []string{testValueStaging, "production"},
+						Required: true,
+					},
+				},
+				Steps: []config.ChainStep{
+					{
+						Workflow: "ci.yml",
+						WaitFor:  config.WaitSuccess,
+						Inputs:   map[string]string{"env": "{{ var.target }}"},
+					},
+					{
+						Workflow:  "deploy.yml",
+						WaitFor:   config.WaitCompletion,
+						OnFailure: config.FailureAbort,
+						Inputs:    map[string]string{"env": "{{ previous.inputs.env }}"},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newChainModel(t *testing.T) Model {
+	t.Helper()
+
+	m := resize(t, newRenderModel(), 120, 40)
+	m.wfdConfig = testChainConfig()
+
+	return m
+}
+
+// openChainVariables walks the chain-select modal to the variable prompt.
+func openChainVariables(t *testing.T, m Model) Model {
+	t.Helper()
+
+	m = pressRune(t, m, 'C')
+	if !m.modalStack.HasActive() {
+		t.Fatal("C did not open the chain select modal")
+	}
+
+	m = pressSpecial(t, m, tea.KeyEnter)
+	if !m.modalStack.HasActive() {
+		t.Fatal("selecting a chain closed the stack instead of prompting for variables")
+	}
+
+	return m
+}
+
+// TestJourney_ChainPreviewInterpolatesTheChosenVariable walks the whole
+// pre-dispatch chain flow, which is the only place a user sees what a chain
+// will actually run before committing to it. Nothing dispatches: the model has
+// no gh client, so handleChainConfirmResult stops at the preview.
+func TestJourney_ChainPreviewInterpolatesTheChosenVariable(t *testing.T) {
+	t.Parallel()
+
+	m := openChainVariables(t, newChainModel(t))
+
+	// Step the choice off its default, so the preview cannot pass by echoing it.
+	m = pressSpecial(t, m, tea.KeyRight)
+	m = pressSpecial(t, m, tea.KeyEnter)
+
+	if !m.modalStack.HasActive() {
+		t.Fatal("confirming variables closed the stack instead of showing the confirmation")
+	}
+
+	view := m.View().Content
+	for _, want := range []string{"Confirm Chain Execution", testChainName, "ci.yml", "deploy.yml", "production"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("chain confirmation does not mention %q", want)
+		}
+	}
+
+	if strings.Contains(view, "{{") {
+		t.Errorf("chain confirmation shows an uninterpolated template:\n%s", view)
+	}
+
+	if strings.Contains(view, testValueStaging) {
+		t.Errorf("chain confirmation still shows the default the user stepped away from:\n%s", view)
+	}
+}
+
+func TestJourney_CancelingAChainClearsItsPendingState(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		abort func(t *testing.T, m Model) Model
+	}{
+		{"at the variable prompt", func(t *testing.T, m Model) Model {
+			t.Helper()
+
+			return pressSpecial(t, m, tea.KeyEscape)
+		}},
+		{"at the confirmation", func(t *testing.T, m Model) Model {
+			t.Helper()
+
+			m = pressSpecial(t, m, tea.KeyEnter)
+
+			return pressRune(t, m, 'n')
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := tt.abort(t, openChainVariables(t, newChainModel(t)))
+
+			if m.pendingChain != nil || m.pendingChainName != "" {
+				t.Errorf("chain %q still pending after cancel", m.pendingChainName)
+			}
+
+			if m.chainExecutor != nil {
+				t.Error("canceling started an executor")
+			}
+		})
+	}
+}
+
+// TestJourney_ResetRestoresEveryEditedInput covers the edit-then-undo loop:
+// the reset modal must list what changed and put it back.
+func TestJourney_ResetRestoresEveryEditedInput(t *testing.T) {
+	t.Parallel()
+
+	m := resize(t, newRenderModel(), 120, 40)
+	m.focused = PaneConfig
+	m.inputs[testInputEnvironment] = "production"
+
+	m = pressRune(t, m, 'r')
+	if !m.modalStack.HasActive() {
+		t.Fatal("r did not open the reset modal")
+	}
+
+	if view := m.View().Content; !strings.Contains(view, testInputEnvironment) {
+		t.Errorf("reset modal does not name the input it would change:\n%s", view)
+	}
+
+	m = pressRune(t, m, 'y')
+
+	if got := m.inputs[testInputEnvironment]; got != testValueStaging {
+		t.Errorf("environment is %q after reset, want the workflow default %q", got, testValueStaging)
+	}
+}
+
+// TestJourney_RemappingAStaleHistoryEntry covers replaying a run recorded
+// against an older version of the workflow, where a value no longer validates.
+func TestJourney_RemappingAStaleHistoryEntry(t *testing.T) {
+	t.Parallel()
+
+	m := resize(t, newRenderModel(), 120, 40)
+	m.focused = PaneHistory
+
+	m = selectHistoryEntryWithInput(t, m, testInputEnvironment, "prod")
+	m = pressSpecial(t, m, tea.KeyEnter)
+
+	if m.viewMode != HistoryPreviewMode || m.previewingHistoryEntry == nil {
+		t.Fatal("enter on a history entry did not enter preview mode")
+	}
+
+	m = pressRune(t, m, 'a')
+	if !m.modalStack.HasActive() {
+		t.Fatal("a did not open the remap modal for an entry with an invalid value")
+	}
+
+	if view := m.View().Content; !strings.Contains(view, "prod") {
+		t.Errorf("remap modal does not show the stale value:\n%s", view)
+	}
+}
+
+// selectHistoryEntryWithInput moves the history selection down until the entry
+// carrying name=value is selected, so the test does not depend on frecency
+// ranking.
+func selectHistoryEntryWithInput(t *testing.T, m Model, name, value string) Model {
+	t.Helper()
+
+	for range len(m.currentHistoryEntries()) {
+		if entry := m.rightPanel.SelectedHistoryEntry(); entry != nil && entry.Inputs[name] == value {
+			return m
+		}
+
+		m = pressSpecial(t, m, tea.KeyDown)
+	}
+
+	t.Fatalf("no history entry has %s=%s", name, value)
+
+	return m
+}

@@ -7,82 +7,21 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func TestBranchModalCreation(t *testing.T) {
-	t.Parallel()
+func typeInto(t *testing.T, m *SimpleBranchModal, text string) *SimpleBranchModal {
+	t.Helper()
 
-	branches := []string{"main", "develop", "feature-1"}
-	current := "develop"
-	defaultBranch := "main"
+	for _, r := range text {
+		ctx, _ := m.Update(tea.KeyPressMsg{Code: r, Text: string(r)})
 
-	modal := NewBranchModalWithDefault("Test Branch", branches, current, defaultBranch)
+		next, ok := ctx.(*SimpleBranchModal)
+		if !ok {
+			t.Fatalf("Update returned %T, want *SimpleBranchModal", ctx)
+		}
 
-	if modal == nil {
-		t.Fatal("NewBranchModalWithDefault returned nil")
+		m = next
 	}
 
-	if modal.currentBranch != current {
-		t.Errorf("currentBranch = %q, want %q", modal.currentBranch, current)
-	}
-
-	if modal.defaultBranch != defaultBranch {
-		t.Errorf("defaultBranch = %q, want %q", modal.defaultBranch, defaultBranch)
-	}
-}
-
-func TestBranchModalSetSize(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name           string
-		terminalWidth  int
-		terminalHeight int
-		wantMinHeight  int
-		wantMaxHeight  int
-	}{
-		{
-			name:           "small terminal",
-			terminalWidth:  80,
-			terminalHeight: 10,
-			wantMinHeight:  10,
-			wantMaxHeight:  10,
-		},
-		{
-			name:           "medium terminal",
-			terminalWidth:  100,
-			terminalHeight: 30,
-			wantMinHeight:  24,
-			wantMaxHeight:  24,
-		},
-		{
-			name:           "large terminal",
-			terminalWidth:  120,
-			terminalHeight: 50,
-			wantMinHeight:  30,
-			wantMaxHeight:  30,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			modal := NewBranchModal("Test", []string{"main"}, "main")
-			modal.SetSize(tt.terminalWidth, tt.terminalHeight)
-
-			if modal.terminalWidth != tt.terminalWidth {
-				t.Errorf("terminalWidth = %d, want %d", modal.terminalWidth, tt.terminalWidth)
-			}
-
-			if modal.terminalHeight != tt.terminalHeight {
-				t.Errorf("terminalHeight = %d, want %d", modal.terminalHeight, tt.terminalHeight)
-			}
-
-			// We can't directly inspect list height, but we can check terminal values were stored
-			if modal.terminalHeight != tt.terminalHeight {
-				t.Errorf("terminal height not stored correctly")
-			}
-		})
-	}
+	return m
 }
 
 func TestBranchPinning(t *testing.T) {
@@ -90,11 +29,11 @@ func TestBranchPinning(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		branches      []string
 		current       string
 		defaultBranch string
 		wantFirst     string
 		wantSecond    string
+		branches      []string
 	}{
 		{
 			name:          "current and default different",
@@ -118,7 +57,7 @@ func TestBranchPinning(t *testing.T) {
 			current:       "develop",
 			defaultBranch: "",
 			wantFirst:     "develop",
-			wantSecond:    "main", // remaining branches in original order: main, feature
+			wantSecond:    "main",
 		},
 		{
 			name:          "no current",
@@ -151,109 +90,144 @@ func TestBranchPinning(t *testing.T) {
 	}
 }
 
-func TestBranchModalFilterReset(t *testing.T) {
+// TestSimpleBranchModal_OpensOnTheCurrentBranch guards the case a user hits
+// every time they open the modal without meaning to change anything: enter
+// must return the branch they were already on.
+func TestSimpleBranchModal_OpensOnTheCurrentBranch(t *testing.T) {
 	t.Parallel()
 
-	branches := []string{"main", "develop", "feature-1", "feature-2"}
-	modal := NewBranchModalWithDefault("Test", branches, "develop", "main")
+	m := NewSimpleBranchModal("Select Branch", []string{"main", "develop", "feature"}, "feature", "main")
 
-	// Store original item count
-	originalCount := len(modal.originalItems)
-
-	// Simulate entering filter mode
-	modal.wasFiltering = false
-	modal.list.SetFilteringEnabled(true)
-
-	// The actual filtering is handled by bubbles/list Update()
-	// Here we're testing that wasFiltering flag tracks state correctly
-
-	if modal.wasFiltering {
-		t.Error("wasFiltering should be false initially")
+	ctx, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	if !ctx.IsDone() {
+		t.Fatal("enter did not close the modal")
 	}
 
-	// We can't easily simulate the full filter->reset cycle without running Update()
-	// but we can verify the setup is correct
-	if len(modal.originalItems) != originalCount {
-		t.Errorf("originalItems count changed: got %d, want %d", len(modal.originalItems), originalCount)
+	if got := ctx.Result(); got != "feature" {
+		t.Errorf("result is %v, want the current branch", got)
+	}
+
+	msg, ok := cmd().(BranchResultMsg)
+	if !ok || msg.Value != "feature" {
+		t.Errorf("command produced %#v, want BranchResultMsg for the current branch", cmd())
 	}
 }
 
-func TestBranchModalView(t *testing.T) {
+// TestSimpleBranchModal_TypingFiltersAcrossEveryBranch checks that filtering
+// searches the whole branch list rather than only the pinned head of it.
+func TestSimpleBranchModal_TypingFiltersAcrossEveryBranch(t *testing.T) {
+	t.Parallel()
+
+	branches := []string{"main", "develop", "feature/login", "feature/logout", "hotfix"}
+	m := typeInto(t, NewSimpleBranchModal("Select Branch", branches, "main", "main"), "logout")
+
+	if !m.filtering {
+		t.Fatal("typing a printable character did not start filtering")
+	}
+
+	if len(m.filteredBranches) != 1 || m.filteredBranches[0] != "feature/logout" {
+		t.Fatalf("filter matched %v, want only feature/logout", m.filteredBranches)
+	}
+
+	ctx, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	ctx, _ = ctx.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+
+	if got := ctx.Result(); got != "feature/logout" {
+		t.Errorf("result is %v, want the filtered branch", got)
+	}
+}
+
+// TestSimpleBranchModal_EscapeClearsTheFilterBeforeClosing keeps escape from
+// discarding the whole selection when the user only wants to widen the filter.
+func TestSimpleBranchModal_EscapeClearsTheFilterBeforeClosing(t *testing.T) {
 	t.Parallel()
 
 	branches := []string{"main", "develop", "feature"}
-	modal := NewBranchModal("Select Branch", branches, "main")
-	modal.SetSize(80, 30)
+	m := typeInto(t, NewSimpleBranchModal("Select Branch", branches, "main", "main"), "dev")
 
-	view := modal.View()
+	ctx, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 
-	if view == "" {
-		t.Error("View() returned empty string")
+	m, ok := ctx.(*SimpleBranchModal)
+	if !ok {
+		t.Fatalf("Update returned %T, want *SimpleBranchModal", ctx)
 	}
 
-	// Check that the view contains the title
-	if !strings.Contains(view, "Select Branch") {
-		t.Error("View() should contain title")
+	if m.done {
+		t.Fatal("escape closed the modal instead of clearing the filter")
+	}
+
+	if len(m.filteredBranches) != len(branches) {
+		t.Errorf("filter left %d branches, want all %d back", len(m.filteredBranches), len(branches))
+	}
+
+	ctx, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
+	ctx, _ = ctx.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
+
+	if !ctx.IsDone() {
+		t.Error("escape on an empty filter did not close the modal")
+	}
+
+	if got := ctx.Result(); got != "" {
+		t.Errorf("canceling returned %v, want no branch", got)
 	}
 }
 
-func TestBranchModalKeyHandling(t *testing.T) {
+// TestSimpleBranchModal_ScrollsToKeepTheSelectionVisible pins the windowing
+// arithmetic: a list longer than the modal must scroll rather than run the
+// cursor off the bottom.
+func TestSimpleBranchModal_ScrollsToKeepTheSelectionVisible(t *testing.T) {
 	t.Parallel()
 
-	branches := []string{"main", "develop", "feature"}
-	modal := NewBranchModal("Test", branches, "main")
-
-	// Test Enter key selects branch
-	ctx, _ := modal.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
-
-	branchModal, ok := ctx.(*BranchModal)
-	if !ok {
-		t.Fatalf("expected *BranchModal, got %T", ctx)
+	branches := make([]string, 40)
+	for i := range branches {
+		branches[i] = "branch-" + string(rune('a'+i%26)) + string(rune('0'+i/26))
 	}
 
-	if !branchModal.done {
-		t.Error("Enter key should mark modal as done")
+	m := NewSimpleBranchModal("Select Branch", branches, branches[0], branches[0])
+	m.SetSize(80, 30)
+
+	for range len(branches) - 1 {
+		ctx, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+
+		next, ok := ctx.(*SimpleBranchModal)
+		if !ok {
+			t.Fatalf("Update returned %T, want *SimpleBranchModal", ctx)
+		}
+
+		m = next
 	}
 
-	if branchModal.result == "" {
-		t.Error("Enter key should set result")
+	if m.selected != len(branches)-1 {
+		t.Fatalf("selection stopped at %d, want the last branch %d", m.selected, len(branches)-1)
 	}
 
-	// Test Esc key cancels
-	modal2 := NewBranchModal("Test", branches, "main")
-	ctx2, _ := modal2.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
-
-	branchModal2, ok := ctx2.(*BranchModal)
-	if !ok {
-		t.Fatalf("expected *BranchModal, got %T", ctx2)
+	if m.selected < m.scrollOffset || m.selected >= m.scrollOffset+m.maxHeight {
+		t.Errorf("selection %d is outside the visible window [%d, %d)",
+			m.selected, m.scrollOffset, m.scrollOffset+m.maxHeight)
 	}
 
-	if !branchModal2.done {
-		t.Error("Esc key should mark modal as done")
-	}
-
-	if branchModal2.result != "" {
-		t.Error("Esc key should leave result empty")
+	if view := m.View(); !strings.Contains(view, branches[len(branches)-1]) {
+		t.Error("the selected branch is not in the rendered view")
 	}
 }
 
-func TestBranchModalStylesHaveNoBackground(t *testing.T) {
+func TestSimpleBranchModal_ReportsAnEmptyFilter(t *testing.T) {
 	t.Parallel()
 
-	branches := []string{"main", "develop"}
-	modal := NewBranchModalWithDefault("Test", branches, "main", "main")
+	m := typeInto(t, NewSimpleBranchModal("Select Branch", []string{"main", "develop"}, "main", "main"), "zzz")
 
-	// We can't directly inspect lipgloss styles for background,
-	// but we can render and check the output doesn't have unexpected styling
-	view := modal.View()
-
-	// The view should not be empty
-	if view == "" {
-		t.Error("View should not be empty")
+	if view := m.View(); !strings.Contains(view, "No branches found") {
+		t.Errorf("a filter matching nothing renders no explanation:\n%s", view)
 	}
 
-	// Basic smoke test - the modal should be renderable
-	if len(view) < 10 {
-		t.Error("View seems too short, possible rendering issue")
+	ctx, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	ctx, cmd := ctx.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+
+	if got := ctx.Result(); got != "" {
+		t.Errorf("selecting from an empty list returned %v, want nothing", got)
+	}
+
+	if msg, ok := cmd().(BranchResultMsg); !ok || msg.Value != "" {
+		t.Errorf("command produced %#v, want an empty BranchResultMsg", cmd())
 	}
 }

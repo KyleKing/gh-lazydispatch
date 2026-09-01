@@ -1,3 +1,4 @@
+// Package modal provides modal dialogs for user interactions in the TUI application.
 package modal
 
 import (
@@ -9,6 +10,18 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
+
+const (
+	branchModalInitialHeight = 20
+	branchModalHeightRatio   = 0.8
+	branchModalMaxHeight     = 30
+	branchModalMinHeight     = 10
+)
+
+// BranchResultMsg is sent when a branch is selected.
+type BranchResultMsg struct {
+	Value string
+}
 
 // SimpleBranchModal is a branch selector without bubbles/list complexity.
 type SimpleBranchModal struct {
@@ -323,4 +336,31 @@ func (m *SimpleBranchModal) IsDone() bool {
 // Result returns the selected branch.
 func (m *SimpleBranchModal) Result() any {
 	return m.result
+}
+
+func _pinBranches(branches []string, current, defaultBranch string) []string {
+	if current == "" && defaultBranch == "" {
+		return branches
+	}
+
+	result := make([]string, 0, len(branches))
+	remaining := make([]string, 0, len(branches))
+
+	for _, branch := range branches {
+		if branch != current && branch != defaultBranch {
+			remaining = append(remaining, branch)
+		}
+	}
+
+	if current != "" {
+		result = append(result, current)
+	}
+
+	if defaultBranch != "" && defaultBranch != current {
+		result = append(result, defaultBranch)
+	}
+
+	result = append(result, remaining...)
+
+	return result
 }
