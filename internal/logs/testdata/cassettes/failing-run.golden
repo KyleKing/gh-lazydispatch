@@ -1,84 +1,84 @@
 [[interaction]]
-args = ['api', 'repos/KyleKing/gh-lazydispatch/actions/runs/33467068056/jobs']
 stdout = '{"total_count":1,"jobs":[{"id":99729024463,"run_id":33467068056,"workflow_name":"Demo Chain Check","head_branch":"main","run_url":"https://api.github.com/repos/KyleKing/gh-lazydispatch/actions/runs/33467068056","run_attempt":1,"node_id":"CR_kwDOQ5bl-c8AAAAXOFAlzw","head_sha":"7f159c24536222b368c71ac6ebb3b351570ce8ff","url":"https://api.github.com/repos/KyleKing/gh-lazydispatch/actions/jobs/99729024463","html_url":"https://github.com/KyleKing/gh-lazydispatch/actions/runs/33467068056/job/99729024463","status":"completed","conclusion":"failure","created_at":"2026-09-01T03:40:37Z","started_at":"2026-09-01T03:40:39Z","completed_at":"2026-09-01T03:40:42Z","name":"check","steps":[{"name":"Set up job","status":"completed","conclusion":"success","number":1,"started_at":"2026-09-01T03:40:40Z","completed_at":"2026-09-01T03:40:40Z"},{"name":"Report what the chain passed in","status":"completed","conclusion":"success","number":2,"started_at":"2026-09-01T03:40:40Z","completed_at":"2026-09-01T03:40:41Z"},{"name":"Emit the requested failure signature","status":"completed","conclusion":"failure","number":3,"started_at":"2026-09-01T03:40:41Z","completed_at":"2026-09-01T03:40:41Z"},{"name":"Complete job","status":"completed","conclusion":"success","number":4,"started_at":"2026-09-01T03:40:41Z","completed_at":"2026-09-01T03:40:41Z"}],"check_run_url":"https://api.github.com/repos/KyleKing/gh-lazydispatch/check-runs/99729024463","labels":["ubuntu-latest"],"runner_id":1000008491,"runner_name":"GitHub Actions 1000008491","runner_group_id":0,"runner_group_name":"GitHub Actions"}]}'
+args = ['api', 'repos/KyleKing/gh-lazydispatch/actions/runs/33467068056/jobs?per_page=100']
 exit = 0
 
 [[interaction]]
-args = ['run', 'view', '33467068056', '--log', '--job', '99729024463']
 stdout = """
-check	Set up job	﻿2026-09-01T03:40:40.7383809Z Current runner version: '2.336.0'
-check	Set up job	2026-09-01T03:40:40.7421533Z ##[group]Runner Image Provisioner
-check	Set up job	2026-09-01T03:40:40.7423078Z Hosted Compute Agent
-check	Set up job	2026-09-01T03:40:40.7423993Z Version: 20260819.586
-check	Set up job	2026-09-01T03:40:40.7425317Z Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
-check	Set up job	2026-09-01T03:40:40.7426513Z Build Date: 2026-08-18T23:20:18Z
-check	Set up job	2026-09-01T03:40:40.7427645Z Worker ID: {d667069d-a9a0-46c1-a5b0-791fb9869547}
-check	Set up job	2026-09-01T03:40:40.7428961Z Azure Region: northcentralus
-check	Set up job	2026-09-01T03:40:40.7429984Z ##[endgroup]
-check	Set up job	2026-09-01T03:40:40.7432657Z ##[group]Operating System
-check	Set up job	2026-09-01T03:40:40.7433724Z Ubuntu
-check	Set up job	2026-09-01T03:40:40.7434906Z 24.04.4
-check	Set up job	2026-09-01T03:40:40.7435914Z LTS
-check	Set up job	2026-09-01T03:40:40.7436703Z ##[endgroup]
-check	Set up job	2026-09-01T03:40:40.7437592Z ##[group]Runner Image
-check	Set up job	2026-09-01T03:40:40.7438258Z Image: ubuntu-24.04
-check	Set up job	2026-09-01T03:40:40.7438907Z Version: 20260823.283.1
-check	Set up job	2026-09-01T03:40:40.7440082Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260823.283/images/ubuntu/Ubuntu2404-Readme.md
-check	Set up job	2026-09-01T03:40:40.7441914Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260823.283
-check	Set up job	2026-09-01T03:40:40.7443001Z ##[endgroup]
-check	Set up job	2026-09-01T03:40:40.7444645Z ##[group]GITHUB_TOKEN Permissions
-check	Set up job	2026-09-01T03:40:40.7447014Z Contents: read
-check	Set up job	2026-09-01T03:40:40.7447661Z Metadata: read
-check	Set up job	2026-09-01T03:40:40.7448337Z Packages: read
-check	Set up job	2026-09-01T03:40:40.7448929Z ##[endgroup]
-check	Set up job	2026-09-01T03:40:40.7451125Z Secret source: Actions
-check	Set up job	2026-09-01T03:40:40.7452745Z Prepare workflow directory
-check	Set up job	2026-09-01T03:40:40.7905688Z Prepare all required actions
-check	Set up job	2026-09-01T03:40:40.8065479Z Complete job name: check
-check	Report what the chain passed in	﻿2026-09-01T03:40:40.9158797Z ##[group]Run echo "Stage: after v1.0.0 to staging"
-check	Report what the chain passed in	2026-09-01T03:40:40.9159827Z ^[[36;1mecho "Stage: after v1.0.0 to staging"^[[0m
-check	Report what the chain passed in	2026-09-01T03:40:40.9160695Z ^[[36;1mecho "Environment: staging"^[[0m
-check	Report what the chain passed in	2026-09-01T03:40:40.9161404Z ^[[36;1mecho "Fail mode: network"^[[0m
-check	Report what the chain passed in	2026-09-01T03:40:40.9762505Z shell: /usr/bin/bash -e {0}
-check	Report what the chain passed in	2026-09-01T03:40:40.9763606Z ##[endgroup]
-check	Report what the chain passed in	2026-09-01T03:40:40.9969238Z Stage: after v1.0.0 to staging
-check	Report what the chain passed in	2026-09-01T03:40:40.9970071Z Environment: staging
-check	Report what the chain passed in	2026-09-01T03:40:40.9970828Z Fail mode: network
-check	Emit the requested failure signature	﻿2026-09-01T03:40:41.0098641Z ##[group]Run case "$FAIL_MODE" in
-check	Emit the requested failure signature	2026-09-01T03:40:41.0099406Z ^[[36;1mcase "$FAIL_MODE" in^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0100145Z ^[[36;1m  none)^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0100824Z ^[[36;1m    echo "No failure requested; the probe passes."^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0101784Z ^[[36;1m    exit 0^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0102434Z ^[[36;1m    ;;^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0103013Z ^[[36;1m  permission)^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0103782Z ^[[36;1m    echo "Error: Resource not accessible by integration" >&2^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0104782Z ^[[36;1m    ;;^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0105377Z ^[[36;1m  timeout)^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0182811Z ^[[36;1m    echo "Error: The action timed out after 6 hours" >&2^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0183633Z ^[[36;1m    ;;^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0184067Z ^[[36;1m  oom)^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0184830Z ^[[36;1m    echo "Error: Process completed with exit code 137" >&2^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0185540Z ^[[36;1m    ;;^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0185965Z ^[[36;1m  disk)^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0186565Z ^[[36;1m    echo "Error: write /tmp/artifact: no space left on device" >&2^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0187290Z ^[[36;1m    ;;^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0187715Z ^[[36;1m  secret)^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0188263Z ^[[36;1m    echo "Error: missing required secret DEPLOY_KEY" >&2^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0188912Z ^[[36;1m    ;;^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0189341Z ^[[36;1m  network)^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0189971Z ^[[36;1m    echo "Error: dial tcp 10.0.0.1:443: connection refused" >&2^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0190673Z ^[[36;1m    ;;^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0191088Z ^[[36;1m  *)^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0191577Z ^[[36;1m    echo "Unknown fail mode: $FAIL_MODE" >&2^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0192151Z ^[[36;1m    ;;^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0192569Z ^[[36;1mesac^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0192980Z ^[[36;1mexit 1^[[0m
-check	Emit the requested failure signature	2026-09-01T03:40:41.0248137Z shell: /usr/bin/bash -e {0}
-check	Emit the requested failure signature	2026-09-01T03:40:41.0249384Z env:
-check	Emit the requested failure signature	2026-09-01T03:40:41.0250047Z   FAIL_MODE: network
-check	Emit the requested failure signature	2026-09-01T03:40:41.0250732Z ##[endgroup]
-check	Emit the requested failure signature	2026-09-01T03:40:41.0336033Z Error: dial tcp 10.0.0.1:443: connection refused
-check	Emit the requested failure signature	2026-09-01T03:40:41.0348519Z ##[error]Process completed with exit code 1.
-check	Complete job	﻿2026-09-01T03:40:41.0450703Z Cleaning up orphan processes
+check	UNKNOWN STEP	﻿2026-09-01T03:40:40.7385024Z Current runner version: '2.336.0'
+check	UNKNOWN STEP	2026-09-01T03:40:40.7421567Z ##[group]Runner Image Provisioner
+check	UNKNOWN STEP	2026-09-01T03:40:40.7423091Z Hosted Compute Agent
+check	UNKNOWN STEP	2026-09-01T03:40:40.7423998Z Version: 20260819.586
+check	UNKNOWN STEP	2026-09-01T03:40:40.7425336Z Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
+check	UNKNOWN STEP	2026-09-01T03:40:40.7426524Z Build Date: 2026-08-18T23:20:18Z
+check	UNKNOWN STEP	2026-09-01T03:40:40.7427658Z Worker ID: {d667069d-a9a0-46c1-a5b0-791fb9869547}
+check	UNKNOWN STEP	2026-09-01T03:40:40.7428971Z Azure Region: northcentralus
+check	UNKNOWN STEP	2026-09-01T03:40:40.7429992Z ##[endgroup]
+check	UNKNOWN STEP	2026-09-01T03:40:40.7432684Z ##[group]Operating System
+check	UNKNOWN STEP	2026-09-01T03:40:40.7433736Z Ubuntu
+check	UNKNOWN STEP	2026-09-01T03:40:40.7434922Z 24.04.4
+check	UNKNOWN STEP	2026-09-01T03:40:40.7435926Z LTS
+check	UNKNOWN STEP	2026-09-01T03:40:40.7436713Z ##[endgroup]
+check	UNKNOWN STEP	2026-09-01T03:40:40.7437596Z ##[group]Runner Image
+check	UNKNOWN STEP	2026-09-01T03:40:40.7438265Z Image: ubuntu-24.04
+check	UNKNOWN STEP	2026-09-01T03:40:40.7438911Z Version: 20260823.283.1
+check	UNKNOWN STEP	2026-09-01T03:40:40.7440309Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260823.283/images/ubuntu/Ubuntu2404-Readme.md
+check	UNKNOWN STEP	2026-09-01T03:40:40.7441918Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260823.283
+check	UNKNOWN STEP	2026-09-01T03:40:40.7443009Z ##[endgroup]
+check	UNKNOWN STEP	2026-09-01T03:40:40.7444650Z ##[group]GITHUB_TOKEN Permissions
+check	UNKNOWN STEP	2026-09-01T03:40:40.7447032Z Contents: read
+check	UNKNOWN STEP	2026-09-01T03:40:40.7447664Z Metadata: read
+check	UNKNOWN STEP	2026-09-01T03:40:40.7448343Z Packages: read
+check	UNKNOWN STEP	2026-09-01T03:40:40.7448933Z ##[endgroup]
+check	UNKNOWN STEP	2026-09-01T03:40:40.7451169Z Secret source: Actions
+check	UNKNOWN STEP	2026-09-01T03:40:40.7452751Z Prepare workflow directory
+check	UNKNOWN STEP	2026-09-01T03:40:40.7905742Z Prepare all required actions
+check	UNKNOWN STEP	2026-09-01T03:40:40.8065537Z Complete job name: check
+check	UNKNOWN STEP	2026-09-01T03:40:40.9158829Z ##[group]Run echo "Stage: after v1.0.0 to staging"
+check	UNKNOWN STEP	2026-09-01T03:40:40.9159831Z ^[[36;1mecho "Stage: after v1.0.0 to staging"^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:40.9160700Z ^[[36;1mecho "Environment: staging"^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:40.9161408Z ^[[36;1mecho "Fail mode: network"^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:40.9762553Z shell: /usr/bin/bash -e {0}
+check	UNKNOWN STEP	2026-09-01T03:40:40.9763612Z ##[endgroup]
+check	UNKNOWN STEP	2026-09-01T03:40:40.9969285Z Stage: after v1.0.0 to staging
+check	UNKNOWN STEP	2026-09-01T03:40:40.9970077Z Environment: staging
+check	UNKNOWN STEP	2026-09-01T03:40:40.9970832Z Fail mode: network
+check	UNKNOWN STEP	2026-09-01T03:40:41.0098664Z ##[group]Run case "$FAIL_MODE" in
+check	UNKNOWN STEP	2026-09-01T03:40:41.0099455Z ^[[36;1mcase "$FAIL_MODE" in^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0100151Z ^[[36;1m  none)^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0100829Z ^[[36;1m    echo "No failure requested; the probe passes."^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0101790Z ^[[36;1m    exit 0^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0102441Z ^[[36;1m    ;;^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0103017Z ^[[36;1m  permission)^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0103785Z ^[[36;1m    echo "Error: Resource not accessible by integration" >&2^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0104785Z ^[[36;1m    ;;^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0105381Z ^[[36;1m  timeout)^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0182872Z ^[[36;1m    echo "Error: The action timed out after 6 hours" >&2^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0183637Z ^[[36;1m    ;;^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0184071Z ^[[36;1m  oom)^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0184836Z ^[[36;1m    echo "Error: Process completed with exit code 137" >&2^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0185543Z ^[[36;1m    ;;^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0185968Z ^[[36;1m  disk)^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0186606Z ^[[36;1m    echo "Error: write /tmp/artifact: no space left on device" >&2^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0187293Z ^[[36;1m    ;;^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0187719Z ^[[36;1m  secret)^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0188266Z ^[[36;1m    echo "Error: missing required secret DEPLOY_KEY" >&2^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0188914Z ^[[36;1m    ;;^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0189343Z ^[[36;1m  network)^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0189981Z ^[[36;1m    echo "Error: dial tcp 10.0.0.1:443: connection refused" >&2^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0190676Z ^[[36;1m    ;;^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0191091Z ^[[36;1m  *)^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0191580Z ^[[36;1m    echo "Unknown fail mode: $FAIL_MODE" >&2^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0192154Z ^[[36;1m    ;;^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0192571Z ^[[36;1mesac^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0192983Z ^[[36;1mexit 1^[[0m
+check	UNKNOWN STEP	2026-09-01T03:40:41.0248158Z shell: /usr/bin/bash -e {0}
+check	UNKNOWN STEP	2026-09-01T03:40:41.0249399Z env:
+check	UNKNOWN STEP	2026-09-01T03:40:41.0250054Z   FAIL_MODE: network
+check	UNKNOWN STEP	2026-09-01T03:40:41.0250739Z ##[endgroup]
+check	UNKNOWN STEP	2026-09-01T03:40:41.0336088Z Error: dial tcp 10.0.0.1:443: connection refused
+check	UNKNOWN STEP	2026-09-01T03:40:41.0348543Z ##[error]Process completed with exit code 1.
+check	UNKNOWN STEP	2026-09-01T03:40:41.0450723Z Cleaning up orphan processes
 """
+args = ['run', 'view', '33467068056', '--log', '--job', '99729024463']
 exit = 0

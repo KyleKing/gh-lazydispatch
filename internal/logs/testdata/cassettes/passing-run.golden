@@ -1,55 +1,55 @@
 [[interaction]]
-args = ['api', 'repos/KyleKing/gh-lazydispatch/actions/runs/33467036043/jobs']
 stdout = '{"total_count":1,"jobs":[{"id":99728932318,"run_id":33467036043,"workflow_name":"Demo Test Suite","head_branch":"main","run_url":"https://api.github.com/repos/KyleKing/gh-lazydispatch/actions/runs/33467036043","run_attempt":1,"node_id":"CR_kwDOQ5bl-c8AAAAXOE693g","head_sha":"718a9e9582ee7f0391cf2fcff82f01fe94644ce7","url":"https://api.github.com/repos/KyleKing/gh-lazydispatch/actions/jobs/99728932318","html_url":"https://github.com/KyleKing/gh-lazydispatch/actions/runs/33467036043/job/99728932318","status":"completed","conclusion":"success","created_at":"2026-09-01T03:40:07Z","started_at":"2026-09-01T03:40:11Z","completed_at":"2026-09-01T03:40:15Z","name":"test","steps":[{"name":"Set up job","status":"completed","conclusion":"success","number":1,"started_at":"2026-09-01T03:40:12Z","completed_at":"2026-09-01T03:40:12Z"},{"name":"Echo inputs","status":"completed","conclusion":"success","number":2,"started_at":"2026-09-01T03:40:12Z","completed_at":"2026-09-01T03:40:12Z"},{"name":"Run tests","status":"completed","conclusion":"success","number":3,"started_at":"2026-09-01T03:40:12Z","completed_at":"2026-09-01T03:40:13Z"},{"name":"Complete job","status":"completed","conclusion":"success","number":4,"started_at":"2026-09-01T03:40:13Z","completed_at":"2026-09-01T03:40:13Z"}],"check_run_url":"https://api.github.com/repos/KyleKing/gh-lazydispatch/check-runs/99728932318","labels":["ubuntu-latest"],"runner_id":1000008489,"runner_name":"GitHub Actions 1000008489","runner_group_id":0,"runner_group_name":"GitHub Actions"}]}'
+args = ['api', 'repos/KyleKing/gh-lazydispatch/actions/runs/33467036043/jobs?per_page=100']
 exit = 0
 
 [[interaction]]
-args = ['run', 'view', '33467036043', '--log', '--job', '99728932318']
 stdout = """
-test	Set up job	﻿2026-09-01T03:40:12.1657034Z Current runner version: '2.337.0'
-test	Set up job	2026-09-01T03:40:12.1681969Z ##[group]Runner Image Provisioner
-test	Set up job	2026-09-01T03:40:12.1682748Z Hosted Compute Agent
-test	Set up job	2026-09-01T03:40:12.1683236Z Version: 20260819.586
-test	Set up job	2026-09-01T03:40:12.1683883Z Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
-test	Set up job	2026-09-01T03:40:12.1684543Z Build Date: 2026-08-18T23:20:18Z
-test	Set up job	2026-09-01T03:40:12.1685389Z Worker ID: {3a70bc58-eb7c-4940-bcc1-26fbd9064207}
-test	Set up job	2026-09-01T03:40:12.1686107Z Azure Region: mexicocentral
-test	Set up job	2026-09-01T03:40:12.1686638Z ##[endgroup]
-test	Set up job	2026-09-01T03:40:12.1688033Z ##[group]Operating System
-test	Set up job	2026-09-01T03:40:12.1688581Z Ubuntu
-test	Set up job	2026-09-01T03:40:12.1689085Z 24.04.4
-test	Set up job	2026-09-01T03:40:12.1689550Z LTS
-test	Set up job	2026-09-01T03:40:12.1689990Z ##[endgroup]
-test	Set up job	2026-09-01T03:40:12.1690543Z ##[group]Runner Image
-test	Set up job	2026-09-01T03:40:12.1691098Z Image: ubuntu-24.04
-test	Set up job	2026-09-01T03:40:12.1691605Z Version: 20260823.283.1
-test	Set up job	2026-09-01T03:40:12.1692500Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260823.283/images/ubuntu/Ubuntu2404-Readme.md
-test	Set up job	2026-09-01T03:40:12.1694045Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260823.283
-test	Set up job	2026-09-01T03:40:12.1694892Z ##[endgroup]
-test	Set up job	2026-09-01T03:40:12.1696110Z ##[group]GITHUB_TOKEN Permissions
-test	Set up job	2026-09-01T03:40:12.1698348Z Contents: read
-test	Set up job	2026-09-01T03:40:12.1698953Z Metadata: read
-test	Set up job	2026-09-01T03:40:12.1699463Z Packages: read
-test	Set up job	2026-09-01T03:40:12.1699943Z ##[endgroup]
-test	Set up job	2026-09-01T03:40:12.1702046Z Secret source: Actions
-test	Set up job	2026-09-01T03:40:12.1703024Z Prepare workflow directory
-test	Set up job	2026-09-01T03:40:12.1988848Z Prepare all required actions
-test	Set up job	2026-09-01T03:40:12.2075846Z Complete job name: test
-test	Echo inputs	﻿2026-09-01T03:40:12.2729146Z ##[group]Run echo "Test type: all"
-test	Echo inputs	2026-09-01T03:40:12.2729886Z ^[[36;1mecho "Test type: all"^[[0m
-test	Echo inputs	2026-09-01T03:40:12.2730510Z ^[[36;1mecho "Verbose: true"^[[0m
-test	Echo inputs	2026-09-01T03:40:12.4449208Z shell: /usr/bin/bash -e {0}
-test	Echo inputs	2026-09-01T03:40:12.4450367Z ##[endgroup]
-test	Echo inputs	2026-09-01T03:40:12.4615999Z Test type: all
-test	Echo inputs	2026-09-01T03:40:12.4616942Z Verbose: true
-test	Run tests	﻿2026-09-01T03:40:12.4721371Z ##[group]Run echo "Running all tests..."
-test	Run tests	2026-09-01T03:40:12.4722042Z ^[[36;1mecho "Running all tests..."^[[0m
-test	Run tests	2026-09-01T03:40:12.4722664Z ^[[36;1msleep 1^[[0m
-test	Run tests	2026-09-01T03:40:12.4723151Z ^[[36;1mecho "Tests passed!"^[[0m
-test	Run tests	2026-09-01T03:40:12.4757178Z shell: /usr/bin/bash -e {0}
-test	Run tests	2026-09-01T03:40:12.4757722Z ##[endgroup]
-test	Run tests	2026-09-01T03:40:12.4883339Z Running all tests...
-test	Run tests	2026-09-01T03:40:13.4896119Z Tests passed!
-test	Complete job	﻿2026-09-01T03:40:13.4972509Z Cleaning up orphan processes
+test	UNKNOWN STEP	﻿2026-09-01T03:40:12.1657897Z Current runner version: '2.337.0'
+test	UNKNOWN STEP	2026-09-01T03:40:12.1682000Z ##[group]Runner Image Provisioner
+test	UNKNOWN STEP	2026-09-01T03:40:12.1682751Z Hosted Compute Agent
+test	UNKNOWN STEP	2026-09-01T03:40:12.1683238Z Version: 20260819.586
+test	UNKNOWN STEP	2026-09-01T03:40:12.1683888Z Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
+test	UNKNOWN STEP	2026-09-01T03:40:12.1684547Z Build Date: 2026-08-18T23:20:18Z
+test	UNKNOWN STEP	2026-09-01T03:40:12.1685400Z Worker ID: {3a70bc58-eb7c-4940-bcc1-26fbd9064207}
+test	UNKNOWN STEP	2026-09-01T03:40:12.1686113Z Azure Region: mexicocentral
+test	UNKNOWN STEP	2026-09-01T03:40:12.1686642Z ##[endgroup]
+test	UNKNOWN STEP	2026-09-01T03:40:12.1688043Z ##[group]Operating System
+test	UNKNOWN STEP	2026-09-01T03:40:12.1688585Z Ubuntu
+test	UNKNOWN STEP	2026-09-01T03:40:12.1689088Z 24.04.4
+test	UNKNOWN STEP	2026-09-01T03:40:12.1689552Z LTS
+test	UNKNOWN STEP	2026-09-01T03:40:12.1689993Z ##[endgroup]
+test	UNKNOWN STEP	2026-09-01T03:40:12.1690548Z ##[group]Runner Image
+test	UNKNOWN STEP	2026-09-01T03:40:12.1691101Z Image: ubuntu-24.04
+test	UNKNOWN STEP	2026-09-01T03:40:12.1691608Z Version: 20260823.283.1
+test	UNKNOWN STEP	2026-09-01T03:40:12.1692695Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260823.283/images/ubuntu/Ubuntu2404-Readme.md
+test	UNKNOWN STEP	2026-09-01T03:40:12.1694084Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260823.283
+test	UNKNOWN STEP	2026-09-01T03:40:12.1694896Z ##[endgroup]
+test	UNKNOWN STEP	2026-09-01T03:40:12.1696115Z ##[group]GITHUB_TOKEN Permissions
+test	UNKNOWN STEP	2026-09-01T03:40:12.1698364Z Contents: read
+test	UNKNOWN STEP	2026-09-01T03:40:12.1698956Z Metadata: read
+test	UNKNOWN STEP	2026-09-01T03:40:12.1699466Z Packages: read
+test	UNKNOWN STEP	2026-09-01T03:40:12.1699945Z ##[endgroup]
+test	UNKNOWN STEP	2026-09-01T03:40:12.1702060Z Secret source: Actions
+test	UNKNOWN STEP	2026-09-01T03:40:12.1703028Z Prepare workflow directory
+test	UNKNOWN STEP	2026-09-01T03:40:12.1988890Z Prepare all required actions
+test	UNKNOWN STEP	2026-09-01T03:40:12.2075890Z Complete job name: test
+test	UNKNOWN STEP	2026-09-01T03:40:12.2729175Z ##[group]Run echo "Test type: all"
+test	UNKNOWN STEP	2026-09-01T03:40:12.2729891Z ^[[36;1mecho "Test type: all"^[[0m
+test	UNKNOWN STEP	2026-09-01T03:40:12.2730515Z ^[[36;1mecho "Verbose: true"^[[0m
+test	UNKNOWN STEP	2026-09-01T03:40:12.4449249Z shell: /usr/bin/bash -e {0}
+test	UNKNOWN STEP	2026-09-01T03:40:12.4450372Z ##[endgroup]
+test	UNKNOWN STEP	2026-09-01T03:40:12.4616047Z Test type: all
+test	UNKNOWN STEP	2026-09-01T03:40:12.4616955Z Verbose: true
+test	UNKNOWN STEP	2026-09-01T03:40:12.4721392Z ##[group]Run echo "Running all tests..."
+test	UNKNOWN STEP	2026-09-01T03:40:12.4722046Z ^[[36;1mecho "Running all tests..."^[[0m
+test	UNKNOWN STEP	2026-09-01T03:40:12.4722667Z ^[[36;1msleep 1^[[0m
+test	UNKNOWN STEP	2026-09-01T03:40:12.4723154Z ^[[36;1mecho "Tests passed!"^[[0m
+test	UNKNOWN STEP	2026-09-01T03:40:12.4757190Z shell: /usr/bin/bash -e {0}
+test	UNKNOWN STEP	2026-09-01T03:40:12.4757725Z ##[endgroup]
+test	UNKNOWN STEP	2026-09-01T03:40:12.4883374Z Running all tests...
+test	UNKNOWN STEP	2026-09-01T03:40:13.4896205Z Tests passed!
+test	UNKNOWN STEP	2026-09-01T03:40:13.4972539Z Cleaning up orphan processes
 """
+args = ['run', 'view', '33467036043', '--log', '--job', '99728932318']
 exit = 0

@@ -2,12 +2,15 @@
 package github
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
+	"time"
+
+	ghforge "github.com/kyleking/aragonite/forge/github"
 
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
 )
@@ -51,36 +54,25 @@ func NewClientWithExecutor(repoFullName string, executor exec.CommandExecutor) (
 
 // GetWorkflowRun fetches a single workflow run by ID.
 func (c *Client) GetWorkflowRun(runID int64) (*WorkflowRun, error) {
-	path := fmt.Sprintf("repos/%s/%s/actions/runs/%d", c.owner, c.repo, runID)
-
-	stdout, stderr, err := c.executor.Execute("gh", "api", path)
+	run, err := ghforge.GetRun(c.runnerContext(context.Background()), ".", c.fullName(), runID)
 	if err != nil {
-		return nil, fmt.Errorf("gh api failed: %w (stderr: %s)", err, stderr)
+		return nil, fmt.Errorf("fetching the run: %w", err)
 	}
 
-	var run WorkflowRun
-	if err := json.Unmarshal([]byte(stdout), &run); err != nil {
-		return nil, fmt.Errorf("failed to parse workflow run: %w", err)
-	}
+	converted := fromForge(*run)
 
-	return &run, nil
+	return &converted, nil
 }
 
-// GetWorkflowRunJobs fetches the jobs for a workflow run.
+// GetWorkflowRunJobs fetches the jobs for a workflow run, with the per-step
+// timings the timeline lays out.
 func (c *Client) GetWorkflowRunJobs(runID int64) ([]Job, error) {
-	path := fmt.Sprintf("repos/%s/%s/actions/runs/%d/jobs", c.owner, c.repo, runID)
-
-	stdout, stderr, err := c.executor.Execute("gh", "api", path)
+	jobs, err := ghforge.RunJobs(c.runnerContext(context.Background()), ".", c.fullName(), runID)
 	if err != nil {
-		return nil, fmt.Errorf("gh api failed: %w (stderr: %s)", err, stderr)
+		return nil, fmt.Errorf("fetching the run's jobs: %w", err)
 	}
 
-	var jobsResp JobsResponse
-	if err := json.Unmarshal([]byte(stdout), &jobsResp); err != nil {
-		return nil, fmt.Errorf("failed to parse jobs: %w", err)
-	}
-
-	return jobsResp.Jobs, nil
+	return fromForgeJobs(jobs), nil
 }
 
 // GetLatestRun fetches the most recent workflow run, optionally filtered by workflow name.
@@ -128,43 +120,32 @@ type RunQuery struct {
 	Limit    int
 }
 
-// maxRunsPerPage is the largest per_page the Actions API accepts.
-const maxRunsPerPage = 100
-
 // ListRuns fetches recent workflow runs matching q, newest first.
 func (c *Client) ListRuns(q RunQuery) ([]WorkflowRun, error) {
-	limit := q.Limit
-	if limit <= 0 || limit > maxRunsPerPage {
-		limit = maxRunsPerPage
-	}
-
-	params := url.Values{}
-	params.Set("per_page", strconv.Itoa(limit))
-
-	for key, value := range map[string]string{
-		"branch": q.Branch,
-		"event":  q.Event,
-		"status": q.Status,
-	} {
-		if value != "" {
-			params.Set(key, value)
-		}
-	}
-
-	path := fmt.Sprintf("repos/%s/%s/actions/runs", c.owner, c.repo)
-	if q.Workflow != "" {
-		path = fmt.Sprintf("repos/%s/%s/actions/workflows/%s/runs", c.owner, c.repo, url.PathEscape(q.Workflow))
-	}
-
-	stdout, stderr, err := c.executor.Execute("gh", "api", path+"?"+params.Encode())
+	runs, err := ghforge.ListRuns(c.runnerContext(context.Background()), ".", c.fullName(), ghforge.RunQuery{
+		Workflow: q.Workflow,
+		Branch:   q.Branch,
+		Status:   q.Status,
+		Event:    q.Event,
+		Limit:    q.Limit,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("gh api failed: %w (stderr: %s)", err, stderr)
+		return nil, fmt.Errorf("listing runs: %w", err)
 	}
 
-	var runsResp RunsResponse
-	if err := json.Unmarshal([]byte(stdout), &runsResp); err != nil {
-		return nil, fmt.Errorf("failed to parse runs: %w", err)
+	return fromForgeRuns(runs), nil
+}
+
+// LatestRunsOnBranch returns the newest run of each workflow on a branch, which
+// is the branch's current state rather than its history. A run older than within
+// is dropped unless it is still going; a zero within keeps every age.
+func (c *Client) LatestRunsOnBranch(branch string, within time.Duration) ([]WorkflowRun, error) {
+	runs, err := ghforge.LatestRunsOnBranch(
+		c.runnerContext(context.Background()), ".", c.fullName(), branch, within,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing the branch's latest runs: %w", err)
 	}
 
-	return runsResp.WorkflowRuns, nil
+	return fromForgeRuns(runs), nil
 }

@@ -204,7 +204,7 @@ func mockWorkflowRunJobs(t *testing.T, m *exec.MockExecutor, runID int64, jobs [
 		t.Fatalf("failed to marshal resp: %v", err)
 	}
 
-	path := fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs", runID)
+	path := fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs?per_page=100", runID)
 	m.AddCommand("gh", []string{"api", path}, string(respJSON), "", nil)
 }
 
@@ -273,7 +273,7 @@ func TestClient_GetWorkflowRunJobs(t *testing.T) {
 			name:  "API error",
 			runID: 99999,
 			setupMock: func(_ *testing.T, m *exec.MockExecutor) {
-				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"},
+				m.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs?per_page=100"},
 					"", "HTTP 500: Internal Server Error", exec.ErrMockExitStatus1)
 			},
 			expectError: true,

@@ -11,7 +11,11 @@ type WorkflowRun struct {
 	Conclusion string    `json:"conclusion"`
 	HTMLURL    string    `json:"html_url"`
 	HeadBranch string    `json:"head_branch"`
-	ID         int64     `json:"id"`
+	// Event is what started the run ("workflow_dispatch", "pull_request"), and
+	// Path is the workflow's bare filename ("ci.yml").
+	Event string `json:"event,omitempty"`
+	Path  string `json:"path,omitempty"`
+	ID    int64  `json:"id"`
 }
 
 // RunStatus constants.

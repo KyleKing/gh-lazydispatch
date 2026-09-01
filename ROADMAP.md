@@ -95,10 +95,8 @@ query, jobs with per-step timings, latest run per workflow on a ref) and exports
 `WithRunner`, which is what lets this repository keep `internal/exec`'s mutation
 guard in front of every gh call rather than reinstating it per call site.
 
-Done, uncommitted, and blocked on an aragonite release: `internal/github`'s read
-paths delegate through that seam. This repository cannot compile against it until
-aragonite tags a version carrying the new API, so `go.mod` still names v0.3.0 and
-the change only builds with a `go.work` pointing at a sibling checkout.
+`internal/github`'s read paths delegate through that seam, converting aragonite's
+model at the boundary.
 
 Remaining, in the order that pays off:
 

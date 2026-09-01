@@ -28,7 +28,7 @@ func mockJobsAPI(
 		},
 	}
 	jobsJSON := testutil.MustMarshalJSON(t, resp)
-	path := fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs", runID)
+	path := fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs?per_page=100", runID)
 	mockExec.AddCommand("gh", []string{"api", path}, jobsJSON, "", nil)
 }
 
@@ -302,7 +302,8 @@ func TestIntegration_GHCLIError(t *testing.T) {
 		},
 	}
 	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12348/jobs"}, jobsJSON, "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12348/jobs?per_page=100"},
+		jobsJSON, "", nil)
 
 	// Simulate gh CLI error (e.g., network timeout, auth failure)
 	mockExec.AddGHRunViewError(runID, jobID, "HTTP 401: Bad credentials", exec.ErrMockExitStatus1)
@@ -344,7 +345,7 @@ func TestIntegration_GitHubAPIError(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Mock gh api error response (e.g., rate limiting, server error)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12349/jobs"},
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12349/jobs?per_page=100"},
 		"", "HTTP 500: Internal Server Error", exec.ErrMockExitStatus1)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
@@ -474,7 +475,8 @@ func TestIntegration_MultiJobWorkflowRun(t *testing.T) {
 		},
 	}
 	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12350/jobs"}, jobsJSON, "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/12350/jobs?per_page=100"},
+		jobsJSON, "", nil)
 
 	// Mock logs with multiple steps
 	logOutput := loadFixture(t, "multi_job_run.txt")
@@ -736,7 +738,8 @@ func TestIntegration_LogStreamer_IncrementalDetection(t *testing.T) {
 	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
 
 	// Setup initial poll
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/77777/jobs"}, jobsJSON, "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/77777/jobs?per_page=100"},
+		jobsJSON, "", nil)
 	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/77777"},
 		`{"id":77777,"name":"Test","status":"in_progress","conclusion":"",`+
 			`"html_url":"https://github.com/owner/repo/actions/runs/77777","updated_at":"2024-01-01T12:00:00Z"}`,
@@ -811,7 +814,8 @@ func TestIntegration_LargeLogFile(t *testing.T) {
 		},
 	}
 	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs"}, jobsJSON, "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99999/jobs?per_page=100"},
+		jobsJSON, "", nil)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -880,7 +884,8 @@ func TestIntegration_UnicodeCharacters(t *testing.T) {
 		},
 	}
 	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99998/jobs"}, jobsJSON, "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99998/jobs?per_page=100"},
+		jobsJSON, "", nil)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -947,7 +952,8 @@ func TestIntegration_ANSIColorCodes(t *testing.T) {
 		},
 	}
 	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99997/jobs"}, jobsJSON, "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99997/jobs?per_page=100"},
+		jobsJSON, "", nil)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -1005,7 +1011,7 @@ func TestIntegration_NetworkTimeout(t *testing.T) {
 	mockExec := exec.NewMockExecutor()
 
 	// Simulate timeout by adding command that returns context error
-	mockExec.AddCommand("gh", []string{"api", fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs", runID)},
+	mockExec.AddCommand("gh", []string{"api", fmt.Sprintf("repos/owner/repo/actions/runs/%d/jobs?per_page=100", runID)},
 		"", "context deadline exceeded", context.DeadlineExceeded)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
@@ -1068,7 +1074,8 @@ func TestIntegration_VeryLargeLogFile(t *testing.T) {
 		},
 	}
 	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99995/jobs"}, jobsJSON, "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99995/jobs?per_page=100"},
+		jobsJSON, "", nil)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {
@@ -1137,7 +1144,8 @@ func TestIntegration_MixedLogContent(t *testing.T) {
 		},
 	}
 	jobsJSON := testutil.MustMarshalJSON(t, jobsResp)
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99994/jobs"}, jobsJSON, "", nil)
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/99994/jobs?per_page=100"},
+		jobsJSON, "", nil)
 
 	client, err := github.NewClientWithExecutor("owner/repo", mockExec)
 	if err != nil {

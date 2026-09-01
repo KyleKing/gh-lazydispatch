@@ -15,7 +15,7 @@ run = "go test -v -run TestIntegration ./..."
 
 [tasks."test:record"]
 description = "Re-record the gh cassettes against real workflow runs (reads only; needs gh auth)"
-run = "GHCASSETTE_RECORD=1 go test ./internal/logs/ -run TestRecorded_ -count=1"
+run = "GHCASSETTE_RECORD=1 go test ./internal/logs/ ./internal/cli/ -run TestRecorded_ -count=1"
 
 [tasks."test:live"]
 description = "Run the live dispatch test against a throwaway GitHub repo (uses Actions minutes)"

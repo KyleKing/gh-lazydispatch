@@ -248,7 +248,8 @@ func setupLogFetchingMocks(t *testing.T, m *exec.MockExecutor) {
 		}},
 	}
 	m.AddCommand("gh",
-		[]string{"api", "repos/owner/repo/actions/runs/1001/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
+		[]string{"api", "repos/owner/repo/actions/runs/1001/jobs?per_page=100"},
+		testutil.MustMarshalJSON(t, jobsResp), "", nil)
 
 	logOutput := ghRunViewLog("build",
 		ghStep{"Checkout", []string{"Cloning repository..."}},
@@ -271,7 +272,8 @@ func setupFailedRunMocks(t *testing.T, m *exec.MockExecutor) {
 		}},
 	}
 	m.AddCommand("gh",
-		[]string{"api", "repos/owner/repo/actions/runs/1002/jobs"}, testutil.MustMarshalJSON(t, jobsResp), "", nil)
+		[]string{"api", "repos/owner/repo/actions/runs/1002/jobs?per_page=100"},
+		testutil.MustMarshalJSON(t, jobsResp), "", nil)
 
 	logOutput := ghRunViewLog("build",
 		ghStep{"Checkout", []string{"Cloning repository..."}},
@@ -371,7 +373,7 @@ func setupChainWithLogViewingMocks(t *testing.T, mockExec *exec.MockExecutor) *t
 			},
 		}},
 	}
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/5001/jobs"},
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/5001/jobs?per_page=100"},
 		testutil.MustMarshalJSON(t, jobsRespCI), "", nil)
 
 	ciLogs := ghRunViewLog("test",
@@ -392,7 +394,7 @@ func setupChainWithLogViewingMocks(t *testing.T, mockExec *exec.MockExecutor) *t
 			},
 		}},
 	}
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/5002/jobs"},
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/5002/jobs?per_page=100"},
 		testutil.MustMarshalJSON(t, jobsRespDeploy), "", nil)
 
 	deployLogs := ghRunViewLog("deploy",
@@ -554,7 +556,7 @@ func setupChainWithErrorLogsMocks(t *testing.T, mockExec *exec.MockExecutor) *te
 			},
 		}},
 	}
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/7001/jobs"},
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/7001/jobs?per_page=100"},
 		testutil.MustMarshalJSON(t, jobsRespCI), "", nil)
 
 	ciLogs := ghRunViewLog("test",
@@ -574,7 +576,7 @@ func setupChainWithErrorLogsMocks(t *testing.T, mockExec *exec.MockExecutor) *te
 			},
 		}},
 	}
-	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/7002/jobs"},
+	mockExec.AddCommand("gh", []string{"api", "repos/owner/repo/actions/runs/7002/jobs?per_page=100"},
 		testutil.MustMarshalJSON(t, jobsRespDeploy), "", nil)
 
 	deployLogs := ghRunViewLog("deploy",

@@ -157,7 +157,7 @@ func (m *MockExecutor) AddGHAPIRun(owner, repo string, runID int64, status, conc
 
 // AddGHAPIJobs mocks a gh api call for workflow run jobs.
 func (m *MockExecutor) AddGHAPIJobs(owner, repo string, runID int64, jobs string) {
-	path := fmt.Sprintf("repos/%s/%s/actions/runs/%d/jobs", owner, repo, runID)
+	path := fmt.Sprintf("repos/%s/%s/actions/runs/%d/jobs?per_page=100", owner, repo, runID)
 	m.AddCommand("gh", []string{ghAPISubcommand, path}, jobs, "", nil)
 }
 
