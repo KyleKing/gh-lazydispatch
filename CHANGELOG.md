@@ -1,3 +1,9 @@
+## v1.8.0 (2026-09-01)
+
+### Feat
+
+- **cli**: answer whether a branch is green with export runs --current
+
 ## v1.7.0 (2026-09-01)
 
 ### Feat
