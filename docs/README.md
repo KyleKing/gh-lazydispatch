@@ -5,6 +5,7 @@ A Bubble Tea TUI that discovers the `workflow_dispatch` workflows in the current
 ## Pages
 
 - [Interface](./interface.md) for the panes, the keys, and the log viewer
+- [Export commands](./cli.md) for reading runs, logs, and failures without the TUI
 - [Chains](./chains.md) for running several workflows in sequence
 - [Chain examples](./chain-examples.md) for worked chain configurations
 - [Configuration](./configuration.md) for the config file and environment variables

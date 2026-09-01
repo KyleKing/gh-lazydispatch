@@ -24,10 +24,22 @@ gh lazydispatch
 
 It finds every workflow with a `workflow_dispatch` trigger and lists them. `tab` moves between panes, `enter` runs the highlighted workflow, and `?` opens the keymap.
 
+## Reading a failed run
+
+`gh run view --log` returns the whole log, and `--log-failed` still returns every line of every failed job. `export diagnose` parses it once and returns the failure:
+
+```bash
+gh lazydispatch export diagnose 33423560774
+```
+
+On a real CI failure in this repository that is 2,361 bytes against 237,144 through `gh run view --log-failed`. It reports which steps failed, the error lines each one logged, a window of context ending at the failure, and any known failure signature it matched.
+
+The other read-only commands are `export logs`, `export runs`, `export workflows`, and `export chains`. Every one writes JSON to stdout and its line counts to stderr; none of them dispatch anything. See [docs/cli.md](./docs/cli.md), and [skills/github-actions](./skills/github-actions) for the agent-facing version.
+
 ## What it does not do
 
 - Send `repository_dispatch` events. It reads `workflow_dispatch` triggers only, so use gh-dispatch for the other kind
-- Run from a script. The only flags are `-h` and `-v`, so use `gh workflow run` in CI
+- Dispatch from a script. The `export` commands only read, so use `gh workflow run` in CI
 - Run Actions locally. That is what act is for
 - Edit or create workflow files. It reads them and dispatches them
 - Work outside a repository. It discovers workflows from the checkout you are standing in
