@@ -1,0 +1,78 @@
+name: Demo Chain Check
+
+# Dispatch-only probe for the chain, log-export, and failure-detection paths.
+# Never runs on push, gates nothing, and fails only when asked to.
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Label for this step, usually chained from the step before it"
+        required: true
+        type: string
+        default: unknown
+      environment:
+        description: "Environment the earlier steps targeted"
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        default: staging
+      fail_mode:
+        description: "Failure signature to emit, or none to pass"
+        required: true
+        type: choice
+        options:
+          - none
+          - permission
+          - timeout
+          - oom
+          - disk
+          - secret
+          - network
+        default: none
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report what the chain passed in
+        run: |
+          echo "Stage: ${{ inputs.stage }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Fail mode: ${{ inputs.fail_mode }}"
+
+      - name: Emit the requested failure signature
+        env:
+          FAIL_MODE: ${{ inputs.fail_mode }}
+        run: |
+          case "$FAIL_MODE" in
+            none)
+              echo "No failure requested; the probe passes."
+              exit 0
+              ;;
+            permission)
+              echo "Error: Resource not accessible by integration" >&2
+              ;;
+            timeout)
+              echo "Error: The action timed out after 6 hours" >&2
+              ;;
+            oom)
+              echo "Error: Process completed with exit code 137" >&2
+              ;;
+            disk)
+              echo "Error: write /tmp/artifact: no space left on device" >&2
+              ;;
+            secret)
+              echo "Error: missing required secret DEPLOY_KEY" >&2
+              ;;
+            network)
+              echo "Error: dial tcp 10.0.0.1:443: connection refused" >&2
+              ;;
+            *)
+              echo "Unknown fail mode: $FAIL_MODE" >&2
+              ;;
+          esac
+          exit 1

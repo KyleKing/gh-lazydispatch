@@ -2,8 +2,11 @@ package panes
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
@@ -1102,5 +1105,48 @@ func TestChainListModel_FocusState(t *testing.T) {
 
 	if m.focused {
 		t.Error("expected focused to be false")
+	}
+}
+
+// A pane's rows are built from the width its model was handed, so a row wider
+// than the pane's content wraps and corrupts the table. Lipgloss counts the
+// border inside Width, which is what made the two disagree.
+func TestTabbedPanelFitsTheWidthItIsGiven(t *testing.T) {
+	t.Parallel()
+
+	panel := NewTabbedRight()
+	panel.SetChains(map[string]config.Chain{
+		"a-long-chain-name-that-overflows": {
+			Description: strings.Repeat("long description ", 8),
+			Steps:       []config.ChainStep{{Workflow: "one.yml"}, {Workflow: "two.yml"}},
+		},
+	})
+	panel.SetHistoryEntries([]frecency.HistoryEntry{
+		{Workflow: "a-workflow-with-a-very-long-filename.yml", Branch: "a-long-branch-name", LastRunAt: time.Now()},
+	}, "")
+	panel.SetRuns([]watcher.WatchedRun{
+		{Workflow: "another-very-long-workflow-filename.yml", Status: "in_progress"},
+	})
+
+	const panelHeight = 20
+
+	for _, width := range []int{40, 60, 80, 120, 200} {
+		panel.SetSize(width, panelHeight)
+
+		for _, tab := range []RightTab{TabHistory, TabChains, TabLive} {
+			panel.activeTab = tab
+
+			lines := strings.Split(panel.View(), "\n")
+			if len(lines) != panelHeight {
+				t.Errorf("tab %v at width %d rendered %d lines, want %d: a row wrapped",
+					tab, width, len(lines), panelHeight)
+			}
+
+			for i, line := range lines {
+				if got := ansi.StringWidth(line); got != width {
+					t.Errorf("tab %v at width %d: line %d is %d cells wide", tab, width, i+1, got)
+				}
+			}
+		}
 	}
 }

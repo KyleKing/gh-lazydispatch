@@ -133,17 +133,20 @@ func ApplyTheme() {
 		Foreground(PrimaryColor)
 }
 
-// paneBorderSize is the space the border occupies on each axis.
-const paneBorderSize = 2
+// PaneBorderSize is the space a pane's border occupies on each axis, which is
+// what separates the width a pane is given from the width its content gets.
+const PaneBorderSize = 2
 
-// PaneStyle returns a style for a pane with optional focus.
+// PaneStyle returns a style for a pane with optional focus. Lipgloss counts the
+// border inside Width and Height, so the pane occupies exactly the width and
+// height it is given and its content gets PaneBorderSize less.
 func PaneStyle(width, height int, focused bool) lipgloss.Style {
 	style := BorderStyle
 	if focused {
 		style = FocusedBorderStyle
 	}
 
-	return style.Width(width - paneBorderSize).Height(height - paneBorderSize)
+	return style.Width(width).Height(height)
 }
 
 // FormatEmptyValue returns the display string for a value, showing ("") for empty strings.

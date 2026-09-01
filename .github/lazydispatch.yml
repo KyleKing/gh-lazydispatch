@@ -1,0 +1,56 @@
+version: 1
+
+chains:
+  demo-pipeline:
+    description: Test, deploy dry-run, then a probe that fails on request
+    variables:
+      - name: environment
+        type: choice
+        description: Environment the deploy and the probe target
+        options:
+          - development
+          - staging
+          - production
+        default: staging
+      - name: fail_mode
+        type: choice
+        description: Failure signature the last step emits, or none to pass
+        options:
+          - none
+          - permission
+          - timeout
+          - oom
+          - disk
+          - secret
+          - network
+        default: none
+    steps:
+      - workflow: demo-test.yml
+        wait_for: success
+        on_failure: abort
+        inputs:
+          test_type: all
+          verbose: "true"
+
+      - workflow: demo-deploy.yml
+        wait_for: success
+        on_failure: abort
+        inputs:
+          version: v1.0.0
+          environment: "{{ var.environment }}"
+          dry_run: "true"
+
+      - workflow: demo-chain-check.yml
+        wait_for: completion
+        on_failure: continue
+        inputs:
+          stage: "after {{ previous.inputs.version }} to {{ previous.inputs.environment }}"
+          environment: "{{ var.environment }}"
+          fail_mode: "{{ var.fail_mode }}"
+
+  demo-quick:
+    description: Just the test suite, for checking a chain runs at all
+    steps:
+      - workflow: demo-test.yml
+        inputs:
+          test_type: unit

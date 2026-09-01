@@ -1,8 +1,10 @@
                                                                                                                                                    lazydispatch 
-Workflows                                               [History]  Chains   Live                                                                                
-  all workflows                                             Name                                  Branch                        Time                            
-> Deploy                                                > w deploy.yml                            main                          just now                        
-  CI                                                      w deploy.yml                            develop                       just now                        
+Workflows                                                 [History]  Chains   Live                                                                              
+  all workflows                                               Name                                  Branch                        Time                          
+> Deploy                                                  > w deploy.yml                            main                          just now                      
+  CI                                                        w deploy.yml                            develop                       just now                      
+                                                                                                                                                                
+                                                                                                                                                                
                                                                                                                                                                 
                                                                                                                                                                 
                                                                                                                                                                 
@@ -30,6 +32,8 @@ Branch: [b] main    Watch: [w] off    [r] reset all
                                                                                                                                                                 
 Command ([c] copy):                                                                                                                                             
 gh workflow run deploy.yml --ref main -f environment=staging                                                                                                    
+                                                                                                                                                                
+                                                                                                                                                                
                                                                                                                                                                 
                                                                                                                                                                 
                                                                                                                                                                 
