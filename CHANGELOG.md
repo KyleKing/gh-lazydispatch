@@ -1,3 +1,9 @@
+## v1.2.2 (2026-09-01)
+
+### Fix
+
+- **logs**: parse the log format gh actually emits, and let async updates through
+
 ## v1.2.1 (2026-09-01)
 
 ### Fix
