@@ -72,25 +72,28 @@ func ConfigColumns() []table.Column {
 	}
 }
 
-// configColumnsFull is the narrowest width every column fits in: the five
-// minimums plus the space between them.
-const configColumnsFull = ColMinFlag + ColWidthReq + ColMinLabel + ColMinShort + ColMinShort + 4*RowGutterWidth
+// The narrowest pane width each column set fits in: its minimums, the gutter
+// between each adjacent pair, and the selection gutter left of the first
+// column. A minimum is a floor to table.Fit, so a set chosen below its width
+// overflows the pane rather than shrinking into it.
+const (
+	configColumnsFull = RowGutterWidth + ColMinFlag + ColWidthReq + ColMinLabel +
+		ColMinShort + ColMinShort + 4*table.Gutter
+	configColumnsThree = RowGutterWidth + ColMinFlag + ColMinLabel + ColMinShort + 2*table.Gutter
+)
 
-// configColumnsThree is the narrowest width the number, name, and value fit in.
-const configColumnsThree = ColMinFlag + ColMinLabel + ColMinShort + 2*RowGutterWidth
-
-// ConfigColumnsFor is the input table narrowed to what width holds. Dropping a
-// column by priority is not enough on its own: the header then carries an
-// overflow marker naming what it dropped, and that marker is what wraps a
-// header one cell too wide onto a second line, costing the pane the row its
-// bottom border sits on.
-func ConfigColumnsFor(width int) []table.Column {
+// ConfigColumnsFor is the input table narrowed to what a pane room cells wide
+// holds, selection gutter included. Dropping a column by priority is not
+// enough on its own: the header then carries an overflow marker naming what it
+// dropped, and that marker is what wraps a header one cell too wide onto a
+// second line, costing the pane the row its bottom border sits on.
+func ConfigColumnsFor(room int) []table.Column {
 	cols := ConfigColumns()
 
 	switch {
-	case width >= configColumnsFull:
+	case room >= configColumnsFull:
 		return cols
-	case width >= configColumnsThree:
+	case room >= configColumnsThree:
 		return []table.Column{cols[0], noPriority(cols[2]), noPriority(cols[3])}
 	}
 

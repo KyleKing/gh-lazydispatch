@@ -495,7 +495,7 @@ func (m Model) viewConfigPane(width, height int) string {
 	}
 
 	room := width - ui.PaneBorderSize
-	layout := ui.FitColumns(ui.ConfigColumnsFor(room-ui.RowGutterWidth), room, ui.RowGutterWidth)
+	layout := ui.FitColumns(ui.ConfigColumnsFor(room), room, ui.RowGutterWidth)
 
 	content.WriteString("\n")
 	content.WriteString(m.renderTableHeader(layout))
