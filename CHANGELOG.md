@@ -1,3 +1,17 @@
+## v1.9.0 (2026-09-01)
+
+### Feat
+
+- **runs**: answer a pull request scope with its own check rollup
+
+### Refactor
+
+- **ui**: render relative times through aragonite's display package
+- **logs**: cache a run's log where the cache is actually read
+- **git**: read branches through aragonite's vcs layer
+- **github**: take the Actions model from aragonite rather than converting it
+- **testutil**: keep the command mock with the other test doubles
+
 ## v1.8.0 (2026-09-01)
 
 ### Feat
