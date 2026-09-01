@@ -1,3 +1,20 @@
+## v1.2.0 (2026-09-01)
+
+### Feat
+
+- **logs**: export a run's logs as markdown with its failure signatures named
+
+### Fix
+
+- **ui**: stop reserving pane borders twice, which cut every pane's content by two
+- **ui**: make focus, defaults, and column widths readable without color
+- **workflow**: report unparseable workflow files instead of showing an empty repo
+- **keys**: stop the live-view and input bindings shadowing tab, digit, and enter keys
+
+### Refactor
+
+- **ui**: take the palette and table fitting from aragonite
+
 ## v1.1.1 (2026-08-31)
 
 ### Fix
