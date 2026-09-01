@@ -10,6 +10,7 @@ import (
 	"github.com/kyleking/aragonite/tui/theme"
 
 	"github.com/kyleking/gh-lazydispatch/internal/app"
+	"github.com/kyleking/gh-lazydispatch/internal/cli"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
@@ -23,6 +24,10 @@ var (
 )
 
 func main() {
+	if cli.IsCommand(os.Args[1:]) {
+		os.Exit(cli.Run(os.Args[1:], os.Stdout, os.Stderr))
+	}
+
 	var (
 		showVersion bool
 		showHelp    bool
@@ -100,12 +105,22 @@ func printHelp() {
 	fmt.Println(`gh-lazydispatch - Interactive GitHub Workflow Dispatcher
 
 Usage:
-  gh-lazydispatch [flags]
+  gh-lazydispatch [flags]           Launch the TUI
+  gh-lazydispatch export <command>  Read Actions without reading its logs
 
 Description:
   A TUI for triggering GitHub Actions workflow_dispatch workflows with
   fuzzy selection, interactive input configuration, and frecency-based
   history tracking.
+
+Export commands (JSON on stdout, counts on stderr, nothing dispatches):
+  export workflows           Dispatchable workflows and their inputs
+  export chains              Chains defined in .github/lazydispatch.yml
+  export runs                Recent workflow runs, newest first
+  export logs <run-id>       One run's logs, parsed into steps
+  export diagnose <run-id>   Why a run failed, without its logs
+
+  Run: gh-lazydispatch export   for the flags each one takes.
 
 Flags:
   -h, --help     Show this help message

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
@@ -114,4 +115,56 @@ func (c *Client) Owner() string {
 // Repo returns the repository name.
 func (c *Client) Repo() string {
 	return c.repo
+}
+
+// RunQuery narrows a run listing. A zero value lists the most recent runs
+// across every workflow.
+type RunQuery struct {
+	// Workflow is a workflow filename ("ci.yml"), not its display name.
+	Workflow string
+	Branch   string
+	Status   string
+	Event    string
+	Limit    int
+}
+
+// maxRunsPerPage is the largest per_page the Actions API accepts.
+const maxRunsPerPage = 100
+
+// ListRuns fetches recent workflow runs matching q, newest first.
+func (c *Client) ListRuns(q RunQuery) ([]WorkflowRun, error) {
+	limit := q.Limit
+	if limit <= 0 || limit > maxRunsPerPage {
+		limit = maxRunsPerPage
+	}
+
+	params := url.Values{}
+	params.Set("per_page", strconv.Itoa(limit))
+
+	for key, value := range map[string]string{
+		"branch": q.Branch,
+		"event":  q.Event,
+		"status": q.Status,
+	} {
+		if value != "" {
+			params.Set(key, value)
+		}
+	}
+
+	path := fmt.Sprintf("repos/%s/%s/actions/runs", c.owner, c.repo)
+	if q.Workflow != "" {
+		path = fmt.Sprintf("repos/%s/%s/actions/workflows/%s/runs", c.owner, c.repo, url.PathEscape(q.Workflow))
+	}
+
+	stdout, stderr, err := c.executor.Execute("gh", "api", path+"?"+params.Encode())
+	if err != nil {
+		return nil, fmt.Errorf("gh api failed: %w (stderr: %s)", err, stderr)
+	}
+
+	var runsResp RunsResponse
+	if err := json.Unmarshal([]byte(stdout), &runsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse runs: %w", err)
+	}
+
+	return runsResp.WorkflowRuns, nil
 }

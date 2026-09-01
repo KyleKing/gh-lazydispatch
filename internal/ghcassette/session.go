@@ -110,7 +110,7 @@ func (s *Session) Env(t TB) []string {
 		return append(env, "GH_CASSETTE_MODE=replay")
 	}
 
-	ghPath, err := exec.LookPath("gh")
+	ghPath, err := realGH()
 	if err != nil {
 		t.Fatalf("recording needs the real gh on PATH: %v", err)
 	}
@@ -132,11 +132,10 @@ type EnvSetter interface {
 func (s *Session) Apply(t EnvSetter) {
 	t.Helper()
 
-	// Resolved before PATH is rewritten, or LookPath finds the stub.
 	ghPath := ""
 
 	if s.record {
-		found, err := exec.LookPath("gh")
+		found, err := realGH()
 		if err != nil {
 			t.Fatalf("recording needs the real gh on PATH: %v", err)
 		}
@@ -232,4 +231,30 @@ func RemoveStub() {
 	if stubDir != "" {
 		_ = os.RemoveAll(stubDir) //nolint:errcheck // a leftover temp directory is not worth failing a test run
 	}
+}
+
+// realGHOnce resolves gh against the PATH the process started with. Apply
+// prepends a stub directory to PATH, so a second Apply in the same test would
+// otherwise resolve gh to the stub and have it exec itself.
+//
+//nolint:gochecknoglobals // resolved once per process, never reassigned
+var (
+	realGHOnce sync.Once
+	realGHPath string
+	errRealGH  error
+)
+
+func realGH() (string, error) {
+	realGHOnce.Do(func() {
+		found, err := exec.LookPath("gh")
+		if err != nil {
+			errRealGH = fmt.Errorf("looking up gh: %w", err)
+
+			return
+		}
+
+		realGHPath = found
+	})
+
+	return realGHPath, errRealGH
 }
