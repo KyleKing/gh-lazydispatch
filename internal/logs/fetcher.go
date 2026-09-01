@@ -40,7 +40,9 @@ func (f *Fetcher) FetchStepLogs(runID int64, workflow string) ([]*StepLogs, erro
 
 	stepIndex := 0
 
-	for _, job := range jobs {
+	for i := range jobs {
+		job := &jobs[i]
+
 		for _, step := range job.Steps {
 			stepLogs := &StepLogs{
 				StepIndex:  stepIndex,
@@ -211,7 +213,9 @@ func (f *Fetcher) FetchRunSummary(runID int64) (string, error) {
 
 	hasFailures := false
 
-	for _, job := range jobs {
+	for i := range jobs {
+		job := &jobs[i]
+
 		if job.Conclusion != github.ConclusionSuccess {
 			hasFailures = true
 

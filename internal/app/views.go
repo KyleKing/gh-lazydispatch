@@ -156,6 +156,8 @@ func (m Model) viewFooterBar() string {
 			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] run chain")
 		case panes.TabLive:
 			hints = append(hints, "[h/l] tab", "[j/k] select")
+		case panes.TabTimeline:
+			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] steps", "[Esc] jobs")
 		}
 	case PaneConfig:
 		hints = append(hints, "[Enter] run", "[1-0] edit", "[/] filter")

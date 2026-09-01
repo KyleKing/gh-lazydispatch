@@ -45,7 +45,9 @@ func (f *GHFetcher) FetchStepLogsReal(runID int64, workflow string) ([]*StepLogs
 
 	stepIndex := 0
 
-	for _, job := range jobs {
+	for i := range jobs {
+		job := &jobs[i]
+
 		// Fetch logs for this job using gh CLI
 		jobLogs, err := f.fetchJobLogs(runID, job.ID)
 		if err != nil {
@@ -106,7 +108,7 @@ const byteOrderMark = "\ufeff"
 // find none, because those sit after the prefix rather than at the start of a
 // line.
 func (*GHFetcher) parseJobLogsIntoSteps(
-	job github.Job,
+	job *github.Job,
 	rawLogs string,
 	workflow string,
 	runID int64,

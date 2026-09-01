@@ -26,7 +26,7 @@ func TestParseJobLogsIntoSteps(t *testing.T) {
 		},
 	}
 
-	steps := (&GHFetcher{}).parseJobLogsIntoSteps(job, string(raw), "demo-test.yml", 42, 0)
+	steps := (&GHFetcher{}).parseJobLogsIntoSteps(&job, string(raw), "demo-test.yml", 42, 0)
 	if len(steps) == 0 {
 		t.Fatal("no steps parsed from real gh output")
 	}

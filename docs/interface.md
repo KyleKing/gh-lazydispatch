@@ -35,6 +35,28 @@ Selecting a workflow opens its input configuration, built from the input types t
 
 The status bar shows `Chains(N)` when the repository has chains configured, and `Chain: name (step/total)` while one runs.
 
+## Timeline
+
+The fourth right-panel tab draws a run's jobs as bars on one shared axis, which is what a list of statuses cannot show: what ran at the same time, and where the wall clock went. A run whose slowest job succeeded while a fast one failed reads identically in a status list and obviously here.
+
+```
+run 33423560774
+> ✓ actionlint           ███                                           10s
+  ✓ project            █████                                           15s
+  ✓ benchmark                ██████████████████████████████████████  1m49s
+  ✗ ci                  ██████████████████████████████              1m26s
+  ✓ lint                     █████████████████████████████████       1m35s
+  ✓ hooks                    ██████████                                29s
+                       └──────────────────────────────────────────┘
+                       0                                      2m07s
+```
+
+`ci` failed at 1m26s, and `benchmark` set the run's 2m07s. Every bar is measured against the same window, so two bars of the same length took the same time.
+
+`enter` drills into the selected job's steps, rescaling the axis to that job's own window; `esc` backs out to the jobs. Escape peels one layer at a time, so backing out of a job does not also leave whatever view you were in.
+
+Fill it with `a` then `t` on a History or Live row, or with `:timeline <run-id>`. A bar with no end yet is drawn open (`▓`) against a clock that runs to now.
+
 ## Log viewer
 
 `v` opens logs from a chain status screen or from a history entry. Logs arrive organized by workflow step, one tab per step.

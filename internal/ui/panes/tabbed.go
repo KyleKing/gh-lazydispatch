@@ -7,6 +7,7 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
@@ -19,6 +20,7 @@ const (
 	TabHistory RightTab = iota
 	TabChains
 	TabLive
+	TabTimeline
 )
 
 // TabbedRightModel manages the tabbed right panel.
@@ -26,6 +28,7 @@ type TabbedRightModel struct {
 	history   HistoryModel
 	chains    ChainListModel
 	live      LiveRunsModel
+	timeline  TimelineModel
 	activeTab RightTab
 	width     int
 	height    int
@@ -39,6 +42,7 @@ func NewTabbedRight() TabbedRightModel {
 		history:   NewHistoryModel(),
 		chains:    NewChainListModel(),
 		live:      NewLiveRunsModel(),
+		timeline:  NewTimelineModel(),
 	}
 }
 
@@ -56,6 +60,7 @@ func (m *TabbedRightModel) SetSize(width, height int) {
 	m.history.SetSize(width-tabbedChromeWidth, contentHeight)
 	m.chains.SetSize(width-tabbedChromeWidth, contentHeight)
 	m.live.SetSize(width-tabbedChromeWidth, contentHeight)
+	m.timeline.SetSize(width-tabbedChromeWidth, contentHeight)
 }
 
 // SetFocused updates the focus state.
@@ -64,6 +69,7 @@ func (m *TabbedRightModel) SetFocused(focused bool) {
 	m.history.SetFocused(focused && m.activeTab == TabHistory)
 	m.chains.SetFocused(focused && m.activeTab == TabChains)
 	m.live.SetFocused(focused && m.activeTab == TabLive)
+	m.timeline.SetFocused(focused && m.activeTab == TabTimeline)
 }
 
 // ActiveTab returns the currently active tab.
@@ -72,7 +78,18 @@ func (m TabbedRightModel) ActiveTab() RightTab {
 }
 
 // tabCount is the number of tabs in the right panel.
-const tabCount = 3
+const tabCount = 4
+
+// SetTab switches directly to one tab, for a caller that landed on the data
+// rather than on the tab.
+func (m *TabbedRightModel) SetTab(tab RightTab) {
+	if tab < 0 || tab >= tabCount {
+		return
+	}
+
+	m.activeTab = tab
+	m.updateTabFocus()
+}
 
 // NextTab switches to the next tab.
 func (m *TabbedRightModel) NextTab() {
@@ -90,6 +107,7 @@ func (m *TabbedRightModel) updateTabFocus() {
 	m.history.SetFocused(m.focused && m.activeTab == TabHistory)
 	m.chains.SetFocused(m.focused && m.activeTab == TabChains)
 	m.live.SetFocused(m.focused && m.activeTab == TabLive)
+	m.timeline.SetFocused(m.focused && m.activeTab == TabTimeline)
 }
 
 // SetHistoryEntries updates the history entries.
@@ -122,6 +140,16 @@ func (m *TabbedRightModel) Live() *LiveRunsModel {
 	return &m.live
 }
 
+// Timeline returns the timeline model for direct access.
+func (m *TabbedRightModel) Timeline() *TimelineModel {
+	return &m.timeline
+}
+
+// SetTimelineRun replaces what the Timeline tab draws.
+func (m *TabbedRightModel) SetTimelineRun(title string, jobs []github.Job) {
+	m.timeline.SetRun(title, jobs)
+}
+
 // Update handles messages for the active tab.
 func (m TabbedRightModel) Update(msg tea.Msg) (TabbedRightModel, tea.Cmd) {
 	if !m.focused {
@@ -137,6 +165,8 @@ func (m TabbedRightModel) Update(msg tea.Msg) (TabbedRightModel, tea.Cmd) {
 		m.chains, cmd = m.chains.Update(msg)
 	case TabLive:
 		m.live, cmd = m.live.Update(msg)
+	case TabTimeline:
+		m.timeline, cmd = m.timeline.Update(msg)
 	}
 
 	return m, cmd
@@ -157,6 +187,8 @@ func (m TabbedRightModel) View() string {
 		content = m.chains.ViewContent()
 	case TabLive:
 		content = m.live.ViewContent()
+	case TabTimeline:
+		content = m.timeline.ViewContent()
 	}
 
 	return style.Render(tabs + "\n" + content)
@@ -170,6 +202,7 @@ func (m TabbedRightModel) renderTabHeader() string {
 		{"History", TabHistory},
 		{"Chains", TabChains},
 		{"Live", TabLive},
+		{"Timeline", TabTimeline},
 	}
 
 	var parts []string

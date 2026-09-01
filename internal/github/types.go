@@ -41,20 +41,26 @@ func (r WorkflowRun) IsSuccess() bool {
 
 // Job represents a job within a workflow run.
 type Job struct {
-	StartedAt  time.Time `json:"started_at"`
-	Name       string    `json:"name"`
-	Status     string    `json:"status"`
-	Conclusion string    `json:"conclusion"`
-	Steps      []Step    `json:"steps"`
-	ID         int64     `json:"id"`
+	StartedAt time.Time `json:"started_at"`
+	// CompletedAt is the zero time while the job is still running.
+	CompletedAt time.Time `json:"completed_at"`
+	Name        string    `json:"name"`
+	Status      string    `json:"status"`
+	Conclusion  string    `json:"conclusion"`
+	Steps       []Step    `json:"steps"`
+	ID          int64     `json:"id"`
 }
 
 // Step represents a step within a job.
 type Step struct {
-	Name       string `json:"name"`
-	Status     string `json:"status"`
-	Conclusion string `json:"conclusion"`
-	Number     int    `json:"number"`
+	StartedAt time.Time `json:"started_at"`
+	// CompletedAt is the zero time while the step is still running, and
+	// StartedAt is zero for a step that has not begun.
+	CompletedAt time.Time `json:"completed_at"`
+	Name        string    `json:"name"`
+	Status      string    `json:"status"`
+	Conclusion  string    `json:"conclusion"`
+	Number      int       `json:"number"`
 }
 
 // JobsResponse represents the API response for listing jobs.

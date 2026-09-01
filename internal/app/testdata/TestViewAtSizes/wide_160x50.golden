@@ -1,5 +1,5 @@
                                                                                                                                                    lazydispatch 
-Workflows                                                 [History]  Chains   Live                                                                              
+Workflows                                                 [History]  Chains   Live   Timeline                                                                   
   all workflows                                               Name                                  Branch                        Time                          
 > Deploy                                                  > w deploy.yml                            main                          just now                      
   CI                                                        w deploy.yml                            develop                       just now                      

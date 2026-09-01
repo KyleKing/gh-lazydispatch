@@ -203,8 +203,17 @@ func (m *Model) cycleHistoryTab(cycle func()) {
 	}
 }
 
-// handleEscapeKey returns to the workflow list view, if not already there.
+// handleEscapeKey backs out one level, innermost first: a timeline drilled
+// into a job, then a preview or input detail, then nothing. Peeling one layer
+// per press is what keeps escape from throwing away two states at once.
 func (m *Model) handleEscapeKey() {
+	if m.focused == PaneHistory && m.rightPanel.ActiveTab() == panes.TabTimeline &&
+		m.rightPanel.Timeline().Drilled() {
+		m.rightPanel.Timeline().Undrill()
+
+		return
+	}
+
 	if m.viewMode == WorkflowListMode {
 		return
 	}
@@ -316,6 +325,8 @@ func (m *Model) handleUp() {
 			m.rightPanel.Chains().MoveUp()
 		case panes.TabLive:
 			m.rightPanel.Live().MoveUp()
+		case panes.TabTimeline:
+			m.rightPanel.Timeline().MoveUp()
 		}
 	case PaneConfig:
 		if m.selectedInput < 0 {
@@ -350,6 +361,8 @@ func (m *Model) handleDown() {
 			m.rightPanel.Chains().MoveDown()
 		case panes.TabLive:
 			m.rightPanel.Live().MoveDown()
+		case panes.TabTimeline:
+			m.rightPanel.Timeline().MoveDown()
 		}
 	case PaneConfig:
 		if m.selectedInput < 0 {
@@ -398,6 +411,8 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 			if name, chainDef, ok := m.rightPanel.SelectedChain(); ok {
 				return m.startChainFlow(name, chainDef)
 			}
+		case panes.TabTimeline:
+			m.rightPanel.Timeline().Drill()
 		}
 	case PaneConfig:
 		return m.executeWorkflow()

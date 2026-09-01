@@ -69,7 +69,7 @@ func (m Model) handleCommandKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 
-	case "enter":
+	case keyEnter:
 		line := m.commandInput.Value()
 		m.closeCommandBar()
 

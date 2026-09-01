@@ -3,10 +3,13 @@ package app
 import (
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 )
 
 const (
@@ -257,4 +260,51 @@ func selectHistoryEntryWithInput(t *testing.T, m Model, name, value string) Mode
 	t.Fatalf("no history entry has %s=%s", name, value)
 
 	return m
+}
+
+// TestJourney_EscapePeelsOneLayerAtATime covers the rule that keeps escape
+// predictable: a timeline drilled into a job backs out to the jobs before it
+// leaves anything else, rather than discarding two states at once.
+func TestJourney_EscapePeelsOneLayerAtATime(t *testing.T) {
+	t.Parallel()
+
+	m := resize(t, newRenderModel(), 120, 40)
+	m.focused = PaneHistory
+	m = selectHistoryEntryWithInput(t, m, testInputEnvironment, "prod")
+	m = pressSpecial(t, m, tea.KeyEnter)
+
+	if m.viewMode != HistoryPreviewMode {
+		t.Fatal("did not enter preview mode")
+	}
+
+	m.rightPanel.SetTimelineRun("run 1", timelineTestJobs())
+	m.rightPanel.SetTab(panes.TabTimeline)
+	m.rightPanel.Timeline().Drill()
+
+	m = pressSpecial(t, m, tea.KeyEscape)
+
+	if m.rightPanel.Timeline().Drilled() {
+		t.Fatal("escape did not back out of the drilled job")
+	}
+
+	if m.viewMode != HistoryPreviewMode {
+		t.Error("escape left preview mode in the same press that closed the drill-down")
+	}
+
+	m = pressSpecial(t, m, tea.KeyEscape)
+
+	if m.viewMode != WorkflowListMode {
+		t.Error("the second escape did not leave preview mode")
+	}
+}
+
+func timelineTestJobs() []github.Job {
+	start := time.Now().Add(-2 * time.Minute)
+
+	return []github.Job{{
+		Name: "ci", StartedAt: start, CompletedAt: start.Add(time.Minute), Conclusion: "failure",
+		Steps: []github.Step{
+			{Name: "Set up job", Number: 1, StartedAt: start, CompletedAt: start.Add(time.Second)},
+		},
+	}}
 }

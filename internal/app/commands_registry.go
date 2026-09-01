@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -61,6 +62,7 @@ func DefaultRegistry() Registry {
 				return m, nil
 			},
 		},
+		timelineCommand(),
 		workflowCommand(),
 	)
 }
@@ -199,4 +201,27 @@ func asModelOrSelf(result tea.Model, fallback Model) Model {
 	}
 
 	return fallback
+}
+
+func timelineCommand() Command {
+	return Command{
+		Name:        "timeline",
+		Description: "Draw a run's jobs on one time axis: :timeline [run-id]",
+		Run: func(m Model, args []string) (Model, tea.Cmd) {
+			if len(args) == 0 {
+				model, cmd := m.timelineForSelection()
+
+				return asModelOrSelf(model, m), cmd
+			}
+
+			runID, err := strconv.ParseInt(args[0], 10, 64)
+			if err != nil {
+				return m, statusCmd(fmt.Sprintf("%q is not a run ID", args[0]))
+			}
+
+			model, cmd := m.showTimeline(runID, "run "+args[0])
+
+			return asModelOrSelf(model, m), cmd
+		},
+	}
 }

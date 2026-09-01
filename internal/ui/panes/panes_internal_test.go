@@ -285,14 +285,20 @@ func TestTabbedRightModel_TabSwitching(t *testing.T) {
 
 	m.NextTab()
 
+	if m.ActiveTab() != TabTimeline {
+		t.Error("expected TabTimeline after third NextTab")
+	}
+
+	m.NextTab()
+
 	if m.ActiveTab() != TabHistory {
-		t.Error("expected TabHistory after third NextTab (wrap around)")
+		t.Error("expected TabHistory after wrapping around")
 	}
 
 	m.PrevTab()
 
-	if m.ActiveTab() != TabLive {
-		t.Error("expected TabLive after PrevTab")
+	if m.ActiveTab() != TabTimeline {
+		t.Error("expected TabTimeline after PrevTab wraps backwards")
 	}
 }
 

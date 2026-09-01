@@ -13,6 +13,7 @@ import (
 // Nouns shared across command names, action names, key help, and pane titles,
 // so the same thing reads the same everywhere it is named.
 const (
+	keyEnter      = "enter"
 	nameBranch    = "branch"
 	nameWorkflow  = "workflow"
 	paneWorkflows = "Workflows"
@@ -53,6 +54,8 @@ func (m Model) actionsFor() actionMenu {
 			return actionMenu{title: "Chains", target: m.chainsTarget(), actions: chainActions()}
 		case panes.TabLive:
 			return actionMenu{title: "Live", target: m.liveTarget(), actions: liveActions()}
+		case panes.TabTimeline:
+			return actionMenu{title: "Timeline", target: m.timelineTarget(), actions: timelineActions()}
 		}
 	}
 
@@ -63,7 +66,7 @@ func workflowActions() []paneAction {
 	return []paneAction{
 		{key: "b", name: nameBranch, run: Model.openBranchModal},
 		{key: "c", name: "run a chain", run: Model.openChainSelectModal},
-		{key: "enter", name: "run the selected workflow", run: Model.executeWorkflow},
+		{key: keyEnter, name: "run the selected workflow", run: Model.executeWorkflow},
 		{key: "w", name: "toggle watch after dispatch", run: Model.toggleWatch},
 	}
 }
@@ -80,6 +83,7 @@ func configActions() []paneAction {
 
 func (m Model) historyActions() []paneAction {
 	actions := []paneAction{
+		{key: "t", name: "timeline for this run", run: Model.timelineForSelection},
 		{key: "v", name: "view logs", run: Model.viewSelectedLogs},
 	}
 
@@ -102,6 +106,7 @@ func chainActions() []paneAction {
 func liveActions() []paneAction {
 	return []paneAction{
 		{key: "L", name: "open the live overview", run: Model.openLiveViewModal},
+		{key: "t", name: "timeline for this run", run: Model.timelineForSelection},
 		{key: "d", name: "stop watching the selected run", run: Model.clearSelectedRunAction},
 		{key: "D", name: "stop watching every completed run", run: Model.clearCompletedRunsAction},
 	}
@@ -221,4 +226,27 @@ func (m Model) liveTarget() string {
 	}
 
 	return run.Workflow + " " + run.Status
+}
+
+func timelineActions() []paneAction {
+	return []paneAction{
+		{key: keyEnter, name: "drill into the selected job's steps", run: Model.drillTimeline},
+		{key: "esc", name: "back out to the jobs", run: Model.undrillTimeline},
+	}
+}
+
+func (m Model) drillTimeline() (tea.Model, tea.Cmd) {
+	m.rightPanel.Timeline().Drill()
+
+	return m, nil
+}
+
+func (m Model) undrillTimeline() (tea.Model, tea.Cmd) {
+	m.rightPanel.Timeline().Undrill()
+
+	return m, nil
+}
+
+func (m Model) timelineTarget() string {
+	return m.rightPanel.Timeline().Heading()
 }

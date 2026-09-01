@@ -182,6 +182,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return model, cmd
 	}
 
+	if model, cmd, handled := m.handleTimelineMsg(msg); handled {
+		return model, cmd
+	}
+
 	if status, ok := msg.(StatusMsg); ok {
 		m.status = status.Text
 

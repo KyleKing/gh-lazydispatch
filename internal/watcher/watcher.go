@@ -269,13 +269,15 @@ func (w *RunWatcher) pollRun(runID int64) {
 		Jobs:       make([]JobStatus, len(jobs)),
 	}
 
-	for i, job := range jobs {
+	for i := range jobs {
+		job := &jobs[i]
 		watched.Jobs[i] = JobStatus{
 			Name:       job.Name,
 			Status:     job.Status,
 			Conclusion: job.Conclusion,
 			Steps:      make([]StepStatus, len(job.Steps)),
 		}
+
 		for j, step := range job.Steps {
 			watched.Jobs[i].Steps[j] = StepStatus{
 				Name:       step.Name,
