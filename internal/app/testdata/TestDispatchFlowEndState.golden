@@ -37,4 +37,4 @@ gh workflow run deploy.yml --ref main -f environment=staging
                                                                                                                         
                                                                                                                         
                                                                                                                         
- [Tab] pane  [Enter] run  [1-0] edit  [/] filter  [b] branch  [?] help  [q] quit                                        
+ [Tab] pane  [a] actions  [:] command  [Enter] run  [1-0] edit  [/] filter  [?] help  [q] quit                          

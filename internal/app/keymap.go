@@ -8,7 +8,9 @@ import (
 
 // KeyMap defines all keyboard shortcuts for the application.
 type KeyMap struct {
+	Actions  key.Binding
 	Branch   key.Binding
+	Command  key.Binding
 	Chain    key.Binding
 	Clear    key.Binding
 	ClearAll key.Binding
@@ -59,7 +61,7 @@ func makeNumberedBinding(num int, prefix string) key.Binding {
 	numStr := strconv.Itoa(num)
 	label := numStr
 
-	if prefix == "workflow" && num == 0 {
+	if prefix == nameWorkflow && num == 0 {
 		return key.NewBinding(key.WithKeys(numStr), key.WithHelp(label, "workflow all"))
 	}
 
@@ -69,7 +71,9 @@ func makeNumberedBinding(num int, prefix string) key.Binding {
 // DefaultKeyMap returns the default keyboard shortcuts.
 func DefaultKeyMap() KeyMap {
 	return KeyMap{
-		Branch:   key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "branch")),
+		Actions:  key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "actions for what has focus")),
+		Branch:   key.NewBinding(key.WithKeys("b"), key.WithHelp("b", nameBranch)),
+		Command:  key.NewBinding(key.WithKeys(":"), key.WithHelp(":", "command bar")),
 		Chain:    key.NewBinding(key.WithKeys("C"), key.WithHelp("C", "run chain")),
 		Clear:    key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "clear run")),
 		ClearAll: key.NewBinding(key.WithKeys("D"), key.WithHelp("D", "clear all")),
@@ -103,16 +107,16 @@ func DefaultKeyMap() KeyMap {
 		Input8: makeNumberedBinding(8, "input"),
 		Input9: makeNumberedBinding(9, "input"),
 
-		Workflow0: makeNumberedBinding(0, "workflow"),
-		Workflow1: makeNumberedBinding(1, "workflow"),
-		Workflow2: makeNumberedBinding(2, "workflow"),
-		Workflow3: makeNumberedBinding(3, "workflow"),
-		Workflow4: makeNumberedBinding(4, "workflow"),
-		Workflow5: makeNumberedBinding(5, "workflow"),
-		Workflow6: makeNumberedBinding(6, "workflow"),
-		Workflow7: makeNumberedBinding(7, "workflow"),
-		Workflow8: makeNumberedBinding(8, "workflow"),
-		Workflow9: makeNumberedBinding(9, "workflow"),
+		Workflow0: makeNumberedBinding(0, nameWorkflow),
+		Workflow1: makeNumberedBinding(1, nameWorkflow),
+		Workflow2: makeNumberedBinding(2, nameWorkflow),
+		Workflow3: makeNumberedBinding(3, nameWorkflow),
+		Workflow4: makeNumberedBinding(4, nameWorkflow),
+		Workflow5: makeNumberedBinding(5, nameWorkflow),
+		Workflow6: makeNumberedBinding(6, nameWorkflow),
+		Workflow7: makeNumberedBinding(7, nameWorkflow),
+		Workflow8: makeNumberedBinding(8, nameWorkflow),
+		Workflow9: makeNumberedBinding(9, nameWorkflow),
 	}
 }
 

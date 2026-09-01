@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
@@ -62,6 +63,11 @@ type Model struct {
 	ghClient                *github.Client
 	logManager              *logs.Manager
 	previewingHistoryEntry  *frecency.HistoryEntry
+	registry                Registry
+	commandInput            textinput.Model
+	completions             []Candidate
+	pendingActions          []paneAction
+	status                  string
 	repo                    string
 	executingChainName      string
 	executingChainBranch    string
@@ -82,6 +88,7 @@ type Model struct {
 	width                   int
 	selectedInput           int
 	watchRun                bool
+	commandMode             bool
 }
 
 // RunUpdateMsg is sent when a watched run is updated.
@@ -111,6 +118,8 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 		selectedInput:    -1,
 		selectedWorkflow: -1,
 		rightPanel:       panes.NewTabbedRight(),
+		registry:         DefaultRegistry(),
+		commandInput:     newCommandInput(),
 	}
 
 	if ghClient, err := github.NewClient(repo); err == nil {
@@ -173,11 +182,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return model, cmd
 	}
 
+	if status, ok := msg.(StatusMsg); ok {
+		m.status = status.Text
+
+		return m, nil
+	}
+
+	// The command bar owns every key while it is open, so a command's own
+	// letters cannot also fire the actions they are bound to.
+	if m.commandMode {
+		if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+			return m.handleCommandKey(keyMsg)
+		}
+
+		return m, nil
+	}
+
 	if m.modalStack.HasActive() {
 		return m.updateModal(msg)
 	}
 
 	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+		m.status = ""
+
 		return m.handleKeyMsg(keyMsg)
 	}
 
@@ -234,6 +261,10 @@ func (m Model) handleModalResultMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case modal.ValidationErrorResultMsg:
 		model, cmd := m.handleValidationErrorResult(msg)
+		return model, cmd, true
+
+	case modal.ActionResultMsg:
+		model, cmd := m.handleActionResult(msg)
 		return model, cmd, true
 	}
 

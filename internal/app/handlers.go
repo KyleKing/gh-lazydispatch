@@ -60,6 +60,15 @@ func (m Model) handleGlobalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 		m.modalStack.Push(modal.NewHelpModal())
 		return m, nil, true
 
+	case key.Matches(msg, m.keys.Command):
+		cmd := m.openCommandBar()
+
+		return m, cmd, true
+
+	case key.Matches(msg, m.keys.Actions):
+		m.openActionMenu()
+		return m, nil, true
+
 	case key.Matches(msg, m.keys.Escape):
 		m.handleEscapeKey()
 		return m, nil, true
@@ -149,15 +158,6 @@ func (m Model) handleHistoryPaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bo
 	case key.Matches(msg, m.keys.ClearAll):
 		m.clearCompletedLiveRuns()
 		return m, nil, true
-
-	case msg.String() == "a":
-		if m.viewMode != HistoryPreviewMode || m.previewingHistoryEntry == nil {
-			return m, nil, true
-		}
-
-		model, cmd := m.openRemapModal()
-
-		return model, cmd, true
 
 	case key.Matches(msg, m.keys.ViewLogs):
 		if m.focused != PaneHistory || m.rightPanel.ActiveTab() != panes.TabHistory {
@@ -421,7 +421,7 @@ func (m Model) startChainFlow(name string, chainDef config.Chain) (tea.Model, te
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleChainVariableResult(msg modal.ChainVariableResultMsg) (tea.Model, tea.Cmd) {
 	if msg.Canceled || m.pendingChain == nil {
 		m.pendingChainName = ""
@@ -500,7 +500,7 @@ func (Model) buildChainCommands(chainDef *config.Chain, variables map[string]str
 	return commands
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleChainStatusStop() (tea.Model, tea.Cmd) {
 	if m.chainExecutor != nil {
 		m.chainExecutor.Stop()
@@ -554,7 +554,6 @@ type executionDoneMsg struct {
 	err error
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
 	ctx := context.Background()
 
@@ -576,7 +575,6 @@ func (m Model) openBranchModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) openLiveViewModal() (tea.Model, tea.Cmd) {
 	if m.watcher == nil {
 		return m, nil
@@ -588,7 +586,6 @@ func (m Model) openLiveViewModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) openChainSelectModal() (tea.Model, tea.Cmd) {
 	if m.wfdConfig == nil || !m.wfdConfig.HasChains() {
 		return m, nil
@@ -675,7 +672,6 @@ func (m Model) openResetModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
 func (m Model) openRemapModal() (tea.Model, tea.Cmd) {
 	if m.previewingHistoryEntry == nil {
 		return m, nil
@@ -699,7 +695,7 @@ func (m Model) openRemapModal() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleSelectResult(msg modal.SelectResultMsg) (tea.Model, tea.Cmd) {
 	if m.pendingInputName != "" {
 		m.inputs[m.pendingInputName] = msg.Value
@@ -709,13 +705,13 @@ func (m Model) handleSelectResult(msg modal.SelectResultMsg) (tea.Model, tea.Cmd
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleBranchResult(msg modal.BranchResultMsg) (tea.Model, tea.Cmd) {
 	m.branch = msg.Value
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleInputResult(msg modal.InputResultMsg) (tea.Model, tea.Cmd) {
 	if m.pendingInputName != "" {
 		m.inputs[m.pendingInputName] = msg.Value
@@ -725,7 +721,7 @@ func (m Model) handleInputResult(msg modal.InputResultMsg) (tea.Model, tea.Cmd) 
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleConfirmResult(msg modal.ConfirmResultMsg) (tea.Model, tea.Cmd) {
 	if m.pendingInputName != "" {
 		if msg.Value {
@@ -740,7 +736,7 @@ func (m Model) handleConfirmResult(msg modal.ConfirmResultMsg) (tea.Model, tea.C
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleFilterResult(msg modal.FilterResultMsg) (tea.Model, tea.Cmd) {
 	if !msg.Canceled {
 		m.filterText = msg.Value
@@ -750,7 +746,7 @@ func (m Model) handleFilterResult(msg modal.FilterResultMsg) (tea.Model, tea.Cmd
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleResetResult(msg modal.ResetResultMsg) (tea.Model, tea.Cmd) {
 	if msg.Confirmed {
 		m.resetAllInputs()
@@ -767,7 +763,7 @@ func (m Model) handleRunConfirmResult(msg modal.RunConfirmResultMsg) (tea.Model,
 	return m, nil
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleRemapResult(msg modal.RemapResultMsg) (tea.Model, tea.Cmd) {
 	if m.previewingHistoryEntry == nil || len(msg.Decisions) == 0 {
 		return m, nil
@@ -876,7 +872,7 @@ func convertToFrecencyStepResults(stepResults map[int]*chain.StepResult) []frece
 	return results
 }
 
-//nolint:unparam // consistent (tea.Model, tea.Cmd) handler signature per Update's dispatch convention
+//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleValidationErrorResult(msg modal.ValidationErrorResultMsg) (tea.Model, tea.Cmd) {
 	if msg.Override {
 		if m.selectedWorkflow < 0 || m.selectedWorkflow >= len(m.workflows) {

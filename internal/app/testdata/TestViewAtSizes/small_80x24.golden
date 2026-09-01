@@ -21,4 +21,4 @@ Command ([c] copy):
 gh workflow run deploy.yml --ref main -f environment=staging                    
                                                                                 
                                                                                 
- [Tab] pane  [j/k] select  [Enter] run  [Space] config  [?] help  [q] quit      
+ [Tab] pane  [a] actions  [:] command  [j/k] select  [?] help  [q] quit         

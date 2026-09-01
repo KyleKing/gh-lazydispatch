@@ -6,6 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/kyleking/aragonite/tui/table"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
@@ -134,13 +135,19 @@ func (m Model) viewTopStatusBar() string {
 }
 
 func (m Model) viewFooterBar() string {
-	var hints []string
+	if m.commandMode {
+		return m.viewCommandBar(m.width)
+	}
 
-	hints = append(hints, "[Tab] pane")
+	if m.status != "" {
+		return ui.HelpStyle.Render(" " + m.status)
+	}
+
+	var hints []string
 
 	switch m.focused {
 	case PaneWorkflows:
-		hints = append(hints, "[j/k] select", "[Enter] run", "[Space] config")
+		hints = append(hints, "[j/k] select", "[Enter] run")
 	case PaneHistory:
 		switch m.rightPanel.ActiveTab() {
 		case panes.TabHistory:
@@ -148,15 +155,43 @@ func (m Model) viewFooterBar() string {
 		case panes.TabChains:
 			hints = append(hints, "[h/l] tab", "[j/k] select", "[Enter] run chain")
 		case panes.TabLive:
-			hints = append(hints, "[h/l] tab", "[j/k] select", "[d] clear", "[D] clear all")
+			hints = append(hints, "[h/l] tab", "[j/k] select")
 		}
 	case PaneConfig:
-		hints = append(hints, "[Enter] run", "[1-0] edit", "[/] filter", "[b] branch")
+		hints = append(hints, "[Enter] run", "[1-0] edit", "[/] filter")
 	}
 
-	hints = append(hints, "[?] help", "[q] quit")
+	// The leaders and the way out are never dropped: everything else is
+	// reachable through them, and they are what a first-timer needs.
+	leaders := []string{"[Tab] pane", "[a] actions", "[:] command"}
+	always := []string{"[?] help", "[q] quit"}
 
-	return ui.HelpStyle.Render(" " + strings.Join(hints, "  "))
+	return ui.HelpStyle.Render(" " + fitHints(m.width-1, leaders, hints, always))
+}
+
+// fitHints renders leaders, then as many contextual hints as fit, then always.
+// Lipgloss widens every line of the frame to the longest one, so a footer one
+// cell too long pushes the whole layout sideways rather than wrapping. Dropping
+// a contextual hint is what keeps that from happening, and contextual hints are
+// the droppable ones because the action menu lists them too.
+func fitHints(width int, leaders, contextual, always []string) string {
+	if width <= 0 {
+		return ""
+	}
+
+	for keep := len(contextual); keep >= 0; keep-- {
+		parts := make([]string, 0, len(leaders)+keep+len(always))
+		parts = append(parts, leaders...)
+		parts = append(parts, contextual[:keep]...)
+		parts = append(parts, always...)
+
+		line := strings.Join(parts, "  ")
+		if ansi.StringWidth(line) <= width {
+			return line
+		}
+	}
+
+	return ansi.Truncate(strings.Join(append(leaders, always...), "  "), width, "…")
 }
 
 func (m Model) viewInputDetailsPane(width, height int) string {
@@ -260,7 +295,7 @@ func (m Model) leftPaneTitle() string {
 	case HistoryPreviewMode:
 		return "Workflows > Preview"
 	default:
-		return "Workflows"
+		return paneWorkflows
 	}
 }
 

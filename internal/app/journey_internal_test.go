@@ -174,6 +174,8 @@ func TestJourney_ResetRestoresEveryEditedInput(t *testing.T) {
 
 // TestJourney_RemappingAStaleHistoryEntry covers replaying a run recorded
 // against an older version of the workflow, where a value no longer validates.
+// Remap is offered by the action leader rather than by a key of its own, so
+// the journey is how a user who does not know the key still reaches it.
 func TestJourney_RemappingAStaleHistoryEntry(t *testing.T) {
 	t.Parallel()
 
@@ -189,11 +191,52 @@ func TestJourney_RemappingAStaleHistoryEntry(t *testing.T) {
 
 	m = pressRune(t, m, 'a')
 	if !m.modalStack.HasActive() {
-		t.Fatal("a did not open the remap modal for an entry with an invalid value")
+		t.Fatal("a did not open the action menu")
+	}
+
+	if view := m.View().Content; !strings.Contains(view, "remap") {
+		t.Fatalf("the history action menu does not offer remap:\n%s", view)
+	}
+
+	m = pressRune(t, m, 'm')
+	if !m.modalStack.HasActive() {
+		t.Fatal("choosing remap closed the stack instead of opening the wizard")
 	}
 
 	if view := m.View().Content; !strings.Contains(view, "prod") {
 		t.Errorf("remap modal does not show the stale value:\n%s", view)
+	}
+}
+
+// TestJourney_ActionMenuOnlyOffersWhatApplies is the rule the leader replaced
+// the scattered focus guards with: a verb that would do nothing here is not
+// listed, rather than listed and silently inert.
+func TestJourney_ActionMenuOnlyOffersWhatApplies(t *testing.T) {
+	t.Parallel()
+
+	m := resize(t, newRenderModel(), 120, 40)
+	m.focused = PaneHistory
+
+	m = pressRune(t, m, 'a')
+
+	if view := m.View().Content; strings.Contains(view, "remap") {
+		t.Errorf("remap is offered with no entry in preview:\n%s", view)
+	}
+
+	m = pressSpecial(t, m, tea.KeyEscape)
+
+	m.focused = PaneConfig
+	m = pressRune(t, m, 'a')
+
+	view := m.View().Content
+	for _, want := range []string{"reset", "filter", "copy"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("the config action menu does not offer %q:\n%s", want, view)
+		}
+	}
+
+	if strings.Contains(view, "remap") {
+		t.Error("the config pane offers a history verb")
 	}
 }
 
