@@ -1,8 +1,8 @@
                                                                                                                                                    lazydispatch 
 Workflows                                               [History]  Chains   Live                                                                                
-  all                                                       Name                 Branch          Time                                                           
-> Deploy                                                > w deploy.yml          main           just now                                                         
-  CI                                                      w deploy.yml          develop        just now                                                         
+  all                                                       Name                                                 Branch                             Time        
+> Deploy                                                > w deploy.yml                                           main                               just now    
+  CI                                                      w deploy.yml                                           develop                            just now    
                                                                                                                                                                 
                                                                                                                                                                 
                                                                                                                                                                 
@@ -25,8 +25,8 @@ Configuration
                                                                                                                                                                 
 Branch: [b] main    Watch: [w] off    [r] reset all                                                                                                             
                                                                                                                                                                 
-  #   Req  Name             Value              Default                                                                                                          
-  1        environment      staging            staging                                                                                                          
+  #  Req  Name                                                         Value                                     Default                                        
+  1       environment                                                  staging                                   staging                                        
                                                                                                                                                                 
 Command ([c] copy):                                                                                                                                             
 gh workflow run deploy.yml --ref main -f environment=staging                                                                                                    

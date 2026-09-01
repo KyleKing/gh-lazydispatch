@@ -4,34 +4,6 @@ import (
 	"testing"
 )
 
-func TestPadRight(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name   string
-		input  string
-		length int
-		want   string
-	}{
-		{"shorter than length", "hello", 10, "hello     "},
-		{"equal to length", "hello", 5, "hello"},
-		{"longer than length", "hello world", 5, "hello world"},
-		{"empty string", "", 5, "     "},
-		{"zero length", "hello", 0, "hello"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := _padRight(tt.input, tt.length)
-			if got != tt.want {
-				t.Errorf("_padRight(%q, %d) = %q, want %q", tt.input, tt.length, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestFormatRowNumber(t *testing.T) {
 	t.Parallel()
 

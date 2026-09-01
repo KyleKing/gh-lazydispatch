@@ -30,7 +30,7 @@ gh-lazydispatch/
 │   ├── testutil/     # Test fixtures and mocks
 │   ├── ui/           # TUI rendering
 │   │   ├── styles.go # Lipgloss styling
-│   │   ├── theme/    # Catppuccin themes
+│   │   ├── table.go  # Column definitions shared by every table
 │   │   ├── modal/    # Modal dialogs
 │   │   └── panes/    # Main view panes
 │   ├── validation/   # Input validation
@@ -38,6 +38,33 @@ gh-lazydispatch/
 │   └── workflow/     # Workflow discovery and parsing
 ├── testdata/         # Test data and fixtures
 └── go.mod
+```
+
+### Shared packages
+
+[aragonite](https://github.com/KyleKing/aragonite) holds the terminal code more
+than one of these tools needs. Two of its packages are used here:
+
+- `tui/theme` carries the Catppuccin palettes and the background detection that
+  picks between them. `theme.Detect` reads `CATPPUCCIN_THEME` first and treats a
+  background it cannot query as dark, so a piped run and a golden fixture resolve
+  the same way. `internal/ui` names the three roles beyond `theme.Semantic` that
+  only this application needs: a softer muted for defaults, a modal ground, and a
+  link color
+- `tui/table` fits columns to the available width and measures in display cells,
+  which is what stops a wide glyph shifting a row. Every table here declares its
+  columns with a minimum, a weight, and a collapse priority, so a narrow pane
+  drops the least valuable column rather than overflowing
+
+Anything that stays specific to dispatching workflows stays under `internal/`. A
+helper only moves to aragonite once a second tool needs it, which is that
+repository's own rule.
+
+`go.work` (gitignored) points at a sibling checkout when both repositories are
+being changed together:
+
+```sh
+go work init . ../aragonite
 ```
 
 ## Patterns

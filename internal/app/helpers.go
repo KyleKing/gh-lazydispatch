@@ -71,14 +71,6 @@ func (m Model) getSelectedInputName() string {
 	return m.filteredInputs[m.selectedInput]
 }
 
-func _padRight(s string, length int) string {
-	if len(s) >= length {
-		return s
-	}
-
-	return s + strings.Repeat(" ", length-len(s))
-}
-
 const maxSingleDigitIndex = 9
 
 // _formatRowNumber labels a row with the digit that edits it: rows count from

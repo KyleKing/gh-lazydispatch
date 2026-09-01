@@ -6,6 +6,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/tui/table"
 
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
@@ -14,11 +15,22 @@ import (
 const justNowLabel = "just now"
 
 const (
-	hoursPerDay           = 24
-	daysPerWeek           = 7
-	historyNameColWidth   = 18
-	historyBranchColWidth = 13
+	hoursPerDay = 24
+	daysPerWeek = 7
 )
+
+// historyGutter is the selection indicator plus the workflow/chain type glyph.
+const historyGutter = ui.RowGutterWidth + 2
+
+// historyColumns describes the history table. Branch gives way before the run
+// name, and the relative time is the first thing a narrow pane drops.
+func historyColumns() []table.Column {
+	return []table.Column{
+		{Key: ui.ColKeyName, Title: ui.ColTitleName, Min: ui.ColMinName, Weight: ui.WeightHigh},
+		{Key: "branch", Title: "Branch", Min: ui.ColMinShort, Weight: ui.WeightMid, Priority: ui.PrioSecondToGo},
+		{Key: "time", Title: "Time", Min: ui.ColMinLabel, Max: ui.ColMaxTime, Priority: ui.PrioFirstToGo},
+	}
+}
 
 func formatTimeAgo(t time.Time) string {
 	d := time.Since(t)
@@ -120,9 +132,9 @@ func (m HistoryModel) ViewContent() string {
 
 	var content strings.Builder
 
-	content.WriteString(ui.TableHeaderStyle.Render(
-		"    Name                 Branch          Time",
-	))
+	layout := ui.FitColumns(historyColumns(), m.width, historyGutter)
+
+	content.WriteString(ui.TableHeader(layout, historyGutter))
 	content.WriteString("\n")
 
 	for i := range m.entries {
@@ -145,24 +157,18 @@ func (m HistoryModel) ViewContent() string {
 			}
 		}
 
-		name = ui.TruncateWithEllipsis(name, historyNameColWidth)
-		branch := ui.TruncateWithEllipsis(entry.Branch, historyBranchColWidth)
-		timeAgo := formatTimeAgo(entry.LastRunAt)
-
-		row := fmt.Sprintf("%s%s %s  %s  %s",
-			indicator,
-			typeIcon,
-			ui.PadRight(name, historyNameColWidth),
-			ui.PadRight(branch, historyBranchColWidth),
-			timeAgo,
-		)
+		cells := ui.TableRow(layout, map[string]string{
+			ui.ColKeyName: name,
+			"branch":      entry.Branch,
+			"time":        formatTimeAgo(entry.LastRunAt),
+		})
 
 		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {
 			rowStyle = ui.TableSelectedStyle
 		}
 
-		content.WriteString(rowStyle.Render(row))
+		content.WriteString(rowStyle.Render(indicator + typeIcon + " " + cells))
 
 		if i < len(m.entries)-1 {
 			content.WriteString("\n")

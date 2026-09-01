@@ -7,12 +7,12 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/tui/theme"
 
 	"github.com/kyleking/gh-lazydispatch/internal/app"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/theme"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
@@ -85,8 +85,7 @@ func main() {
 		history = frecency.NewStore()
 	}
 
-	detectedTheme := theme.Detect()
-	ui.InitTheme(detectedTheme)
+	ui.InitTheme(theme.Detect())
 
 	model := app.New(workflows, history, repo)
 

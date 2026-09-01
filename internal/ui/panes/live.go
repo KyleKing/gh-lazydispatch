@@ -4,13 +4,23 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/tui/table"
 
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
-const liveWorkflowColWidth = 20
+// liveGutter is the selection indicator plus the run status glyph.
+const liveGutter = ui.RowGutterWidth + 2
+
+// liveColumns describes the live-runs table.
+func liveColumns() []table.Column {
+	return []table.Column{
+		{Key: ui.ColKeyWorkflow, Title: "Workflow", Min: ui.ColMinName, Weight: ui.WeightHigh},
+		{Key: "status", Title: "Status", Min: ui.ColMinLabel, Max: ui.ColMaxStatus, Weight: ui.WeightLow},
+	}
+}
 
 const statusUnknown = "unknown"
 
@@ -103,16 +113,15 @@ func (m LiveRunsModel) ViewContent() string {
 
 	var content strings.Builder
 
-	content.WriteString(ui.TableHeaderStyle.Render(
-		"     Workflow                Status",
-	))
+	layout := ui.FitColumns(liveColumns(), m.width, liveGutter)
+
+	content.WriteString(ui.TableHeader(layout, liveGutter))
 	content.WriteString("\n")
 
 	for i := range m.runs {
 		run := &m.runs[i]
 
 		icon := runStatusIcon(run.Status, run.Conclusion)
-		workflow := ui.TruncateWithEllipsis(run.Workflow, liveWorkflowColWidth)
 
 		var status string
 
@@ -130,14 +139,17 @@ func (m LiveRunsModel) ViewContent() string {
 			indicator = "> "
 		}
 
-		row := indicator + icon + "  " + ui.PadRight(workflow, liveWorkflowColWidth) + "  " + status
+		cells := ui.TableRow(layout, map[string]string{
+			ui.ColKeyWorkflow: run.Workflow,
+			"status":          status,
+		})
 
 		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {
 			rowStyle = ui.TableSelectedStyle
 		}
 
-		content.WriteString(rowStyle.Render(row))
+		content.WriteString(rowStyle.Render(indicator + icon + " " + cells))
 
 		if i < len(m.runs)-1 {
 			content.WriteString("\n")

@@ -3,16 +3,14 @@ package ui
 
 import (
 	"image/color"
-	"strings"
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/lipgloss/v2"
+	"github.com/kyleking/aragonite/tui/theme"
 	"github.com/sahilm/fuzzy"
-
-	"github.com/kyleking/gh-lazydispatch/internal/ui/theme"
 )
 
-var currentTheme theme.Theme
+var currentPalette theme.Palette
 
 // Colors used throughout the UI.
 var (
@@ -48,24 +46,28 @@ var (
 	TitleStyle         lipgloss.Style
 )
 
-// InitTheme sets the theme and applies colors.
-func InitTheme(t theme.Theme) {
-	currentTheme = t
+// InitTheme sets the palette and applies colors.
+func InitTheme(p theme.Palette) {
+	currentPalette = p
 
 	ApplyTheme()
 }
 
-// ApplyTheme updates all colors and styles from current theme.
+// ApplyTheme updates all colors and styles from the current palette. The three
+// roles beyond theme.Semantic are named here because only this application
+// needs them: a softer muted for defaults, a modal ground, and a link color.
 func ApplyTheme() {
-	PrimaryColor = currentTheme.Primary
-	SecondaryColor = currentTheme.Secondary
-	AccentColor = currentTheme.Accent
-	MutedColor = currentTheme.Muted
-	SoftMutedColor = currentTheme.SoftMuted
-	TextColor = currentTheme.Text
-	ModalBgColor = currentTheme.ModalBg
-	ErrorColor = currentTheme.Error
-	LinkColor = currentTheme.Link
+	semantic := currentPalette.Semantic()
+
+	PrimaryColor = semantic.Primary
+	SecondaryColor = semantic.Secondary
+	AccentColor = semantic.Accent
+	MutedColor = semantic.Muted
+	SoftMutedColor = currentPalette.Overlay1
+	TextColor = semantic.Text
+	ModalBgColor = currentPalette.Mantle
+	ErrorColor = semantic.Error
+	LinkColor = currentPalette.Blue
 
 	BorderStyle = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
@@ -198,31 +200,6 @@ func RemoveListBackgrounds(l list.Model) list.Model {
 	l.Styles.DividerDot = l.Styles.DividerDot.UnsetBackground()
 
 	return l
-}
-
-// ellipsisLen is the length of the "..." suffix used when truncating.
-const ellipsisLen = len("...")
-
-// TruncateWithEllipsis truncates a string to maxLen, adding "..." if truncated.
-func TruncateWithEllipsis(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-
-	if maxLen <= ellipsisLen {
-		return s[:maxLen]
-	}
-
-	return s[:maxLen-ellipsisLen] + "..."
-}
-
-// PadRight pads a string to a specific length with spaces.
-func PadRight(s string, length int) string {
-	if len(s) >= length {
-		return s
-	}
-
-	return s + strings.Repeat(" ", length-len(s))
 }
 
 // RenderScrollIndicator renders scroll arrows (^ and v) for lists.

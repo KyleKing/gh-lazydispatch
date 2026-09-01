@@ -7,17 +7,28 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/tui/table"
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
 
-const (
-	chainNameColWidth  = 15
-	chainDescColWidth  = 20
-	chainStepsColWidth = 5
-	chainVarsColWidth  = 4
-)
+// chainColumns describes the chain table. Description is what a narrow pane
+// drops first, then the variable count.
+func chainColumns() []table.Column {
+	return []table.Column{
+		{Key: ui.ColKeyName, Title: ui.ColTitleName, Min: ui.ColMinName, Weight: ui.WeightMid},
+		{
+			Key: "steps", Title: "Steps", Min: ui.ColMaxSteps, Max: ui.ColMaxSteps,
+			Align: table.AlignRight, Priority: ui.PrioThirdToGo,
+		},
+		{
+			Key: "vars", Title: "Vars", Min: ui.ColMinCount, Max: ui.ColMaxCount,
+			Align: table.AlignRight, Priority: ui.PrioSecondToGo,
+		},
+		{Key: "desc", Title: "Description", Min: ui.ColMinName, Weight: ui.WeightHigh, Priority: ui.PrioFirstToGo},
+	}
+}
 
 // ChainListModel manages the chain list display.
 type ChainListModel struct {
@@ -115,9 +126,9 @@ func (m ChainListModel) ViewContent() string {
 
 	var content strings.Builder
 
-	content.WriteString(ui.TableHeaderStyle.Render(
-		"  Name             Steps  Vars  Description",
-	))
+	layout := ui.FitColumns(chainColumns(), m.width, ui.RowGutterWidth)
+
+	content.WriteString(ui.TableHeader(layout, ui.RowGutterWidth))
 	content.WriteString("\n")
 
 	for i, name := range m.chainNames {
@@ -125,11 +136,7 @@ func (m ChainListModel) ViewContent() string {
 		stepCount := len(chain.Steps)
 		varCount := len(chain.Variables)
 
-		displayName := ui.TruncateWithEllipsis(name, chainNameColWidth)
-		steps := strconv.Itoa(stepCount)
-		vars := strconv.Itoa(varCount)
-
-		desc := ui.TruncateWithEllipsis(chain.Description, chainDescColWidth)
+		desc := chain.Description
 		if desc == "" {
 			desc = "(no description)"
 		}
@@ -139,15 +146,19 @@ func (m ChainListModel) ViewContent() string {
 			indicator = "> "
 		}
 
-		row := indicator + ui.PadRight(displayName, chainNameColWidth) + "  " +
-			ui.PadRight(steps, chainStepsColWidth) + "  " + ui.PadRight(vars, chainVarsColWidth) + "  " + desc
+		cells := ui.TableRow(layout, map[string]string{
+			ui.ColKeyName: name,
+			"steps":       strconv.Itoa(stepCount),
+			"vars":        strconv.Itoa(varCount),
+			"desc":        desc,
+		})
 
 		rowStyle := ui.TableRowStyle
 		if i == m.selectedIndex {
 			rowStyle = ui.TableSelectedStyle
 		}
 
-		content.WriteString(rowStyle.Render(row))
+		content.WriteString(rowStyle.Render(indicator + cells))
 
 		if i < len(m.chainNames)-1 {
 			content.WriteString("\n")

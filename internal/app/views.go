@@ -6,6 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/kyleking/aragonite/tui/table"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
@@ -24,10 +25,6 @@ const (
 	// PaneContentMargin and cliPreviewMargin/tableColumn widths reserve space for borders and padding.
 	paneContentMargin = 8
 	cliPreviewMargin  = 10
-
-	inputNameColWidth    = 15
-	inputValueColWidth   = 17
-	inputDefaultColWidth = 15
 )
 
 // View implements tea.Model.
@@ -433,10 +430,12 @@ func (m Model) viewConfigPane(width, height int) string {
 		content.WriteString("\n")
 	}
 
+	layout := ui.FitColumns(ui.ConfigColumns(), width-paneContentMargin, ui.RowGutterWidth)
+
 	content.WriteString("\n")
-	content.WriteString(m.renderTableHeader())
+	content.WriteString(m.renderTableHeader(layout))
 	content.WriteString("\n")
-	content.WriteString(m.renderTableRows(height))
+	content.WriteString(m.renderTableRows(layout, height))
 
 	content.WriteString("\n\n")
 	content.WriteString(ui.SubtitleStyle.Render("Command ([c] copy):"))
@@ -454,13 +453,11 @@ func (m Model) viewConfigPane(width, height int) string {
 	return style.Render(content.String())
 }
 
-func (Model) renderTableHeader() string {
-	return ui.TableHeaderStyle.Render(
-		"  #   Req  Name             Value              Default",
-	)
+func (Model) renderTableHeader(layout table.Layout) string {
+	return ui.TableHeader(layout, ui.RowGutterWidth)
 }
 
-func (m Model) renderTableRows(height int) string {
+func (m Model) renderTableRows(layout table.Layout, height int) string {
 	var rows strings.Builder
 
 	wf := m.SelectedWorkflow()
@@ -505,19 +502,18 @@ func (m Model) renderTableRows(height int) string {
 		isSelected := i == m.selectedInput
 		isDimmed := val == input.Default
 
-		displayName := ui.TruncateWithEllipsis(name, inputNameColWidth)
-		valueDisplay = ui.TruncateWithEllipsis(valueDisplay, inputValueColWidth)
-		defaultDisplay = ui.TruncateWithEllipsis(defaultDisplay, inputDefaultColWidth)
-
 		indicator := "  "
 		if isSelected {
 			indicator = "> "
 		}
 
-		row := indicator + numStr + "   " + reqStr + "    " +
-			_padRight(displayName, inputNameColWidth) + "  " +
-			_padRight(valueDisplay, inputValueColWidth) + "  " +
-			defaultDisplay
+		row := indicator + ui.TableRow(layout, map[string]string{
+			"num":         numStr,
+			"req":         reqStr,
+			ui.ColKeyName: name,
+			"value":       valueDisplay,
+			"default":     defaultDisplay,
+		})
 
 		rowStyle := ui.TableRowStyle
 

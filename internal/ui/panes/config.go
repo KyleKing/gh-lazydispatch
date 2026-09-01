@@ -1,7 +1,6 @@
 package panes
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,10 +12,6 @@ import (
 )
 
 const (
-	configNameColWidth    = 15
-	configValueColWidth   = 18
-	configDefaultColWidth = 15
-
 	// ConfigPaneChrome is the vertical space reserved for the pane's title, header, and footer.
 	configPaneChrome       = 14
 	configCLIPreviewMargin = 10
@@ -278,10 +273,8 @@ func (m ConfigModel) View() string {
 	return style.Render(content.String())
 }
 
-func (ConfigModel) renderTableHeader() string {
-	return ui.TableHeaderStyle.Render(
-		fmt.Sprintf(" %-2s  %-3s  %-15s  %-18s  %-15s", "#", "Req", "Name", "Value", "Default"),
-	)
+func (m ConfigModel) renderTableHeader() string {
+	return ui.TableHeader(ui.FitColumns(ui.ConfigColumns(), m.width, ui.RowGutterWidth), ui.RowGutterWidth)
 }
 
 func (m ConfigModel) renderTableRows() string {
@@ -292,6 +285,7 @@ func (m ConfigModel) renderTableRows() string {
 	}
 
 	wfInputs := m.workflow.GetInputs()
+	layout := ui.FitColumns(ui.ConfigColumns(), m.width, ui.RowGutterWidth)
 
 	visibleRows := m.visibleRowCount()
 	if visibleRows < 1 {
@@ -311,10 +305,8 @@ func (m ConfigModel) renderTableRows() string {
 		val := m.inputs[name]
 
 		numStr := " "
-		displayIdx := i
-
-		if displayIdx <= configMaxSingleDigit {
-			numStr = strconv.Itoa(displayIdx)
+		if i <= configMaxSingleDigit {
+			numStr = strconv.Itoa((i + 1) % (configMaxSingleDigit + 1))
 		}
 
 		reqStr := " "
@@ -330,17 +322,18 @@ func (m ConfigModel) renderTableRows() string {
 		isSelected := i == m.selectedRow
 		isDimmed := val == input.Default
 
-		displayName := ui.TruncateWithEllipsis(name, configNameColWidth)
-		valueDisplay = ui.TruncateWithEllipsis(valueDisplay, configValueColWidth)
-		defaultDisplay = ui.TruncateWithEllipsis(defaultDisplay, configDefaultColWidth)
-
 		indicator := "  "
 		if isSelected {
 			indicator = "> "
 		}
 
-		row := fmt.Sprintf("%s%-2s  %-3s  %-15s  %-18s  %-15s",
-			indicator, numStr, reqStr, displayName, valueDisplay, defaultDisplay)
+		cells := ui.TableRow(layout, map[string]string{
+			"num":         numStr,
+			"req":         reqStr,
+			ui.ColKeyName: name,
+			"value":       valueDisplay,
+			"default":     defaultDisplay,
+		})
 
 		rowStyle := ui.TableRowStyle
 
@@ -353,7 +346,7 @@ func (m ConfigModel) renderTableRows() string {
 			rowStyle = ui.TableItalicStyle
 		}
 
-		rows.WriteString(rowStyle.Render(row))
+		rows.WriteString(rowStyle.Render(indicator + cells))
 
 		if i < visibleEnd-1 {
 			rows.WriteString("\n")
