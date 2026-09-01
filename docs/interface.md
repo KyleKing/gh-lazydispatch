@@ -9,12 +9,23 @@ Press `?` for the help modal. It reads the live keymap, so it always matches the
 | `tab` / `shift+tab` | Move between panes                      |
 | `j` / `k`           | Move within a pane                      |
 | `enter`             | Select, or run the highlighted workflow |
-| `b`                 | Choose a branch                         |
+| `a`                 | Actions for whatever has focus          |
+| `:`                 | Command bar                             |
 | `/`                 | Filter                                  |
 | `?`                 | Help                                    |
 | `q` or `ctrl+c`     | Quit                                    |
 
 `gh-lazydispatch --help` also prints a shortcut summary without starting the TUI.
+
+### Finding a verb you do not know the key for
+
+Two ways in, which are two different grammars.
+
+`a` opens the verbs that apply to whatever has focus, and only those: remapping a history entry's stale inputs is offered while you are previewing one and absent otherwise, rather than bound to a key that silently does nothing. Each verb keeps its own key, so the menu teaches the keys instead of replacing them.
+
+`:` opens a command bar. Commands have names rather than letters, `tab` completes as far as the candidates agree, and an ambiguous prefix lists what it could not choose between. `:branch`, `:chain`, and `:workflow` complete over the branches, chains, and workflows this repository actually has.
+
+The frequent keys stay direct: `b` for branch, `w` for watch, `r` for reset, `c` to copy the command, digits to jump.
 
 ## Panes
 

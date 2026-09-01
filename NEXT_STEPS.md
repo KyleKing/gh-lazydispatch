@@ -11,13 +11,12 @@ because line numbers drift.
 the value is sent unresolved, which is the interim fix; the real one is a
 repo-environments API call, deferred in `ROADMAP.md`.
 
-Modal results are delivered from a goroutine and dropped silently if a keystroke
-races them. The live-test work hit this: keystrokes sent too quickly landed while
-the previous modal's result was still in flight, `Update` routed the stale result
-into the newly-pushed modal, and three input edits vanished with no error
-surface. A fast typist could hit the same thing. At minimum log or surface a
-dropped result rather than discarding it; the harness works around it by waiting
-for each value to appear in the command preview.
+Every failure signature `logs.Detect` reports is a regular expression over log
+text, so a test named "handles timeouts" matches `Timeout`. Each detection
+carries the line that matched, which is what lets a reader see it is a false
+positive, but nothing ranks or scores them. If the noise becomes a problem, the
+fix is to weight a signature by where in the step it matched rather than to
+narrow the patterns.
 
 ## Hooks
 

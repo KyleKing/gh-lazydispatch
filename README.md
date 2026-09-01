@@ -24,6 +24,8 @@ gh lazydispatch
 
 It finds every workflow with a `workflow_dispatch` trigger and lists them. `tab` moves between panes, `enter` runs the highlighted workflow, and `?` opens the keymap.
 
+When you do not remember a key, `a` lists the actions that apply to whatever has focus and `:` opens a command bar that completes over this repository's own branches, chains, and workflows.
+
 ## Reading a failed run
 
 `gh run view --log` returns the whole log, and `--log-failed` still returns every line of every failed job. `export diagnose` parses it once and returns the failure:

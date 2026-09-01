@@ -115,6 +115,13 @@ func helpLines() []string {
 		title string
 		rows  []string
 	}{
+		{"Two ways in", []string{
+			"a                  Actions for whatever has focus",
+			":                  Command bar, Tab completes",
+			"",
+			"Every verb below is also in one of those, so neither",
+			"this list nor a key you half-remember is the only way.",
+		}},
 		{"Navigation", []string{
 			"Tab / Shift+Tab    Switch between panes",
 			"↑/k, ↓/j           Navigate lists and select input",
@@ -140,13 +147,21 @@ func helpLines() []string {
 			"C                  Run a chain",
 			"L                  Live run overview",
 			"v                  View logs for the selected entry",
-			"a                  Remap inputs of a previewed entry",
 			"d / D              Stop watching one / all finished runs",
+			"a then m           Remap inputs of a previewed entry",
 		}},
 		{"Input Editing", []string{
 			"Ctrl+R             Restore default value",
 			"Enter              Confirm (or apply anyway)",
 			"Esc                Cancel / Keep editing",
+		}},
+		{"Commands", []string{
+			":branch <name>     Dispatch against another branch",
+			":chain <name>      Run a chain",
+			":workflow <file>   Select a workflow",
+			":filter <text>     Filter the config pane's inputs",
+			":reset  :watch     Reset inputs / toggle watch",
+			":help   :quit",
 		}},
 		{"Application", []string{
 			"?                  Show this help",
