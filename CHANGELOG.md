@@ -1,3 +1,17 @@
+## v1.3.0 (2026-09-01)
+
+### Feat
+
+- **cli**: add export commands for reading runs, logs, and failures
+
+### Fix
+
+- **logs**: stop reading a step's own script as its failure, and parse jobs gh cannot map to steps
+
+### Refactor
+
+- **panes**: delete the unreachable ConfigModel duplicate
+
 ## v1.2.2 (2026-09-01)
 
 ### Fix
