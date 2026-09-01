@@ -12,7 +12,7 @@ violations=0
 
 # Check for direct RealExecutor usage in test files.
 #
-# A file that imports internal/ghcassette is exempt: the cassette puts a stand-in
+# A file that imports aragonite/ghcassette is exempt: the cassette puts a stand-in
 # gh ahead of the real one on PATH, so a real executor reaches the recording and
 # never GitHub. That is the whole point of recording against the real binary.
 while IFS= read -r -d '' test_file; do
@@ -20,12 +20,12 @@ while IFS= read -r -d '' test_file; do
         continue
     fi
 
-    if grep -q "internal/ghcassette" "$test_file"; then
+    if grep -q "aragonite/ghcassette" "$test_file"; then
         continue
     fi
 
     echo "ERROR: $test_file uses exec.NewRealExecutor() outside a cassette"
-    echo "  Use exec.MockExecutor, or route gh through internal/ghcassette"
+    echo "  Use exec.MockExecutor, or route gh through aragonite/ghcassette"
     violations=$((violations + 1))
 done < <(find . -name "*_test.go" -not -path "./vendor/*" -print0)
 

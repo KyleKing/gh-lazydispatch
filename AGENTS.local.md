@@ -6,7 +6,7 @@ What [AGENTS.md](AGENTS.md) does not cover because it is template-owned and this
 
 Everything that reaches GitHub goes through the `gh` binary: every run, job, and log
 read is `exec.CommandExecutor` shelling out to it. So the recording seam is `PATH`, not
-an HTTP transport. `internal/ghcassette` builds a stand-in `gh`, puts it ahead of the
+an HTTP transport. `aragonite/ghcassette` builds a stand-in `gh`, puts it ahead of the
 real one, and either records what the real binary did or answers from a cassette.
 
 The point is the shape, not the convenience. `gh run view --log` prefixes every line

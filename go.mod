@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/x/exp/golden v0.0.0-20260629091435-9c70f75e26a4
 	github.com/charmbracelet/x/exp/teatest/v2 v2.0.0-20260629091435-9c70f75e26a4
 	github.com/cli/go-gh/v2 v2.13.0
-	github.com/kyleking/aragonite v0.2.1
+	github.com/kyleking/aragonite v0.3.0
 	github.com/sahilm/fuzzy v0.1.3
 	gopkg.in/yaml.v3 v3.0.1
 )

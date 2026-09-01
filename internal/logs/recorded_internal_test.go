@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kyleking/aragonite/ghcassette"
+
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
-	"github.com/kyleking/gh-lazydispatch/internal/ghcassette"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 

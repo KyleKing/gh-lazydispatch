@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/ghcassette"
+	"github.com/kyleking/aragonite/ghcassette"
 )
 
 func TestMain(m *testing.M) {
