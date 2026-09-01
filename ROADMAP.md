@@ -112,19 +112,25 @@ query, jobs with per-step timings, latest run per workflow on a ref) and exports
 `WithRunner`, which is what lets this repository keep `internal/exec`'s mutation
 guard in front of every gh call rather than reinstating it per call site.
 
-`internal/github`'s read paths delegate through that seam, converting aragonite's
-model at the boundary. `LatestPerWorkflow` is exported separately from
-`LatestRunsOnBranch` because the pull request scopes group a listing this
-repository fetched rather than one aragonite fetched for a single ref.
+`internal/github`'s read paths delegate through that seam. `LatestPerWorkflow` is
+exported separately from `LatestRunsOnBranch` because the pull request scopes
+group a listing this repository fetched rather than one aragonite fetched for a
+single ref.
+
+`github.WorkflowRun`, `Job`, and `Step` are aliases of their `forge`
+counterparts, so the model is aragonite's rather than a conversion of it. That
+turned up a defect the conversion had been hiding: `GetLatestRun` filtered on
+`actions/runs?workflow=<name>`, which the runs collection has no such parameter
+for, so it answered with the repository's newest run whatever workflow was
+asked for.
+
+`internal/git` reads through `aragonite/vcs`, which brings jj checkouts along for
+free. The branch list and the default branch are `vcs.RemoteBranches` and
+`vcs.DefaultBranchName`, and what is left here is the timeout and the fallback
+list.
 
 Remaining, in the order that pays off:
 
-- Alias `github.WorkflowRun`, `Job`, and `Step` to their `forge` counterparts so
-  the model is aragonite's rather than a conversion of it. About 20 files
-  reference them, and `HTMLURL` versus `URL` plus the local `IsSuccess` are the
-  only real edits
-- `internal/git` to `aragonite/vcs`, which brings jj colocated checkouts along
-  for free
 - `internal/logs/cache.go` to `aragonite/cache`
 - `formatTimeAgo` in `internal/ui/panes/history.go` to `aragonite/display`, which
   already spells relative times and status glyphs for two other tools
