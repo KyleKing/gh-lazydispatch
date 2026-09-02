@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
@@ -429,5 +430,74 @@ chains:
 	v := chain.Variables[0]
 	if v.Type != "string" {
 		t.Errorf("default type: got %q, want %q", v.Type, "string")
+	}
+}
+
+// TestLoad_FailedSymlinks covers the two shapes a symlink to a config in
+// another checkout goes wrong in, both of which reported only "not found" or a
+// yaml type error before.
+func TestLoad_FailedSymlinks(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		write   func(t *testing.T, path string)
+		wantErr error
+		wantMsg []string
+	}{
+		{
+			name: "relative target missing a level up",
+			write: func(t *testing.T, path string) {
+				t.Helper()
+
+				if err := os.Symlink("../other/.github/lazydispatch.yml", path); err != nil {
+					t.Fatalf("failed to create symlink: %v", err)
+				}
+			},
+			wantErr: config.ErrBrokenSymlink,
+			wantMsg: []string{"../other/.github/lazydispatch.yml", "does not exist", "link's own directory"},
+		},
+		{
+			name: "path written into a plain file",
+			write: func(t *testing.T, path string) {
+				t.Helper()
+
+				if err := os.WriteFile(path, []byte("../other/.github/lazydispatch.yml"), 0o600); err != nil {
+					t.Fatalf("failed to write config: %v", err)
+				}
+			},
+			wantErr: config.ErrConfigNotMapping,
+			wantMsg: []string{"../other/.github/lazydispatch.yml", "ln -s"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			dir := t.TempDir()
+
+			configDir := filepath.Join(dir, ".github")
+			if err := os.MkdirAll(configDir, 0o750); err != nil {
+				t.Fatalf("failed to create .github dir: %v", err)
+			}
+
+			tc.write(t, filepath.Join(configDir, "lazydispatch.yml"))
+
+			cfg, err := config.Load(dir)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("expected %v, got: %v", tc.wantErr, err)
+			}
+
+			if cfg != nil {
+				t.Error("expected nil config")
+			}
+
+			for _, want := range tc.wantMsg {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("error %q does not name %q", err, want)
+				}
+			}
+		})
 	}
 }

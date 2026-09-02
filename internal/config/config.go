@@ -70,6 +70,12 @@ const (
 // ErrConfigNotFound indicates the configuration file does not exist at the given path.
 var ErrConfigNotFound = errors.New("config file not found")
 
+// ErrBrokenSymlink indicates the configuration path is a symlink whose target does not exist.
+var ErrBrokenSymlink = errors.New("config file is a broken symlink")
+
+// ErrConfigNotMapping indicates the file parsed as a bare scalar rather than a mapping of keys.
+var ErrConfigNotMapping = errors.New("config file is not a mapping of keys")
+
 // ErrUnsupportedConfigVersion indicates the configuration file declares an unsupported version.
 var ErrUnsupportedConfigVersion = errors.New("unsupported config version (expected 1 or 2)")
 
@@ -85,10 +91,19 @@ func LoadFrom(path string) (*WfdConfig, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // path built from repo root + fixed config filename
 	if err != nil {
 		if os.IsNotExist(err) {
+			if linkErr := describeBrokenSymlink(path); linkErr != nil {
+				return nil, linkErr
+			}
+
 			return nil, fmt.Errorf("%s: %w", path, ErrConfigNotFound)
 		}
 
 		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	if scalar, ok := bareScalar(data); ok {
+		return nil, fmt.Errorf("%s: %w: it holds only %q. A symlink written as a text file"+
+			" reads this way; recreate it with ln -s", path, ErrConfigNotMapping, scalar)
 	}
 
 	var config WfdConfig
@@ -121,6 +136,43 @@ func LoadFrom(path string) (*WfdConfig, error) {
 	}
 
 	return &config, nil
+}
+
+// describeBrokenSymlink reports why a symlink at path could not be read, or nil
+// when path is not a symlink. A relative target resolves against the link's own
+// directory rather than the working directory, which is the mistake it names.
+func describeBrokenSymlink(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil || info.Mode()&os.ModeSymlink == 0 {
+		return nil
+	}
+
+	target, err := os.Readlink(path)
+	if err != nil {
+		return fmt.Errorf("%s: %w", path, ErrBrokenSymlink)
+	}
+
+	resolved := target
+	if !filepath.IsAbs(target) {
+		resolved = filepath.Join(filepath.Dir(path), target)
+	}
+
+	return fmt.Errorf("%s: %w: its target %q resolves to %s, which does not exist."+
+		" A relative target resolves against the link's own directory, %s",
+		path, ErrBrokenSymlink, target, resolved, filepath.Dir(path))
+}
+
+// bareScalar reports the document's content when it parsed as a single scalar
+// rather than a mapping, which is what a path written into the file looks like.
+func bareScalar(data []byte) (string, bool) {
+	var doc any
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return "", false
+	}
+
+	scalar, ok := doc.(string)
+
+	return scalar, ok
 }
 
 // GetChain returns a chain by name.
