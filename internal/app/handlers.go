@@ -742,13 +742,18 @@ func (m Model) openInputModalForName(name string) (tea.Model, tea.Cmd) {
 	m.pendingInputName = name
 	currentVal := m.inputs[name]
 
-	switch input.InputType() {
-	case "boolean":
+	// An environment input picks from the repository's environments, which only
+	// the API names. Where they could not be read it falls back to free text,
+	// which is what the text modal says it is doing.
+	switch inputType := input.InputType(); {
+	case inputType == "boolean":
 		current := currentVal == boolTrueValue
 		defaultVal := input.Default == boolTrueValue
 		m.modalStack.Push(modal.NewConfirmModal(name, input.Description, current, defaultVal))
-	case inputTypeChoice:
+	case inputType == inputTypeChoice:
 		m.modalStack.Push(modal.NewSelectModal(name, input.Description, input.Options, currentVal, input.Default))
+	case inputType == inputTypeEnvironment && len(m.environments) > 0:
+		m.modalStack.Push(modal.NewSelectModal(name, input.Description, m.environments, currentVal, input.Default))
 	default:
 		m.modalStack.Push(modal.NewInputModal(
 			name, input.Description, input.Default, input.InputType(), currentVal, input.Options, input.ValidationRules,

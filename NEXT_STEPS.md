@@ -7,10 +7,6 @@ because line numbers drift.
 
 ## Behavior
 
-`environment`-type inputs still resolve to a free-text box. The modal now says
-the value is sent unresolved, which is the interim fix; the real one is a
-repo-environments API call, deferred in `ROADMAP.md`.
-
 Every failure signature `logs.Detect` reports is a regular expression over log
 text, so a test named "handles timeouts" matches `Timeout`. Each detection
 carries the line that matched, which is what lets a reader see it is a false

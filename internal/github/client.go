@@ -172,3 +172,24 @@ func (c *Client) PullRequestsInScope(scope PRScope) ([]PullRequest, error) {
 
 	return prs, nil
 }
+
+// ListEnvironments names the repository's deployment environments, which is
+// what a workflow input of type "environment" has to be one of. A repository
+// that declares none answers with an empty list rather than an error.
+func (c *Client) ListEnvironments() ([]string, error) {
+	stdout, stderr, err := c.executor.Execute("gh", "api", "--paginate",
+		"repos/"+c.fullName()+"/environments", "--jq", ".environments[].name")
+	if err != nil {
+		return nil, fmt.Errorf("reading the repository's environments: %w (stderr: %s)", err, stderr)
+	}
+
+	var names []string
+
+	for _, line := range strings.Split(stdout, "\n") {
+		if name := strings.TrimSpace(line); name != "" {
+			names = append(names, name)
+		}
+	}
+
+	return names, nil
+}

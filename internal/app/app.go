@@ -84,6 +84,7 @@ type Model struct {
 	pendingInputName        string
 	filterText              string
 	keys                    KeyMap
+	environments            []string
 	inputOrder              []string
 	filteredInputs          []string
 	pendingChainCommands    []string
@@ -99,6 +100,7 @@ type Model struct {
 	selectedInput           int
 	watchRun                bool
 	commandMode             bool
+	environmentsLoaded      bool
 }
 
 // RunUpdateMsg is sent when a watched run is updated.
@@ -160,7 +162,7 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 // whether their branch is green, so that answer is fetched rather than waiting
 // for them to find the tab holding it.
 func (m Model) Init() tea.Cmd {
-	return m.loadRunsIfNeeded()
+	return tea.Batch(m.loadRunsIfNeeded(), m.loadEnvironmentsCmd())
 }
 
 // Update implements tea.Model.
@@ -179,6 +181,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if model, cmd, handled := m.handleChainMsg(msg); handled {
+		return model, cmd
+	}
+
+	if model, cmd, handled := m.handleEnvironmentsMsg(msg); handled {
 		return model, cmd
 	}
 

@@ -185,7 +185,7 @@ func (m *InputModal) View() string {
 
 	if m.inputType == inputTypeEnvironment {
 		s.WriteString("\n")
-		s.WriteString(ui.ErrorStyle.Render("Environment names are not fetched yet; type one and it is sent as-is."))
+		s.WriteString(ui.ErrorStyle.Render("The repository's environments could not be read; this is sent as typed."))
 		s.WriteString("\n")
 	}
 
