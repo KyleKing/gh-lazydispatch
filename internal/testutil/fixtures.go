@@ -10,12 +10,6 @@ import (
 
 const endGroupMarker = "##[endgroup]"
 
-const (
-	percentScale      = 100
-	secondsPerMinute  = 60
-	warningRateOffset = 0.1
-)
-
 // GenerateLargeLogFixture creates a realistic log file with N lines.
 // Uses GitHub Actions log format patterns for authenticity.
 func GenerateLargeLogFixture(lines int) string {

@@ -248,25 +248,24 @@ func TestDefaultRegistryIsComplete(t *testing.T) {
 // runLine runs one typed line and hands back what it asked for, without feeding
 // the result to Update: a command's answer is the message it returns, and
 // routing it further is what the handler tests already cover.
-func runLine(t *testing.T, m Model, line string) (Model, tea.Msg) {
+func runLine(t *testing.T, m Model, line string) (Model, tea.Cmd) {
 	t.Helper()
 
 	model, cmd := m.runCommandLine(line)
 
-	after := asModel(t, model)
-	if cmd == nil {
-		return after, nil
-	}
-
-	return after, cmd()
+	return asModel(t, model), cmd
 }
 
-func statusOf(t *testing.T, msg tea.Msg) string {
+func statusOf(t *testing.T, cmd tea.Cmd) string {
 	t.Helper()
 
-	status, ok := msg.(StatusMsg)
+	if cmd == nil {
+		t.Fatal("the command answered with nothing, want a status line")
+	}
+
+	status, ok := cmd().(StatusMsg)
 	if !ok {
-		t.Fatalf("the command answered with %T, want a status line", msg)
+		t.Fatalf("the command answered with %T, want a status line", cmd())
 	}
 
 	return status.Text
@@ -303,76 +302,54 @@ func TestCommands_SayWhatTheyWantedWhenTheArgumentIsWrong(t *testing.T) {
 			m := resize(t, newRenderModel(), 120, 40)
 			m.wfdConfig = testChainConfig()
 
-			_, msg := runLine(t, m, strings.TrimPrefix(tt.line, ":"))
-			if got := statusOf(t, msg); got != tt.want {
+			_, cmd := runLine(t, m, strings.TrimPrefix(tt.line, ":"))
+			if got := statusOf(t, cmd); got != tt.want {
 				t.Errorf("%s answered %q, want %q", tt.line, got, tt.want)
 			}
 		})
 	}
 }
 
-// What each command does when its argument is right. These are the routes no
-// key reaches, since a run ID typed by hand is the whole point of :logs.
-func TestCommands_DoWhatTheirNameSays(t *testing.T) {
+// What each command changes when its argument is right. These are the routes
+// no key reaches, since a workflow named by hand is the whole point of
+// :workflow.
+func TestCommands_ChangeWhatTheirNameSays(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		check func(*testing.T, Model, tea.Msg)
+		check func(*testing.T, Model)
 		name  string
 		line  string
 	}{
-		{name: "branch", line: "branch topic", check: func(t *testing.T, m Model, _ tea.Msg) {
+		{name: "branch", line: "branch topic", check: func(t *testing.T, m Model) {
 			t.Helper()
 
 			if m.branch != "topic" {
 				t.Errorf("the dispatch ref is %q, want topic", m.branch)
 			}
 		}},
-		{name: "chain", line: "chain " + testChainName, check: func(t *testing.T, m Model, _ tea.Msg) {
+		{name: "chain", line: "chain " + testChainName, check: func(t *testing.T, m Model) {
 			t.Helper()
 
 			if m.pendingChainName != testChainName {
 				t.Errorf("the chain flow started on %q", m.pendingChainName)
 			}
 		}},
-		{name: "diagnose", line: "diagnose 42", check: func(t *testing.T, _ Model, msg tea.Msg) {
-			t.Helper()
-
-			want := FetchLogsMsg{RunID: 42, ErrorsOnly: true}
-			if msg != tea.Msg(want) {
-				t.Errorf("diagnose asked for %#v, want %#v", msg, want)
-			}
-		}},
-		{name: "filter", line: "filter env", check: func(t *testing.T, m Model, _ tea.Msg) {
+		{name: "filter", line: "filter env", check: func(t *testing.T, m Model) {
 			t.Helper()
 
 			if m.filterText != "env" {
 				t.Errorf("the config filter is %q, want env", m.filterText)
 			}
 		}},
-		{name: "help", line: "help", check: func(t *testing.T, m Model, _ tea.Msg) {
+		{name: "help", line: "help", check: func(t *testing.T, m Model) {
 			t.Helper()
 
 			if !m.modalStack.HasActive() {
 				t.Error("the keyboard reference did not open")
 			}
 		}},
-		{name: "logs", line: "logs 42", check: func(t *testing.T, _ Model, msg tea.Msg) {
-			t.Helper()
-
-			want := FetchLogsMsg{RunID: 42}
-			if msg != tea.Msg(want) {
-				t.Errorf("logs asked for %#v, want %#v", msg, want)
-			}
-		}},
-		{name: "quit", line: "quit", check: func(t *testing.T, _ Model, msg tea.Msg) {
-			t.Helper()
-
-			if _, ok := msg.(tea.QuitMsg); !ok {
-				t.Errorf("quit answered %T", msg)
-			}
-		}},
-		{name: "runs", line: "runs mine", check: func(t *testing.T, m Model, _ tea.Msg) {
+		{name: "runs", line: "runs mine", check: func(t *testing.T, m Model) {
 			t.Helper()
 
 			if m.focused != PaneRight || m.rightPanel.ActiveTab() != panes.TabRuns {
@@ -383,29 +360,21 @@ func TestCommands_DoWhatTheirNameSays(t *testing.T) {
 				t.Errorf("the scope is %v, want mine", got)
 			}
 		}},
-		{name: "reset", line: "reset", check: func(t *testing.T, m Model, _ tea.Msg) {
+		{name: "reset", line: "reset", check: func(t *testing.T, m Model) {
 			t.Helper()
 
 			if got := m.inputs[testInputEnvironment]; got != testValueStaging {
 				t.Errorf("environment is %q, want the default %q", got, testValueStaging)
 			}
 		}},
-		{name: "timeline", line: "timeline 42", check: func(t *testing.T, _ Model, msg tea.Msg) {
-			t.Helper()
-
-			want := FetchTimelineMsg{RunID: 42, Title: "run 42"}
-			if msg != tea.Msg(want) {
-				t.Errorf("timeline asked for %#v, want %#v", msg, want)
-			}
-		}},
-		{name: "watch", line: "watch", check: func(t *testing.T, m Model, _ tea.Msg) {
+		{name: "watch", line: "watch", check: func(t *testing.T, m Model) {
 			t.Helper()
 
 			if !m.watchRun {
 				t.Error(":watch did not turn watching on")
 			}
 		}},
-		{name: "workflow", line: "workflow ci.yml", check: func(t *testing.T, m Model, _ tea.Msg) {
+		{name: "workflow", line: "workflow ci.yml", check: func(t *testing.T, m Model) {
 			t.Helper()
 
 			if m.selectedWorkflow != 1 {
@@ -422,9 +391,49 @@ func TestCommands_DoWhatTheirNameSays(t *testing.T) {
 			m.wfdConfig = testChainConfig()
 			m.inputs[testInputEnvironment] = "production"
 
-			after, msg := runLine(t, m, tt.line)
-			tt.check(t, after, msg)
+			after, _ := runLine(t, m, tt.line)
+			tt.check(t, after)
 		})
+	}
+}
+
+// A run ID typed by hand is what :logs, :diagnose, and :timeline exist for, so
+// each has to ask for exactly the run named and nothing else.
+func TestCommands_AskForTheRunTheyName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		want tea.Msg
+		name string
+		line string
+	}{
+		{name: "diagnose", line: "diagnose 42", want: FetchLogsMsg{RunID: 42, ErrorsOnly: true}},
+		{name: "logs", line: "logs 42", want: FetchLogsMsg{RunID: 42}},
+		{name: "timeline", line: "timeline 42", want: FetchTimelineMsg{RunID: 42, Title: "run 42"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, cmd := runLine(t, resize(t, newRenderModel(), 120, 40), tt.line)
+			if cmd == nil {
+				t.Fatalf(":%s asked for nothing", tt.name)
+			}
+
+			if got := cmd(); got != tt.want {
+				t.Errorf(":%s asked for %#v, want %#v", tt.name, got, tt.want)
+			}
+		})
+	}
+
+	_, cmd := runLine(t, resize(t, newRenderModel(), 120, 40), "quit")
+	if cmd == nil {
+		t.Fatal(":quit answered nothing")
+	}
+
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Errorf(":quit answered %T", cmd())
 	}
 }
 

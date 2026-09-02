@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/rule"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/validation"
@@ -315,9 +316,13 @@ func TestRemapModal_DecidesEachStaleInput(t *testing.T) {
 		t.Fatalf("the wizard did not finish after deciding both inputs")
 	}
 
-	decisions, ok := ctx.(*RemapModal).Result().([]RemapDecision)
-	if !ok || len(decisions) != 2 {
-		t.Fatalf("the wizard decided %#v", ctx.(*RemapModal).Result())
+	wizard, ok := ctx.(*RemapModal)
+	if !ok {
+		t.Fatalf("the wizard is a %T", ctx)
+	}
+
+	if decisions, ok := wizard.Result().([]RemapDecision); !ok || len(decisions) != 2 {
+		t.Fatalf("the wizard decided %#v", wizard.Result())
 	}
 
 	// Escaping partway abandons every decision rather than applying half of them.
@@ -326,7 +331,12 @@ func TestRemapModal_DecidesEachStaleInput(t *testing.T) {
 		nil,
 	), "esc")
 
-	if got := abandoned.(*RemapModal).Result(); got != nil {
+	wizard, ok = abandoned.(*RemapModal)
+	if !ok {
+		t.Fatalf("the abandoned wizard is a %T", abandoned)
+	}
+
+	if got := wizard.Result(); got != nil {
 		t.Errorf("an abandoned wizard decided %#v", got)
 	}
 }
@@ -397,11 +407,11 @@ func TestRunStatusIcon_DistinguishesEveryOutcome(t *testing.T) {
 	seen := make(map[string]string)
 
 	for _, tt := range []struct{ status, conclusion string }{
-		{status: "queued"},
-		{status: "in_progress"},
-		{status: "completed", conclusion: "success"},
-		{status: "completed", conclusion: "failure"},
-		{status: "completed", conclusion: "cancelled"},
+		{status: github.StatusQueued},
+		{status: github.StatusInProgress},
+		{status: github.StatusCompleted, conclusion: github.ConclusionSuccess},
+		{status: github.StatusCompleted, conclusion: github.ConclusionFailure},
+		{status: github.StatusCompleted, conclusion: github.ConclusionCancelled},
 	} {
 		icon := runStatusIcon(tt.status, tt.conclusion)
 		if prior, ok := seen[icon]; ok {
@@ -411,7 +421,7 @@ func TestRunStatusIcon_DistinguishesEveryOutcome(t *testing.T) {
 		seen[icon] = tt.status + "/" + tt.conclusion
 	}
 
-	if got := runStatusIcon("completed", "timed_out"); got != "?" {
+	if got := runStatusIcon(github.StatusCompleted, "timed_out"); got != "?" {
 		t.Errorf("an unrecognized conclusion draws %q, want a question mark", got)
 	}
 }

@@ -116,28 +116,34 @@ func TestActionMenu_EveryVerbRunsWhereItIsOffered(t *testing.T) {
 				t.Fatalf("the menu is titled %q acting on %q", menu.title, menu.target)
 			}
 
-			seen := make(map[string]bool, len(menu.actions))
-
-			for _, action := range menu.actions {
-				if action.key == "" || action.name == "" || action.run == nil {
-					t.Errorf("%+v is not a runnable entry", action)
-
-					continue
-				}
-
-				if seen[action.key] {
-					t.Errorf("%q is offered twice in one menu", action.key)
-				}
-
-				seen[action.key] = true
-
-				if action.key == keyCopyCommand {
-					continue
-				}
-
-				asModel(t, mustRun(t, m, action))
-			}
+			assertMenuRuns(t, m, menu)
 		})
+	}
+}
+
+// assertMenuRuns holds every entry in one menu to being drawn with a key and a
+// name, offered once, and runnable where it is offered.
+func assertMenuRuns(t *testing.T, m Model, menu actionMenu) {
+	t.Helper()
+
+	seen := make(map[string]bool, len(menu.actions))
+
+	for _, action := range menu.actions {
+		if action.key == "" || action.name == "" || action.run == nil {
+			t.Errorf("%+v is not a runnable entry", action)
+
+			continue
+		}
+
+		if seen[action.key] {
+			t.Errorf("%q is offered twice in one menu", action.key)
+		}
+
+		seen[action.key] = true
+
+		if action.key != keyCopyCommand {
+			asModel(t, mustRun(t, m, action))
+		}
 	}
 }
 
