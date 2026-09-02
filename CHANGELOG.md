@@ -1,3 +1,20 @@
+## v1.11.0 (2026-09-02)
+
+### Feat
+
+- **git**: resolve the checkout root holding a working directory
+
+### Fix
+
+- **ui**: paint the modal ground behind every cell
+- read workflows and chains from the checkout root, not the working directory
+- **app**: show why a chain config could not be read instead of no chains
+- **config**: name the broken symlink instead of reporting a missing file
+
+### Refactor
+
+- **config**: split the load path so each helper states one failure
+
 ## v1.10.0 (2026-09-02)
 
 ### Feat
