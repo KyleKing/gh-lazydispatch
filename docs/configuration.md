@@ -4,6 +4,8 @@
 
 `.github/lazydispatch.yml` in the repository defines workflow chains. Nothing else is configurable through a file, and a repository without one simply shows no Chains tab entries. See [chains](./chains.md) for the schema.
 
+Both this file and `.github/workflows/` resolve against the checkout root, so any subdirectory of the repository works as a starting directory. Outside a checkout the tool reports that instead of starting. A config that cannot be read says why in the Chains pane, which covers a broken symlink and a path written into a plain file where a symlink was meant.
+
 ## Environment variables
 
 | Variable           | Effect                                    |
