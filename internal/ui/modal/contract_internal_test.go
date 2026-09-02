@@ -12,6 +12,8 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/config"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/rule"
+	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/validation"
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
@@ -85,6 +87,11 @@ func contractModals() []struct {
 		name string
 		make func() Context
 	}{
+		{"action_menu", func() Context {
+			return NewActionMenuModal("Workflows", "CI (ci.yml) on main", []ActionItem{
+				{Key: "b", Name: "branch"}, {Key: "enter", Name: "run the selected workflow"},
+			})
+		}},
 		{"branch", func() Context {
 			return NewSimpleBranchModal("Select Branch", []string{"main", "develop", "feature/a"}, "main", "main")
 		}},
@@ -109,6 +116,10 @@ func contractModals() []struct {
 		{"error", func() Context { return NewErrorModal("Dispatch failed", "gh: not authenticated") }},
 		{"filter", func() Context { return NewFilterModal("Filter Inputs", []string{"environment", "tag"}, "") }},
 		{"help", func() Context { return NewHelpModal() }},
+		{"input", func() Context {
+			return NewInputModal("tag", "release tag", "v1.0.0", "string", "v1.0.0", nil,
+				[]rule.ValidationRule{{Type: rule.RuleRegex, Pattern: `^v\d`}})
+		}},
 		{"live_view", func() Context { return NewLiveViewModal(contractRuns()) }},
 		{"logs_viewer", func() Context { return NewLogsViewerModal(createTestRunLogs(), 0, 0) }},
 		{"logs_viewer_error", func() Context { return NewLogsViewerModalWithError(createTestRunLogs(), 0, 0) }},
@@ -124,6 +135,12 @@ func contractModals() []struct {
 		}},
 		{"reset", func() Context {
 			return NewResetModal([]ResetDiff{{Name: "environment", Current: "production", Default: "staging"}})
+		}},
+		{"run_action", func() Context { return NewRunActionModal(RunActionRerun, 42, "CI") }},
+		{"run_confirm", func() Context {
+			return NewRunConfirmModal(runner.RunConfig{
+				Workflow: "deploy.yml", Branch: "main", Inputs: map[string]string{"target": "staging"}, Watch: true,
+			})
 		}},
 		{"select", func() Context {
 			return NewSelectModal(
