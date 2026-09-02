@@ -283,6 +283,11 @@ Found this phase, not fixed:
   cassette test has to stand the process in a throwaway checkout to record
   against anything else. The fix is a `--repo` flag in aragonite's
   `prListPage`, which means an upstream change and a release
+- **Opening a log from an open timeline re-reads the job list.** The recording
+  shows `actions/runs/<id>/jobs` twice in one journey: once to draw the
+  timeline, once for the log viewer to map lines to steps. Nothing is wrong on
+  screen, and it is a wasted API call every time. The cassette is what made it
+  visible, since in-process tests answer both from the same stub
 - **`gofumpt`'s `extra-rules` is deprecated.** `golangci-lint` warns on every
   run. The replacement, `extra.group-params`, is not the same rule:
   `my_go_template` measured 31 diff lines against plain gofumpt for

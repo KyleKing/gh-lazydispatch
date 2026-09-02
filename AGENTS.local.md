@@ -71,11 +71,20 @@ against the subcommands that can write, so `gh pr list` gets through and `gh pr 
 does not. Anything unrecognized stays blocked, which is why a gh release adding an
 operation blocks until someone decides it reads.
 
-Two more things a cassette test has to do, both of which pass silently when skipped.
-Call `cache.ClearAll()` before replaying, because aragonite caches some reads in process
-and a cached read never reaches the stub, so the replay passes while playing nothing.
-Resolve the cassette path before any `t.Chdir`, or `testdata` resolves against wherever
-the test went.
+A recording is committed verbatim to a public repository, so
+`testrepo.RequirePublic` refuses to record anything that is not public. It runs before
+`ghcassette.Start`, whose first act when recording is to delete the cassette: a guard
+placed after it has already destroyed what it was protecting. It is inert on replay.
+
+Three more things a cassette test has to do, each of which passes silently when skipped:
+
+- Call `cache.ClearAll()` before replaying. aragonite caches some reads in process, and
+  a cached read never reaches the stub, so the replay passes while playing nothing
+- Resolve the cassette path before any `t.Chdir`, or `testdata` resolves against
+  wherever the test went
+- Let `ghcassette.Start` run before any `t.Chdir` too. It builds the stand-in with
+  `go build`, which needs the module. The stub is built once per test process, so a test
+  that gets this wrong passes whenever another test ran first and fails alone
 
 ## Async messages and the modal stack
 
