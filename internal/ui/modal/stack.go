@@ -1,11 +1,9 @@
 package modal
 
 import (
-	"strings"
-
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/kyleking/aragonite/tui/table"
+	"github.com/kyleking/aragonite/tui/overlay"
 
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -139,13 +137,13 @@ func (s *Stack) Render(background string) string {
 // is exported for a view that is normally a pane and is promoted to an overlay
 // where its pane is too short to hold it, which needs the modal's look without
 // the stack's key routing.
-func Overlay(background, content string, width, height int) string {
-	return placeCenter(background, content, width, height)
+func Overlay(_, content string, width, height int) string {
+	return overlay.Center(content, width, height, overlayStyles())
 }
 
 // OverlayWidth is the room an overlay's content has inside its border and
 // padding, which is what a caller wraps prose to before handing it over.
-func OverlayWidth(width int) int { return width - modalChromeHorizontal }
+func OverlayWidth(width int) int { return overlay.ContentWidth(width, overlayStyles()) }
 
 // A modal is read, not lived in, so it spends one row above and below its
 // content rather than framing a short list in blank space.
@@ -154,48 +152,23 @@ const (
 	modalPaddingHorizontal = 3
 )
 
-// The border and padding a modal's content sits inside of.
+// The border and padding a modal's content sits inside of, which
+// overlay.ContentWidth and ContentHeight report for the same frame.
 const (
 	modalChromeVertical   = 2 + 2*modalPaddingVertical
 	modalChromeHorizontal = 2 + 2*modalPaddingHorizontal
 )
 
-func placeCenter(_, modal string, width, height int) string {
-	modalStyle := lipgloss.NewStyle().
-		BorderStyle(lipgloss.DoubleBorder()).
-		BorderForeground(ui.PrimaryColor).
-		Padding(modalPaddingVertical, modalPaddingHorizontal).
-		Background(ui.ModalBgColor)
-
-	styledModal := modalStyle.Render(clip(modal, width-modalChromeHorizontal, height-modalChromeVertical))
-
-	return lipgloss.Place(
-		width, height, lipgloss.Center, lipgloss.Center, styledModal, lipgloss.WithWhitespaceChars(" "),
-	)
-}
-
-// elisionNotice replaces the lines a modal taller than the terminal cannot
-// show, so content is never lost without saying so.
-const elisionNotice = "…"
-
-// clip bounds a modal's content to the room inside its border and padding. A
-// modal that sizes itself is already within bounds and passes through
-// untouched; this is the guarantee for the ones that do not.
-func clip(content string, width, height int) string {
-	if width < 1 || height < 1 {
-		return content
+// overlayStyles are the faces a modal's frame draws with.
+func overlayStyles() overlay.Styles {
+	return overlay.Styles{
+		Frame: lipgloss.NewStyle().
+			BorderStyle(lipgloss.DoubleBorder()).
+			BorderForeground(ui.PrimaryColor).
+			Padding(modalPaddingVertical, modalPaddingHorizontal).
+			Background(ui.ModalBgColor),
+		Elision: ui.HelpStyle,
 	}
-
-	lines := strings.Split(content, "\n")
-	for i, line := range lines {
-		lines[i] = table.Truncate(line, width)
-	}
-
-	if len(lines) > height {
-		lines = append(lines[:height-1:height-1], ui.HelpStyle.Render(elisionNotice))
-	}
-
-	return strings.Join(lines, "\n")
 }
 
 // ClosedMsg is sent when a modal is closed.
