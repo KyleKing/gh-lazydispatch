@@ -19,31 +19,25 @@ type cmdRunner interface {
 	Start() error
 }
 
-// Open opens the specified URL in the default browser.
-func Open(url string) error {
-	var name string
-	var args []string
-
-	const windowsOpenVerb = "start"
-
-	switch runtime.GOOS {
+// openCommand is the platform's own open command and its arguments. It takes
+// the OS rather than reading runtime.GOOS so that every platform's branch is
+// reachable from the one the tests run on.
+func openCommand(goos, url string) (string, []string) {
+	switch goos {
 	case "darwin":
-		name = "open"
-		args = []string{url}
-	case "linux":
-		name = "xdg-open"
-		args = []string{url}
+		return "open", []string{url}
 	case "windows":
-		name = "cmd"
-		args = []string{"/c", windowsOpenVerb, url}
-	default:
-		name = "xdg-open"
-		args = []string{url}
+		return "cmd", []string{"/c", "start", url}
 	}
 
-	cmd := execCommand(name, args...)
+	return "xdg-open", []string{url}
+}
 
-	if err := cmd.Start(); err != nil {
+// Open opens the specified URL in the default browser.
+func Open(url string) error {
+	name, args := openCommand(runtime.GOOS, url)
+
+	if err := execCommand(name, args...).Start(); err != nil {
 		return fmt.Errorf("opening browser for %s: %w", url, err)
 	}
 

@@ -1,6 +1,7 @@
 package frecency_test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -240,5 +241,102 @@ func TestSortByFrecency(t *testing.T) {
 
 	if entries[2].Workflow != "low" {
 		t.Errorf("expected 'low' third, got %q", entries[2].Workflow)
+	}
+}
+
+// The cache moved from gh-wfd to lazydispatch, so a reader upgrading keeps the
+// history they had. The copy runs once: a store already at the new path is
+// never overwritten by the old one.
+func TestCachePath_CarriesTheOldCacheForwardExactlyOnce(t *testing.T) {
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+
+	old := filepath.Join(cache, "gh-wfd", "history.json")
+	if err := os.MkdirAll(filepath.Dir(old), 0o750); err != nil {
+		t.Fatal(err)
+	}
+
+	previous := frecency.NewStore()
+	previous.Record("owner/repo", "ci.yml", "main", nil)
+
+	if err := previous.SaveTo(old); err != nil {
+		t.Fatal(err)
+	}
+
+	path := frecency.CachePath()
+	if want := filepath.Join(cache, "lazydispatch", "history.json"); path != want {
+		t.Fatalf("cache path is %s, want %s", path, want)
+	}
+
+	migrated, err := frecency.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got := len(migrated.TopForRepo("owner/repo", "", 0)); got != 1 {
+		t.Fatalf("the migrated store holds %d entries, want the one that was there", got)
+	}
+
+	// A second pass must not undo work done since the migration.
+	migrated.Record("owner/repo", "release.yml", "main", nil)
+
+	if err := migrated.Save(); err != nil {
+		t.Fatal(err)
+	}
+
+	frecency.CachePath()
+
+	after, err := frecency.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got := len(after.TopForRepo("owner/repo", "", 0)); got != 2 {
+		t.Errorf("a second migration left %d entries, want the newer store untouched", got)
+	}
+}
+
+// A chain is one history entry rather than one per step, and re-running it
+// counts up and replaces the step results rather than appending a row.
+func TestRecordChain_CountsUpAndKeepsTheLatestStepResults(t *testing.T) {
+	t.Parallel()
+
+	store := frecency.NewStore()
+	inputs := map[string]string{"env": "staging"}
+
+	store.RecordChain("owner/repo", "deploy", "main", inputs, []frecency.ChainStepResult{{Workflow: "build.yml"}})
+	store.RecordChain("owner/repo", "deploy", "main", inputs, []frecency.ChainStepResult{{Workflow: "test.yml"}})
+	store.RecordChain("owner/repo", "deploy", "topic", inputs, nil)
+
+	entries := store.TopForRepo("owner/repo", "", 0)
+	if len(entries) != 2 {
+		t.Fatalf("the same chain on two branches made %d entries", len(entries))
+	}
+
+	chains := frecency.FilterByType(entries, frecency.EntryTypeChain)
+	if len(chains) != 2 {
+		t.Fatalf("%d of the entries read as chains", len(chains))
+	}
+
+	var main frecency.HistoryEntry
+
+	for _, entry := range chains {
+		if entry.Branch == "main" {
+			main = entry
+		}
+	}
+
+	if main.RunCount != 2 {
+		t.Errorf("re-running the chain counted %d, want 2", main.RunCount)
+	}
+
+	if len(main.StepResults) != 1 || main.StepResults[0].Workflow != "test.yml" {
+		t.Errorf("the entry kept %v, want only the latest run's steps", main.StepResults)
+	}
+
+	// An entry written before chains existed has no type and reads as a
+	// workflow, so the two never mix in one list.
+	if got := frecency.FilterByType(entries, frecency.EntryTypeWorkflow); len(got) != 0 {
+		t.Errorf("%d chain entries read as workflows", len(got))
 	}
 }

@@ -2,6 +2,7 @@ package browser
 
 import (
 	"runtime"
+	"slices"
 	"testing"
 )
 
@@ -113,99 +114,6 @@ func TestOpen_InvalidURL(t *testing.T) {
 	}
 }
 
-// checkOpenSingleArgCommand runs Open(url) on the given OS (skipping if the
-// current runtime.GOOS doesn't match) and asserts it invoked wantCmdName with
-// the URL as its sole argument.
-func checkOpenSingleArgCommand(t *testing.T, goos, osLabel, wantCmdName string) {
-	t.Helper()
-
-	if runtime.GOOS != goos {
-		t.Skipf("skipping %s-specific test", osLabel)
-	}
-
-	originalExecCommand := execCommand
-	defer func() { execCommand = originalExecCommand }()
-
-	var capturedCmd *mockCmd
-	execCommand = func(name string, args ...string) cmdRunner {
-		cmd := &mockCmd{name: name, args: args}
-		capturedCmd = cmd
-
-		return cmd
-	}
-
-	url := testExampleURL
-	err := Open(url)
-	if err != nil {
-		t.Errorf("Open on %s failed: %v", osLabel, err)
-	}
-
-	if capturedCmd == nil {
-		t.Fatal("expected command to be executed")
-	}
-
-	if capturedCmd.name != wantCmdName {
-		t.Errorf("expected command '%s' on %s, got '%s'", wantCmdName, osLabel, capturedCmd.name)
-	}
-
-	if len(capturedCmd.args) != 1 || capturedCmd.args[0] != url {
-		t.Errorf("expected args [%s], got %v", url, capturedCmd.args)
-	}
-}
-
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
-func TestOpen_Darwin(t *testing.T) {
-	checkOpenSingleArgCommand(t, goosDarwin, "macOS", cmdOpen)
-}
-
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
-func TestOpen_Linux(t *testing.T) {
-	checkOpenSingleArgCommand(t, goosLinux, "Linux", cmdXdgOpen)
-}
-
-//nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
-func TestOpen_Windows(t *testing.T) {
-	if runtime.GOOS != goosWindows {
-		t.Skip("skipping Windows-specific test")
-	}
-
-	originalExecCommand := execCommand
-	defer func() { execCommand = originalExecCommand }()
-
-	var capturedCmd *mockCmd
-	execCommand = func(name string, args ...string) cmdRunner {
-		cmd := &mockCmd{name: name, args: args}
-		capturedCmd = cmd
-
-		return cmd
-	}
-
-	url := testExampleURL
-	err := Open(url)
-	if err != nil {
-		t.Errorf("Open on Windows failed: %v", err)
-	}
-
-	if capturedCmd == nil {
-		t.Fatal("expected command to be executed")
-	}
-
-	if capturedCmd.name != cmdWindowsExe {
-		t.Errorf("expected command 'cmd' on Windows, got '%s'", capturedCmd.name)
-	}
-
-	expectedArgs := []string{"/c", "start", url}
-	if len(capturedCmd.args) != len(expectedArgs) {
-		t.Errorf("expected args %v, got %v", expectedArgs, capturedCmd.args)
-	} else {
-		for i, expected := range expectedArgs {
-			if capturedCmd.args[i] != expected {
-				t.Errorf("arg[%d]: expected '%s', got '%s'", i, expected, capturedCmd.args[i])
-			}
-		}
-	}
-}
-
 //nolint:paralleltest // swaps the package-level execCommand var; cannot run concurrent with same-var tests
 func TestOpen_EmptyURL(t *testing.T) {
 	originalExecCommand := execCommand
@@ -238,5 +146,32 @@ func TestOpen_EmptyURL(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("expected empty URL in args %v", capturedCmd.args)
+	}
+}
+
+// Every platform's branch is reachable from the one the tests run on, which is
+// the point of taking the OS as an argument.
+func TestOpenCommand_NamesEachPlatformsOwnOpener(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		goos, name string
+		args       []string
+	}{
+		{goos: goosDarwin, name: cmdOpen, args: []string{testExampleURL}},
+		{goos: goosLinux, name: cmdXdgOpen, args: []string{testExampleURL}},
+		{goos: goosWindows, name: cmdWindowsExe, args: []string{"/c", "start", testExampleURL}},
+		{goos: "plan9", name: cmdXdgOpen, args: []string{testExampleURL}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.goos, func(t *testing.T) {
+			t.Parallel()
+
+			name, args := openCommand(tt.goos, testExampleURL)
+			if name != tt.name || !slices.Equal(args, tt.args) {
+				t.Errorf("%s opens with %s %v, want %s %v", tt.goos, name, args, tt.name, tt.args)
+			}
+		})
 	}
 }
