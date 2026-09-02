@@ -222,6 +222,19 @@ func TestFindBestMatch(t *testing.T) {
 			},
 			wantSuggestion: "environment",
 		},
+		{
+			// A name this short matches almost anything, and the match it wins
+			// scores below zero. Offering it would rename an input to something
+			// the author never wrote, so no suggestion beats a bad one.
+			name:           "best match too weak to offer",
+			historicalName: "n",
+			currentInputs: map[string]workflow.Input{
+				"dry_run":     {Type: "boolean"},
+				"environment": {Type: "string"},
+				"version":     {Type: "string"},
+			},
+			wantSuggestion: "",
+		},
 	}
 
 	for _, tt := range tests {
