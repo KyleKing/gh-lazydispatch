@@ -16,33 +16,6 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
 
-const exportUsage = `gh-lazydispatch export - read GitHub Actions without reading its logs
-
-Usage:
-  gh-lazydispatch export workflows           Dispatchable workflows and their inputs
-  gh-lazydispatch export chains              Chains defined in .github/lazydispatch.yml
-  gh-lazydispatch export runs [flags]        Recent workflow runs, newest first
-  gh-lazydispatch export logs <run-id>       One run's logs, parsed into steps
-  gh-lazydispatch export diagnose <run-id>   Why a run failed, without its logs
-
-Flags (runs):
-  --workflow <file>   Filename, e.g. ci.yml
-  --branch <name>
-  --status <status>   queued|in_progress|completed|success|failure
-  --limit <n>         Default 20
-  --current           One row per workflow: the branch's state rather than its
-                      history. Needs --branch, and ignores --status and --limit
-
-Flags (logs):
-  --errors-only       Keep only lines that read as errors
-  --step <n>          One step, by index
-  --grep <pattern>    Keep lines matching a regular expression
-  --limit <n>         Cap lines per step
-  --format json|md    Default json
-
-Every command writes JSON to stdout and counts to stderr. Nothing here
-dispatches: these commands only read.`
-
 // runExport dispatches one export subcommand.
 func runExport(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {

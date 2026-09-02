@@ -1,9 +1,11 @@
-# The export commands
+# The non-interactive commands
 
-`gh-lazydispatch export` is the non-interactive half of the tool. It reads the
-same GitHub Actions data the TUI reads, through the same packages, and writes
-JSON to stdout. Nothing under `export` dispatches: to run a workflow, use the
-TUI or `gh workflow run`.
+`gh-lazydispatch export` and `gh-lazydispatch watch` are the non-interactive
+half of the tool. Both read the same GitHub Actions data the TUI reads,
+through the same packages. Neither dispatches: to run a workflow, use the TUI
+or `gh workflow run`.
+
+`export` writes JSON to stdout.
 
 It exists because `gh run view --log` is the wrong shape for a question like
 "why did this fail". The log is the whole log, `--log-failed` is every line of
@@ -97,6 +99,33 @@ working directory and returns every dispatchable workflow with its inputs,
 their types, defaults, and permitted values. `chains` reads
 `.github/lazydispatch.yml` and returns each chain's variables and steps in
 order.
+
+## watch
+
+```sh
+gh-lazydispatch watch <run-id> [--interval <secs>] [--out <path>]
+                               [--fix] [--fix-cmd <cmd>]
+```
+
+The `pr-merge-watch` replacement `docs/design-listeners.md` describes. Chain
+after a push:
+
+```sh
+git push && gh-lazydispatch watch "$(gh run list --limit 1 --json databaseId -q '.[0].databaseId')"
+```
+
+It polls the run every `--interval` seconds (15 by default) until it
+completes, then writes an errors-only markdown digest (the same document
+`export logs --format md --errors-only` renders) to `--out` (default
+`./lazydispatch-run-<id>.md` in the working directory) and prints that path on
+stdout. That alone is the point: a summary that stays on disk instead of a
+terminal you have to keep open.
+
+`--fix` runs only when the run failed. It hands the digest's path to an
+interactive `claude` session in the foreground (`--fix-cmd` to use a different
+one), the same way `git commit` hands the terminal to `$EDITOR`, with a prompt
+naming the run and asking it to investigate, fix, and commit locally on its
+own branch. It never tells it to push, and `watch` itself never touches git.
 
 ## Requirements
 

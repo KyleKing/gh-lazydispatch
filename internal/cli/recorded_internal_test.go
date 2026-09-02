@@ -38,9 +38,17 @@ const (
 	recordedUnknownStepRun = "33423560774"
 )
 
-// runRecorded replays the named cassette through the real command path, so the
-// bytes under test are the ones GitHub sent.
+// runRecorded replays the named cassette through the real "export" command
+// path, so the bytes under test are the ones GitHub sent.
 func runRecorded(t *testing.T, name string, args ...string) (string, string, int) {
+	t.Helper()
+
+	return runRecordedArgs(t, name, append([]string{"export"}, args...)...)
+}
+
+// runRecordedArgs is runRecorded without assuming "export", for a top-level
+// command like "watch" that isn't one of export's subcommands.
+func runRecordedArgs(t *testing.T, name string, args ...string) (string, string, int) {
 	t.Helper()
 
 	path, err := filepath.Abs(filepath.Join("testdata", "cassettes", name+".golden"))
@@ -56,7 +64,7 @@ func runRecorded(t *testing.T, name string, args ...string) (string, string, int
 
 	var stdout, stderr bytes.Buffer
 
-	code := Run(append([]string{"export"}, args...), &stdout, &stderr)
+	code := Run(args, &stdout, &stderr)
 
 	session.RequireAllPlayed(t)
 

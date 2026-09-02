@@ -149,7 +149,15 @@ require merge to be asked for per invocation rather than configured once.
    adopted run (shipped). Unblocks the case in hand without touching the model
 2. The listener package and `gh lazydispatch watch`, with the run-completion
    and pr-checks conditions and the notify and diagnose actions. This is the
-   `pr-merge-watch` replacement
+   `pr-merge-watch` replacement.
+   `gh lazydispatch watch <run-id>` is shipped: it polls one run to
+   completion and writes an errors-only digest to disk (`docs/cli.md#watch`),
+   which is the notify and diagnose actions for the run-completion condition.
+   `--fix` goes further than the design called for here, handing the digest to
+   an interactive `claude` session that may commit locally (never pushes).
+   Not yet built: the pr-checks condition, a reusable listener package a TUI
+   arming could also drive (this is a standalone poll loop in `internal/cli`),
+   and anything that survives closing the terminal
 3. Arming a listener from a Runs or Live row through the `a` menu, with the
    armed count in the status bar
 4. Reimplement `ChainExecutor` as a seed plus listeners, and stop adding to the

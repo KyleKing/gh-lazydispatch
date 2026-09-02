@@ -38,6 +38,8 @@ On a real CI failure in this repository that is 2,361 bytes against 237,144 thro
 
 The other read-only commands are `export logs`, `export runs`, `export workflows`, and `export chains`. Every one writes JSON to stdout and its line counts to stderr; none of them dispatch anything. See [docs/cli.md](./docs/cli.md), and [skills/github-actions](./skills/github-actions) for the agent-facing version.
 
+`gh lazydispatch watch <run-id>` chains after a push: it blocks until the run finishes, writes an errors-only digest to disk, and prints the path. `--fix` hands that digest to an interactive `claude` session to investigate. See [docs/cli.md](./docs/cli.md#watch).
+
 ## What it does not do
 
 - Send `repository_dispatch` events. It reads `workflow_dispatch` triggers only, so use gh-dispatch for the other kind
