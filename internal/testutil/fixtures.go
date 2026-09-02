@@ -4,9 +4,7 @@ package testutil
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
-	"testing"
 	"time"
 )
 
@@ -54,25 +52,6 @@ func GenerateLargeLogFixture(lines int) string {
 	return sb.String()
 }
 
-// GenerateLargeLogWithErrors creates a log with error patterns.
-// The errorRate is a float between 0 and 1 indicating percentage of lines that should be errors.
-func GenerateLargeLogWithErrors(lines int, errorRate float64) string {
-	var sb strings.Builder
-
-	for i := range lines {
-		switch {
-		case float64(i%percentScale) < errorRate*percentScale:
-			fmt.Fprintf(&sb, "##[error]Error on line %d: operation failed\n", i)
-		case float64(i%percentScale) < (errorRate+warningRateOffset)*percentScale:
-			fmt.Fprintf(&sb, "##[warning]Warning on line %d: deprecated usage\n", i)
-		default:
-			fmt.Fprintf(&sb, "INFO: Processing line %d\n", i)
-		}
-	}
-
-	return sb.String()
-}
-
 // GenerateUnicodeLog creates logs with unicode characters.
 // Tests proper handling of international characters and emoji.
 //
@@ -112,83 +91,6 @@ func GenerateANSILog() string {
 2024-01-01T00:00:09Z ` + "\x1b[7mReverse: Highlighted\x1b[0m" + `
 2024-01-01T00:00:10Z ` + "\x1b[0mReset: Normal text" + `
 ##[endgroup]`
-}
-
-// LoadFixture loads a test fixture file from testdata.
-// Helper function for tests and benchmarks.
-func LoadFixture(tb testing.TB, filename string) string {
-	tb.Helper()
-
-	// Try multiple paths for flexibility
-	paths := []string{
-		"../../testdata/logs/" + filename,
-		"testdata/logs/" + filename,
-		"../testdata/logs/" + filename,
-	}
-
-	for _, path := range paths {
-		data, err := os.ReadFile(path) //nolint:gosec // test-only, fixed testdata directory candidates
-		if err == nil {
-			return string(data)
-		}
-	}
-
-	tb.Fatalf("failed to load fixture %s from any path", filename)
-
-	return ""
-}
-
-// GenerateLogWithPatterns creates a log with specific searchable patterns.
-// Useful for testing search and filter functionality.
-func GenerateLogWithPatterns(lines int, patterns []string) string {
-	var sb strings.Builder
-
-	for i := range lines {
-		pattern := patterns[i%len(patterns)]
-		fmt.Fprintf(&sb, "Line %d: %s\n", i, pattern)
-	}
-
-	return sb.String()
-}
-
-// GenerateMultiStepLog creates a log output with multiple GitHub Actions steps.
-// Simulates a real workflow run with step grouping.
-func GenerateMultiStepLog(numSteps, linesPerStep int) string {
-	var sb strings.Builder
-
-	for i := range numSteps {
-		fmt.Fprintf(&sb, "##[group]Run step-%d\n", i)
-
-		for j := range linesPerStep {
-			switch {
-			case j%20 == 0:
-				fmt.Fprintf(&sb, "##[error]Error in step %d line %d\n", i, j)
-			case j%10 == 0:
-				fmt.Fprintf(&sb, "##[warning]Warning in step %d line %d\n", i, j)
-			default:
-				fmt.Fprintf(&sb, "INFO: Step %d line %d\n", i, j)
-			}
-		}
-
-		sb.WriteString("##[endgroup]\n")
-	}
-
-	return sb.String()
-}
-
-// GenerateLogWithTimestamps creates log lines with timestamp prefixes.
-// Tests timestamp parsing and display.
-func GenerateLogWithTimestamps(lines int) string {
-	var sb strings.Builder
-
-	for i := range lines {
-		timestamp := fmt.Sprintf(
-			"2024-01-01T12:%02d:%02d.000Z", i/secondsPerMinute%secondsPerMinute, i%secondsPerMinute,
-		)
-		fmt.Fprintf(&sb, "%s INFO: Log line %d\n", timestamp, i)
-	}
-
-	return sb.String()
 }
 
 // GenerateMixedLog creates a log with various patterns for comprehensive testing.
