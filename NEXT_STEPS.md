@@ -18,14 +18,6 @@ positive, but nothing ranks or scores them. If the noise becomes a problem, the
 fix is to weight a signature by where in the step it matched rather than to
 narrow the patterns.
 
-## Interface
-
-Opening an input's details at 80x24 gives the top-left pane eleven rows and the
-view wants about fourteen, so its current value, default, and key hints are cut
-off. The frame stays well formed because every pane truncates to the rows it
-was given. Making the config pane yield its rows while a detail is open would
-fit it, at the cost of clipping the command preview instead.
-
 ## Hooks
 
 `.config/mise/mise.lock` is the lockfile CI installs from, and `mise install

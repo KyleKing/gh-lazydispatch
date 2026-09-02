@@ -132,10 +132,20 @@ func (s *Stack) Render(background string) string {
 		return background
 	}
 
-	modalView := s.Current().View()
-
-	return placeCenter(background, modalView, s.width, s.height)
+	return Overlay(background, s.Current().View(), s.width, s.height)
 }
+
+// Overlay centers content over background in the same frame a modal gets. It
+// is exported for a view that is normally a pane and is promoted to an overlay
+// where its pane is too short to hold it, which needs the modal's look without
+// the stack's key routing.
+func Overlay(background, content string, width, height int) string {
+	return placeCenter(background, content, width, height)
+}
+
+// OverlayWidth is the room an overlay's content has inside its border and
+// padding, which is what a caller wraps prose to before handing it over.
+func OverlayWidth(width int) int { return width - modalChromeHorizontal }
 
 // A modal is read, not lived in, so it spends one row above and below its
 // content rather than framing a short list in blank space.

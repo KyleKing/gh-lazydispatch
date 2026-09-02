@@ -39,7 +39,7 @@ Only the selected workflow carries the values in the config pane. The rest of a 
 
 ## Panes
 
-The left column stacks what a dispatch is built from, top to bottom: the workflows that declare a `workflow_dispatch` trigger, the chains the repository configures, and the configuration the next run carries. A repository with no chains gets a line naming the feature where the pane would be, and `tab` skips it rather than stopping on an empty one. Opening an input or a history entry in the top-left pane takes the chains pane's rows too, since nothing there acts on a chain.
+The left column stacks what a dispatch is built from, top to bottom: the workflows that declare a `workflow_dispatch` trigger, the chains the repository configures, and the configuration the next run carries. A repository with no chains gets a line naming the feature where the pane would be, and `tab` skips it rather than stopping on an empty one. Opening an input or a history entry in the top-left pane takes the chains pane's rows too, since nothing there acts on a chain. Where even that is not enough, an input's details overlay the frame rather than being cut, because what a short pane cuts is the current value and the keys that change it.
 
 The right panel runs the full height of the terminal and holds four tabs: Runs, Live, History, and Flaky. `[` and `]` move between them from anywhere, since the right panel is the only tabbed thing on screen. Each tab reports what it holds in the tab bar, so the counts are readable without visiting the tab, and the names abbreviate to their initials on a narrow terminal rather than dropping the counts.
 

@@ -125,8 +125,15 @@ func assertFrameWellFormed(t *testing.T, m Model) {
 		t.Fatal("a modal overlays the panes, so the frame cannot be read as boxes")
 	}
 
-	rows := frameRows(t, m)
 	box := m.layout()
+
+	// A detail too tall for its pane overlays the frame rather than being cut,
+	// and an overlay covers the boxes this reads.
+	if m.promotedDetail(box) != "" {
+		return
+	}
+
+	rows := frameRows(t, m)
 
 	assertBox(t, "workflow pane", rows, 0, box.workflowHeight, 0, box.leftWidth)
 	assertBox(t, "chains pane", rows, box.workflowHeight, box.chainsHeight, 0, box.leftWidth)
@@ -269,5 +276,43 @@ func TestFrame_GoldenStates(t *testing.T) {
 			assertFrameWellFormed(t, m)
 			golden.RequireEqual(t, []byte(m.View().Content))
 		})
+	}
+}
+
+// An input's details are the value, the default, and the keys that change
+// them, so a pane too short to hold them cuts off exactly what the view is
+// for. It overlays the frame at that size instead, and goes back in the pane
+// as soon as there is room.
+func TestInputDetail_OverlaysTheFrameOnlyWhereThePaneIsTooShort(t *testing.T) {
+	t.Parallel()
+
+	build := frameStates()[5]
+	if build.name != "input_detail" {
+		t.Fatalf("the input detail state moved to %q", build.name)
+	}
+
+	small := build.set(t, resize(t, newRenderModel(), MinTerminalWidth, MinTerminalHeight))
+
+	detail := small.promotedDetail(small.layout())
+	if detail == "" {
+		t.Fatal("the detail fits an 80x24 pane, so nothing needed promoting")
+	}
+
+	view := ansi.Strip(small.View().Content)
+	for _, want := range []string{"Type:", "Current:"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("the overlay does not carry %q:\n%s", want, view)
+		}
+	}
+
+	// The list is still drawn underneath, so escaping the overlay reveals it
+	// rather than a pane that was never rendered.
+	if !strings.Contains(ansi.Strip(small.viewLeftColumn(small.layout(), true)), "Workflows") {
+		t.Error("the promoted detail left no workflow list under it")
+	}
+
+	large := build.set(t, resize(t, newRenderModel(), 160, 50))
+	if got := large.promotedDetail(large.layout()); got != "" {
+		t.Error("a terminal with room to spare still promoted the detail")
 	}
 }

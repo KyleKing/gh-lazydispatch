@@ -11,6 +11,7 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 	"github.com/kyleking/gh-lazydispatch/internal/validation"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
@@ -49,17 +50,21 @@ func (m Model) View() tea.View {
 	m.rightPanel.SetSize(box.rightWidth, box.rightHeight)
 	m.rightPanel.SetFocused(m.focused == PaneRight)
 
+	promoted := m.promotedDetail(box)
+
 	main := lipgloss.JoinVertical(lipgloss.Left,
 		statusBar,
-		lipgloss.JoinHorizontal(lipgloss.Top, m.viewLeftColumn(box), m.rightPanel.View()),
+		lipgloss.JoinHorizontal(lipgloss.Top, m.viewLeftColumn(box, promoted != ""), m.rightPanel.View()),
 		footerBar,
 	)
 
-	var content string
-	if m.modalStack.HasActive() {
+	content := main
+
+	switch {
+	case m.modalStack.HasActive():
 		content = m.modalStack.Render(main)
-	} else {
-		content = main
+	case promoted != "":
+		content = modal.Overlay(main, promoted, m.width, m.height)
 	}
 
 	v := tea.NewView(content)
@@ -81,8 +86,8 @@ func (m Model) viewTooSmall() string {
 // list, the chains built from it, and the configuration the next run carries.
 // A repository that configures no chains gets a line naming the feature in
 // place of the pane, which is also why the pane is skipped in the focus cycle.
-func (m Model) viewLeftColumn(box paneLayout) string {
-	stacked := []string{m.viewTopLeftPane(box.leftWidth, box.workflowHeight)}
+func (m Model) viewLeftColumn(box paneLayout, promoted bool) string {
+	stacked := []string{m.viewTopLeftPane(box.leftWidth, box.workflowHeight, promoted)}
 
 	switch {
 	case box.chainsHeight > 0:
@@ -104,12 +109,39 @@ func viewChainsHint(width int) string {
 	return ui.HelpStyle.Render(ansi.Truncate(" Chains: none · :chain", width, "…"))
 }
 
+// promotedDetail is an input's details where the top-left pane is too short to
+// hold them, and empty otherwise. Truncating this view costs the current value
+// and the keys, which is the whole of what it is for, so on a terminal that
+// cannot spare the rows it overlays the frame instead of losing them.
+func (m Model) promotedDetail(box paneLayout) string {
+	if m.viewMode != InputDetailMode {
+		return ""
+	}
+
+	inPane, ok := m.inputDetailContent(box.leftWidth)
+
+	lines := strings.Count(inPane, "\n") + 1
+	if !ok || lines <= box.workflowHeight-ui.PaneBorderSize {
+		return ""
+	}
+
+	// The overlay is not bound by the left column, so its prose wraps wider
+	// than the pane's, capped so a line stays readable on a wide terminal.
+	content, _ := m.inputDetailContent(min(promotedDetailWidth, modal.OverlayWidth(m.width)))
+
+	return content
+}
+
+// promotedDetailWidth caps how wide an overlaid detail wraps its prose.
+const promotedDetailWidth = 56
+
 // viewTopLeftPane is the workflow list, or what a selection inside it opened
 // in place: an input's details, or a history entry waiting to be applied.
-func (m Model) viewTopLeftPane(width, height int) string {
+// A detail promoted to an overlay leaves the list drawn underneath it.
+func (m Model) viewTopLeftPane(width, height int, promoted bool) string {
 	switch m.viewMode {
 	case InputDetailMode:
-		if m.getSelectedInputName() != "" {
+		if !promoted && m.getSelectedInputName() != "" {
 			return m.viewInputDetailsPane(width, height)
 		}
 	case HistoryPreviewMode:
@@ -247,21 +279,30 @@ func fitHints(width int, leaders, contextual, always []string) string {
 }
 
 func (m Model) viewInputDetailsPane(width, height int) string {
+	content, ok := m.inputDetailContent(width)
+	if !ok {
+		return m.viewWorkflowPane(width, height)
+	}
+
+	return ui.PaneBox(width, height, m.focused == PaneWorkflows, content)
+}
+
+// inputDetailContent is the selected input's details, and false where no input
+// resolves and the pane falls back to the workflow list.
+func (m Model) inputDetailContent(width int) (string, bool) {
 	selectedName := m.getSelectedInputName()
 	if selectedName == "" {
-		return m.viewWorkflowPane(width, height)
+		return "", false
 	}
 
 	wf := m.SelectedWorkflow()
 	if wf == nil {
-		return m.viewWorkflowPane(width, height)
+		return "", false
 	}
 
-	inputs := wf.GetInputs()
-
-	input, ok := inputs[selectedName]
+	input, ok := wf.GetInputs()[selectedName]
 	if !ok {
-		return m.viewWorkflowPane(width, height)
+		return "", false
 	}
 
 	var content strings.Builder
@@ -278,7 +319,7 @@ func (m Model) viewInputDetailsPane(width, height int) string {
 	content.WriteString("\n\n")
 	content.WriteString(ui.HelpStyle.Render("[Esc] back  [e] edit"))
 
-	return ui.PaneBox(width, height, m.focused == PaneWorkflows, content.String())
+	return content.String(), true
 }
 
 func _renderInputHeader(content *strings.Builder, name string, required bool) {
