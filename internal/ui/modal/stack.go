@@ -138,7 +138,7 @@ func (s *Stack) Render(background string) string {
 // where its pane is too short to hold it, which needs the modal's look without
 // the stack's key routing.
 func Overlay(_, content string, width, height int) string {
-	return overlay.Center(content, width, height, overlayStyles())
+	return overlay.Center(ground(content, ui.ModalBgColor), width, height, overlayStyles())
 }
 
 // OverlayWidth is the room an overlay's content has inside its border and
