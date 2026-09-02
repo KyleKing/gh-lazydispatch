@@ -1,0 +1,6 @@
+[[interaction]]
+stdout = """
+copilot
+"""
+args = ['api', '--paginate', 'repos/KyleKing/gh-lazydispatch/environments', '--jq', '.environments[].name']
+exit = 0
