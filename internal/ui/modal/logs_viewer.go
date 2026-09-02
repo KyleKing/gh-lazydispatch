@@ -314,6 +314,39 @@ func (m *LogsViewerModal) toggleStepAtCursor() {
 	}
 }
 
+// collapsedStepLines is the height of a collapsed step: its header and the
+// blank line after it.
+const collapsedStepLines = 2
+
+// FocusStep collapses every step but the one named and scrolls to it, which is
+// what opening a log from a step in the timeline asks for: the whole run's log,
+// open on the step that was on screen. It reports whether the step was found.
+func (m *LogsViewerModal) FocusStep(stepName string) bool {
+	target := -1
+
+	for i, step := range m.filtered.Steps {
+		if step.StepName == stepName {
+			target = i
+
+			break
+		}
+	}
+
+	if target < 0 {
+		return false
+	}
+
+	m.collapseAll()
+
+	m.collapsedSteps[target] = false
+	m.updateViewportContent()
+
+	// Every step before the target is collapsed to a header and a blank line.
+	m.viewport.SetYOffset(collapsedStepLines * target)
+
+	return true
+}
+
 // expandAll expands all step sections.
 func (m *LogsViewerModal) expandAll() {
 	m.collapsedSteps = make(map[int]bool)

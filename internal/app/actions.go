@@ -256,6 +256,7 @@ func timelineActions() []paneAction {
 		{key: "d", name: "diagnose the failure", run: Model.diagnoseSelectedRun},
 		{key: keyEnter, name: "drill into the selected job's steps", run: Model.drillTimeline},
 		{key: "esc", name: "back out of the run", run: Model.undrillTimeline},
+		{key: "s", name: "the selected step's log", run: Model.logsForSelectedStep},
 		{key: "v", name: nameViewLogs, run: Model.logsForSelectedRun},
 		{key: "x", name: nameCancelRun, run: Model.cancelSelectedRun},
 		{key: "z", name: nameRerunFailed, run: Model.rerunSelectedRun},

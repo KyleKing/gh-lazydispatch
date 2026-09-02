@@ -5,11 +5,13 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 )
 
-// FetchLogsMsg requests fetching logs for a chain or run.
+// FetchLogsMsg requests fetching logs for a chain or run. Step names the step
+// the viewer should open on, empty when the whole run's log was asked for.
 type FetchLogsMsg struct {
 	ChainState *chain.ChainState
 	Workflow   string
 	Branch     string
+	Step       string
 	RunID      int64
 	ErrorsOnly bool
 }
@@ -19,6 +21,7 @@ type LogsFetchedMsg struct {
 	Error      error
 	Logs       *logs.RunLogs
 	Workflow   string
+	Step       string
 	RunID      int64
 	ErrorsOnly bool
 }
@@ -27,6 +30,7 @@ type LogsFetchedMsg struct {
 type ShowLogsViewerMsg struct {
 	Logs       *logs.RunLogs
 	Workflow   string
+	Step       string
 	RunID      int64
 	ErrorsOnly bool
 }

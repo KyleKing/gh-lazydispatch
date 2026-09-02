@@ -104,6 +104,32 @@ func (m *TimelineModel) Undrill() {
 	}
 }
 
+// SelectedStep is the full name of the step under the cursor, and false while
+// the lanes rather than one job's steps are on screen. It is the name GitHub
+// gave the step rather than the shortened label, since that is what the log
+// is keyed by.
+func (m TimelineModel) SelectedStep() (string, bool) {
+	if m.drilled == noDrill {
+		return "", false
+	}
+
+	drawn := 0
+
+	for _, step := range m.jobs[m.drilled].Steps {
+		if step.StartedAt.IsZero() {
+			continue
+		}
+
+		if drawn == m.selected {
+			return step.Name, true
+		}
+
+		drawn++
+	}
+
+	return "", false
+}
+
 // Update handles navigation and drilling.
 //
 //nolint:unparam // uniform (TabbedRightModel, tea.Cmd) signature, required by the tab dispatch

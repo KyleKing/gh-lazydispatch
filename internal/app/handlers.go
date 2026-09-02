@@ -1184,17 +1184,22 @@ func (m Model) fetchLogs(msg FetchLogsMsg) tea.Cmd {
 			ErrorsOnly: msg.ErrorsOnly,
 			RunID:      runID,
 			Workflow:   workflowName,
+			Step:       msg.Step,
 			Error:      err,
 		}
 	}
 }
 
-func (m Model) showLogsViewer(runLogs *logs.RunLogs, errorsOnly bool, runID int64, _ string) Model {
+func (m Model) showLogsViewer(runLogs *logs.RunLogs, errorsOnly bool, runID int64, step string) Model {
 	var logsModal modal.Context
 	if errorsOnly {
 		logsModal = modal.NewLogsViewerModalWithError(runLogs, m.width, m.height)
 	} else {
 		logsModal = modal.NewLogsViewerModal(runLogs, m.width, m.height)
+	}
+
+	if viewer, ok := logsModal.(*modal.LogsViewerModal); ok && step != "" {
+		viewer.FocusStep(step)
 	}
 
 	// Check if this is an active run and enable streaming

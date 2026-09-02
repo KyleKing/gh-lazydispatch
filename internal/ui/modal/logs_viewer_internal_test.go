@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 )
@@ -310,5 +311,38 @@ func TestLogsViewerModal_ExportWritesMarkdownToTheWorkingDirectory(t *testing.T)
 
 	if !strings.Contains(modal.View(), "exported to ") {
 		t.Error("the footer does not report the export")
+	}
+}
+
+// A log opened from a step in the timeline opens on that step: the whole run
+// is still there, folded, so the reader keeps the context around it.
+func TestLogsViewerModal_FocusStepFoldsEverythingElse(t *testing.T) {
+	t.Parallel()
+
+	m := NewLogsViewerModal(createTestRunLogs(), 80, 24)
+
+	if m.FocusStep("Deploy") {
+		t.Fatal("a step the run does not have reported as found")
+	}
+
+	if !m.FocusStep("Build") {
+		t.Fatal("the step the run does have was not found")
+	}
+
+	if m.collapsedSteps[1] {
+		t.Error("the focused step is folded")
+	}
+
+	if !m.collapsedSteps[0] {
+		t.Error("a step other than the focused one is still unfolded")
+	}
+
+	view := ansi.Strip(m.View())
+	if !strings.Contains(view, "Build failed: syntax error") {
+		t.Errorf("the focused step's entries are not on screen:\n%s", view)
+	}
+
+	if strings.Contains(view, "Starting setup") {
+		t.Errorf("a folded step's entries are still on screen:\n%s", view)
 	}
 }

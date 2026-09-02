@@ -192,3 +192,42 @@ func TestFlakyTab_LoadsOnceAndFollowsTheWorkflowSelection(t *testing.T) {
 		t.Error("reload asked for nothing")
 	}
 }
+
+// A drilled timeline is read for one step, so the log opens on that step
+// rather than at the top of the run.
+func TestTimelineStep_OpensTheLogOnTheStepUnderTheCursor(t *testing.T) {
+	t.Parallel()
+
+	m := resize(t, newRenderModel(), 120, 40)
+	m.focused = PaneRight
+	m.rightPanel.ShowDetail(nameRunsTab, "CI", detailJobs(false))
+	m.detailRunID = 11
+	m.detailRunName = "CI"
+
+	// Nothing is drilled, so no step is under the cursor and the verb says so
+	// rather than opening the whole log as though it had been asked for.
+	if _, cmd := m.logsForSelectedStep(); cmd == nil {
+		t.Fatal("asking for a step's log with nothing drilled did nothing at all")
+	}
+
+	m.rightPanel.Detail().Drill()
+
+	step, ok := m.rightPanel.Detail().SelectedStep()
+	if !ok || step != "Run actions/checkout@abc" {
+		t.Fatalf("the drilled timeline selected %q (found=%v), want the job's own step name", step, ok)
+	}
+
+	_, cmd := m.logsForSelectedStep()
+	if cmd == nil {
+		t.Fatal("no fetch was issued for the selected step")
+	}
+
+	fetch, ok := cmd().(FetchLogsMsg)
+	if !ok {
+		t.Fatalf("the verb sent %T, want a FetchLogsMsg", cmd())
+	}
+
+	if fetch.RunID != 11 || fetch.Step != step {
+		t.Errorf("the fetch asks for run %d step %q, want 11 and %q", fetch.RunID, fetch.Step, step)
+	}
+}

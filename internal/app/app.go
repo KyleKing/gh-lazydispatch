@@ -365,11 +365,12 @@ func (m Model) handleLogMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 				ErrorsOnly: msg.ErrorsOnly,
 				RunID:      msg.RunID,
 				Workflow:   msg.Workflow,
+				Step:       msg.Step,
 			}
 		}, true
 
 	case ShowLogsViewerMsg:
-		m = m.showLogsViewer(msg.Logs, msg.ErrorsOnly, msg.RunID, msg.Workflow)
+		m = m.showLogsViewer(msg.Logs, msg.ErrorsOnly, msg.RunID, msg.Step)
 
 		if !m.topLogsViewerIsStreaming() {
 			return m, nil, true

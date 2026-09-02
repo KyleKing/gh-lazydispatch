@@ -154,3 +154,27 @@ func (m Model) selectedRun() (int64, string, bool) {
 
 	return 0, "", false
 }
+
+// logsForSelectedStep opens the run's log on the step under the cursor, which
+// is what a drilled timeline is being read for: the step that took the time,
+// or the one that failed.
+func (m Model) logsForSelectedStep() (tea.Model, tea.Cmd) {
+	detail := m.rightPanel.Detail()
+	if detail == nil {
+		return m, statusCmd("no run open")
+	}
+
+	step, ok := detail.SelectedStep()
+	if !ok {
+		return m, statusCmd("drill into a job with [enter] to pick a step")
+	}
+
+	runID, name, found := m.selectedRun()
+	if !found {
+		return m, statusCmd("no run selected")
+	}
+
+	return m, func() tea.Msg {
+		return FetchLogsMsg{RunID: runID, Workflow: name, Step: step}
+	}
+}

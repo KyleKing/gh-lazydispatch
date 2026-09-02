@@ -94,7 +94,7 @@ It is a drill-down of the row that names the run rather than a tab beside it, so
 
 The action menu (`a`) reaches the run's log and a diagnosis from here, so the timeline names the failing job and the log says why.
 
-Open one with `enter` on a Runs, Live, or Flaky row, or with `:timeline`, which draws whatever is selected and takes a run id to draw one by number. A bar with no end yet is drawn open (`▓`) against a clock that runs to now, and redraws once a second while the run is going.
+Open one with `enter` on a Runs, Live, or Flaky row, or with `:timeline`, which draws whatever is selected and takes a run id to draw one by number. Drilled into a job, the action menu opens the selected step's log with the rest of the run folded around it. A bar with no end yet is drawn open (`▓`) against a clock that runs to now, and redraws once a second while the run is going.
 
 ## Flaky
 
