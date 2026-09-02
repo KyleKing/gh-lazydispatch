@@ -77,19 +77,20 @@ type ChainUpdate struct {
 //
 //nolint:revive // stutters but renaming to Executor would break call sites across the codebase
 type ChainExecutor struct {
-	client       GitHubClient
-	watcher      RunWatcher
-	chain        *config.Chain
-	state        *ChainState
-	variables    map[string]string
-	updates      chan ChainUpdate
-	stopCh       chan struct{}
-	dispatch     Dispatcher
-	chainName    string
-	branch       string
-	pollInterval time.Duration
-	mu           sync.RWMutex
-	stopOnce     sync.Once
+	client          GitHubClient
+	watcher         RunWatcher
+	chain           *config.Chain
+	state           *ChainState
+	variables       map[string]string
+	updates         chan ChainUpdate
+	stopCh          chan struct{}
+	dispatch        Dispatcher
+	resolveExisting ExistingRunResolver
+	chainName       string
+	branch          string
+	pollInterval    time.Duration
+	mu              sync.RWMutex
+	stopOnce        sync.Once
 }
 
 // Dispatcher starts one workflow and reports the run it started.
@@ -99,6 +100,38 @@ type ChainExecutor struct {
 // panics on `gh workflow run`, so the branch and failure handling around it were
 // unreachable while the call was hard-wired.
 type Dispatcher func(cfg runner.RunConfig, client GitHubClient) (int64, error)
+
+// ErrNoExistingRun indicates a source: existing step found no queued or
+// in-progress run of its workflow on the branch to adopt.
+var ErrNoExistingRun = errors.New("no queued or in-progress run found")
+
+// ExistingRunResolver finds the run a source: existing step should adopt,
+// rather than dispatching a fresh one.
+type ExistingRunResolver func(client GitHubClient, workflow, branch string) (*github.WorkflowRun, error)
+
+// existingRunStatuses is the order ResolveExistingRun checks: a run already
+// under way is what "existing" means, so an in-progress run wins over a
+// merely queued one.
+var existingRunStatuses = []string{github.StatusInProgress, github.StatusQueued}
+
+// ResolveExistingRun is the real resolution: it asks GitHub for the newest
+// in-progress or queued run of workflow on branch. It never falls back to
+// dispatching, because a step that sometimes starts a run and sometimes
+// adopts one is a step nobody can read.
+func ResolveExistingRun(client GitHubClient, workflow, branch string) (*github.WorkflowRun, error) {
+	for _, status := range existingRunStatuses {
+		runs, err := client.ListRuns(github.RunQuery{Workflow: workflow, Branch: branch, Status: status, Limit: 1})
+		if err != nil {
+			return nil, fmt.Errorf("listing %s runs of %s: %w", status, workflow, err)
+		}
+
+		if len(runs) > 0 {
+			return &runs[0], nil
+		}
+	}
+
+	return nil, ErrNoExistingRun
+}
 
 // dispatchThroughRunner is the real dispatch: it shells out to
 // `gh workflow run` and reports the run that appeared.
@@ -124,6 +157,12 @@ func WithPollInterval(d time.Duration) Option {
 	return func(e *ChainExecutor) { e.pollInterval = d }
 }
 
+// WithExistingRunResolver replaces how a source: existing step finds the run
+// to adopt.
+func WithExistingRunResolver(r ExistingRunResolver) Option {
+	return func(e *ChainExecutor) { e.resolveExisting = r }
+}
+
 // NewExecutor creates a new chain executor.
 func NewExecutor(
 	client GitHubClient, w RunWatcher, chainName string, chain *config.Chain, opts ...Option,
@@ -145,10 +184,11 @@ func NewExecutor(
 			StepStatuses: stepStatuses,
 			Status:       ChainPending,
 		},
-		updates:      make(chan ChainUpdate, 10),
-		stopCh:       make(chan struct{}),
-		dispatch:     dispatchThroughRunner,
-		pollInterval: watcher.PollInterval,
+		updates:         make(chan ChainUpdate, 10),
+		stopCh:          make(chan struct{}),
+		dispatch:        dispatchThroughRunner,
+		resolveExisting: ResolveExistingRun,
+		pollInterval:    watcher.PollInterval,
 	}
 
 	for _, opt := range opts {
@@ -301,6 +341,50 @@ func (e *ChainExecutor) runChain() {
 	e.sendUpdate()
 }
 
+// startStep gets a step's run going, either by dispatching a fresh one or by
+// adopting a run already in progress, and reports its ID and URL.
+func (e *ChainExecutor) startStep(step config.ChainStep, inputs map[string]string) (int64, string, error) {
+	if step.Source == config.SourceExisting {
+		run, err := e.resolveExisting(e.client, step.Workflow, e.branch)
+		if err != nil {
+			return 0, "", &chainerr.StepAdoptionError{Workflow: step.Workflow, Branch: e.branch, Cause: err}
+		}
+
+		return run.ID, run.URL, nil
+	}
+
+	cfg := runner.RunConfig{
+		Workflow: step.Workflow,
+		Branch:   e.branch,
+		Inputs:   inputs,
+	}
+
+	runID, err := e.dispatch(cfg, e.client)
+	if err != nil {
+		suggestion := ""
+		if e.branch != "" {
+			suggestion = fmt.Sprintf(
+				"Verify workflow %q exists and supports workflow_dispatch on branch %q", step.Workflow, e.branch,
+			)
+		}
+
+		return 0, "", &chainerr.StepDispatchError{
+			Workflow:   step.Workflow,
+			Branch:     e.branch,
+			Cause:      err,
+			Suggestion: suggestion,
+		}
+	}
+
+	//nolint:errcheck // best-effort: run URL is optional display info, nil run is handled below
+	run, _ := e.client.GetWorkflowRun(runID)
+	if run != nil {
+		return runID, run.URL, nil
+	}
+
+	return runID, "", nil
+}
+
 func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, error) {
 	ctx := &InterpolationContext{
 		Var:   e.variables,
@@ -319,38 +403,12 @@ func (e *ChainExecutor) runStep(idx int, step config.ChainStep) (*StepResult, er
 		}
 	}
 
-	cfg := runner.RunConfig{
-		Workflow: step.Workflow,
-		Branch:   e.branch,
-		Inputs:   inputs,
-	}
-
-	runID, err := e.dispatch(cfg, e.client)
+	runID, runURL, err := e.startStep(step, inputs)
 	if err != nil {
-		suggestion := ""
-		if e.branch != "" {
-			suggestion = fmt.Sprintf(
-				"Verify workflow %q exists and supports workflow_dispatch on branch %q", step.Workflow, e.branch,
-			)
-		}
-
-		return nil, &chainerr.StepDispatchError{
-			Workflow:   step.Workflow,
-			Branch:     e.branch,
-			Cause:      err,
-			Suggestion: suggestion,
-		}
+		return nil, err
 	}
 
 	e.watcher.Watch(runID, step.Workflow)
-
-	//nolint:errcheck // best-effort: run URL is optional display info, nil run is handled below
-	run, _ := e.client.GetWorkflowRun(runID)
-	runURL := ""
-
-	if run != nil {
-		runURL = run.URL
-	}
 
 	e.mu.Lock()
 	e.state.StepStatuses[idx] = StepWaiting

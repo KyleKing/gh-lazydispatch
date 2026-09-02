@@ -8,11 +8,20 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/kyleking/aragonite/display"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
+
+// adoptedRun is what a source: existing step resolves to before the chain
+// runs, or the reason it found nothing.
+type adoptedRun struct {
+	run *github.WorkflowRun
+	err error
+}
 
 // ChainConfirmResultMsg is sent when chain execution is confirmed or canceled.
 type ChainConfirmResultMsg struct {
@@ -33,6 +42,7 @@ type chainConfirmKeyMap struct {
 type ChainConfirmModal struct {
 	chain         *config.Chain
 	variables     map[string]string
+	adopted       map[int]adoptedRun
 	chainName     string
 	branch        string
 	keys          chainConfirmKeyMap
@@ -66,6 +76,17 @@ func NewChainConfirmModal(
 
 func (m *ChainConfirmModal) resolveSteps() {
 	m.resolvedSteps = chain.ResolveSteps(m.chain, m.variables, m.branch)
+}
+
+// SetAdoptedRun records what a source: existing step resolved to (or the
+// error it hit) before the chain runs. Sent asynchronously, one step at a
+// time, so a chain with several such steps fills them in as each resolves.
+func (m *ChainConfirmModal) SetAdoptedRun(stepIndex int, run *github.WorkflowRun, err error) {
+	if m.adopted == nil {
+		m.adopted = make(map[int]adoptedRun, len(m.chain.Steps))
+	}
+
+	m.adopted[stepIndex] = adoptedRun{run: run, err: err}
 }
 
 // Update handles input for the chain confirm modal.
@@ -194,11 +215,42 @@ func (m *ChainConfirmModal) renderSteps(s *strings.Builder) {
 		s.WriteString(ui.NormalStyle.Render(fmt.Sprintf("  %d. %s ", i+1, step.Workflow)))
 		s.WriteString(ui.TableDimmedStyle.Render(waitLabel))
 		s.WriteString("\n")
+
+		if stepDef.Source == config.SourceExisting {
+			m.renderAdoption(s, i)
+			continue
+		}
+
 		for _, line := range m.wrapCommand(step.Command) {
 			s.WriteString(ui.CLIPreviewStyle.Render(line))
 			s.WriteString("\n")
 		}
 	}
+}
+
+// renderAdoption writes what a source: existing step will adopt, once
+// resolved, so this reads as adopting a run rather than starting one.
+func (m *ChainConfirmModal) renderAdoption(s *strings.Builder, stepIndex int) {
+	adopted, ok := m.adopted[stepIndex]
+	if !ok {
+		s.WriteString(ui.TableDimmedStyle.Render(commandIndent + "resolving the run to adopt..."))
+		s.WriteString("\n")
+
+		return
+	}
+
+	if adopted.err != nil {
+		s.WriteString(ui.TableDimmedStyle.Render(commandIndent + "no run to adopt: " + adopted.err.Error()))
+		s.WriteString("\n")
+
+		return
+	}
+
+	age := display.RelativeTimeCompact(adopted.run.CreatedAt)
+	s.WriteString(ui.TableDimmedStyle.Render(fmt.Sprintf(
+		"%sadopts run #%d (%s, %s) %s", commandIndent, adopted.run.ID, adopted.run.Status, age, adopted.run.URL,
+	)))
+	s.WriteString("\n")
 }
 
 // commandIndent is the gutter a wrapped command sits in, under its step's

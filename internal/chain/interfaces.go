@@ -10,6 +10,7 @@ type GitHubClient interface {
 	GetWorkflowRun(runID int64) (*github.WorkflowRun, error)
 	GetWorkflowRunJobs(runID int64) ([]github.Job, error)
 	GetLatestRun(workflowName string) (*github.WorkflowRun, error)
+	ListRuns(q github.RunQuery) ([]github.WorkflowRun, error)
 	Owner() string
 	Repo() string
 }

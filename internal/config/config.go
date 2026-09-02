@@ -39,13 +39,26 @@ type Chain struct {
 
 // ChainStep represents a single step in a workflow chain.
 type ChainStep struct {
-	Workflow string `yaml:"workflow"`
+	Workflow string     `yaml:"workflow"`
+	Source   SourceKind `yaml:"source"`
 	//nolint:tagliatelle // documented config key, changing breaks user YAML
 	WaitFor WaitCondition     `yaml:"wait_for"`
 	Inputs  map[string]string `yaml:"inputs"`
 	//nolint:tagliatelle // documented config key, changing breaks user YAML
 	OnFailure FailureAction `yaml:"on_failure"`
 }
+
+// SourceKind specifies where a step's run comes from.
+type SourceKind string
+
+// Sources a chain step can adopt its run from.
+const (
+	// SourceDispatch starts a fresh gh workflow run. The default.
+	SourceDispatch SourceKind = "dispatch"
+	// SourceExisting adopts the newest queued or in-progress run of the
+	// step's workflow already on the branch, rather than starting one.
+	SourceExisting SourceKind = "existing"
+)
 
 // WaitCondition specifies when to proceed to the next step.
 type WaitCondition string
@@ -126,6 +139,10 @@ func applyDefaults(config *WfdConfig) {
 
 			if chain.Steps[i].OnFailure == "" {
 				chain.Steps[i].OnFailure = FailureAbort
+			}
+
+			if chain.Steps[i].Source == "" {
+				chain.Steps[i].Source = SourceDispatch
 			}
 		}
 

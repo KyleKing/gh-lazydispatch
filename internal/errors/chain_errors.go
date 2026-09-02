@@ -43,6 +43,22 @@ func (e *StepDispatchError) Unwrap() error {
 	return e.Cause
 }
 
+// StepAdoptionError represents a failure to find an existing run for a
+// source: existing step to adopt.
+type StepAdoptionError struct {
+	Cause    error
+	Workflow string
+	Branch   string
+}
+
+func (e *StepAdoptionError) Error() string {
+	return fmt.Sprintf("no existing run of %q to adopt on branch %q: %v", e.Workflow, e.Branch, e.Cause)
+}
+
+func (e *StepAdoptionError) Unwrap() error {
+	return e.Cause
+}
+
 // InterpolationError represents a failure to interpolate template variables.
 type InterpolationError struct {
 	Cause error

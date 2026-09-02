@@ -246,6 +246,7 @@ func (m Model) asyncHandlers() []func(tea.Msg) (tea.Model, tea.Cmd, bool) {
 	return []func(tea.Msg) (tea.Model, tea.Cmd, bool){
 		m.handleModalResultMsg,
 		m.handleChainMsg,
+		m.handleChainStepAdoptedMsg,
 		m.handleEnvironmentsMsg,
 		m.handleRunMutationMsg,
 		m.handleLogMsg,

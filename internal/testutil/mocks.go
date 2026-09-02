@@ -8,6 +8,7 @@ import (
 // MockGitHubClient implements both chain.GitHubClient and watcher.GitHubClient interfaces.
 type MockGitHubClient struct {
 	Err              error
+	ListRunsFunc     func(q github.RunQuery) ([]github.WorkflowRun, error)
 	Runs             map[int64]*github.WorkflowRun
 	Jobs             map[int64][]github.Job
 	LatestByWorkflow map[string]int64
@@ -90,6 +91,19 @@ func (m *MockGitHubClient) GetLatestRun(workflow string) (*github.WorkflowRun, e
 	}
 	// Fall back to default LatestID
 	return &github.WorkflowRun{ID: m.LatestID, Status: github.StatusQueued}, nil
+}
+
+// ListRuns returns ListRunsFunc's result, or an empty listing if unset.
+func (m *MockGitHubClient) ListRuns(q github.RunQuery) ([]github.WorkflowRun, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+
+	if m.ListRunsFunc != nil {
+		return m.ListRunsFunc(q)
+	}
+
+	return nil, nil
 }
 
 // Owner returns the mocked repository owner.

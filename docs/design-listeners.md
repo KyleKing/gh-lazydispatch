@@ -1,7 +1,7 @@
 # Listeners over chains
 
-A proposal, not shipped behavior. [docs/chains.md](./chains.md) describes what
-exists today.
+A proposal. Item 1 below has shipped; the rest has not.
+[docs/chains.md](./chains.md) describes what exists today.
 
 ## What the three complaints share
 
@@ -146,7 +146,7 @@ require merge to be asked for per invocation rather than configured once.
 ## Order of work
 
 1. `source: existing` on a chain step, and a confirmation modal that names the
-   adopted run. Unblocks the case in hand without touching the model
+   adopted run (shipped). Unblocks the case in hand without touching the model
 2. The listener package and `gh lazydispatch watch`, with the run-completion
    and pr-checks conditions and the notify and diagnose actions. This is the
    `pr-merge-watch` replacement

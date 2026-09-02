@@ -30,11 +30,24 @@ chains:
 
 ## Step options
 
-| Option       | Values                          | Default   | Meaning                        |
-| ------------ | ------------------------------- | --------- | ------------------------------ |
-| `wait_for`   | `success`, `completion`, `none` | `success` | When to move to the next step  |
-| `on_failure` | `abort`, `skip`, `continue`     | `abort`   | What to do when the step fails |
-| `inputs`     | map                             | none      | Override the workflow's inputs |
+| Option       | Values                           | Default    | Meaning                                        |
+| ------------ | -------------------------------- | ---------- | ----------------------------------------------- |
+| `source`     | `dispatch`, `existing`           | `dispatch` | Start a fresh run, or adopt one already going    |
+| `wait_for`   | `success`, `completion`, `none`  | `success`  | When to move to the next step                   |
+| `on_failure` | `abort`, `skip`, `continue`      | `abort`    | What to do when the step fails                   |
+| `inputs`     | map                              | none       | Override the workflow's inputs                   |
+
+`source: existing` attaches to the newest queued or in-progress run of the step's workflow on the branch, instead of dispatching a new one. It is for waiting on a build that is already going rather than starting a second one:
+
+```yaml
+steps:
+  - workflow: docker-build.yml
+    source: existing
+    wait_for: success
+  - workflow: deploy-prod.yml
+```
+
+Where nothing is running, the step fails and says so rather than dispatching instead: a step that sometimes starts a production build and sometimes adopts one is a step nobody can read. The confirmation modal names the run it will adopt, with its ID, age, and URL, once it resolves.
 
 ## Running one
 

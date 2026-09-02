@@ -306,7 +306,7 @@ Found this phase, not fixed:
   rather than let a test try. `mise run test:live` is the only thing that
   covers it, and it spends Actions minutes
 
-## Phase 11: listeners over chains (proposed)
+## Phase 11: listeners over chains (in progress)
 
 [docs/design-listeners.md](./docs/design-listeners.md) argues the primitive is
 `when <condition> then <action>` over state the tool already reads, and that a
@@ -315,13 +315,14 @@ shape all of them take. Durable sequencing belongs in the repository's own
 `workflow_run` and `needs:`, which run whether or not a laptop is awake. What
 is left for this tool is the window around a change you just pushed.
 
-Nothing is committed to yet. The order the design proposes:
+The order the design proposes:
 
-- **`source: existing` on a chain step.** Resolve the newest queued or
-  in-progress run of that workflow on the ref and adopt it, failing where
+- **`source: existing` on a chain step (shipped).** `ChainExecutor.startStep`
+  resolves the newest queued or in-progress run of that workflow on the ref
+  through `chain.ResolveExistingRun` and adopts it, failing the step where
   nothing is running rather than dispatching instead. The confirmation modal
-  has to name the run it adopts, since a modal that reads as a dispatch over an
-  adopted run is what costs a duplicate deploy
+  resolves and names the adopted run (ID, age, URL) asynchronously, the same
+  way it already tracks a running chain's state
 - **A listener package and `gh lazydispatch watch`.** Run-completion and
   pr-checks conditions, notify and diagnose actions. This is the
   `pr-merge-watch` replacement, and it cannot live in the TUI, because that

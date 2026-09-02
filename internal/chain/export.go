@@ -58,6 +58,13 @@ func ExportAsBash(chainName string, chain *config.Chain, variables map[string]st
 			continue
 		}
 
+		if step.Source == config.SourceExisting {
+			fmt.Fprintf(&sb, "# SKIPPED: source: existing adopts a run already going on the"+
+				" branch, which a script cannot express\n\n")
+
+			continue
+		}
+
 		sb.WriteString(resolved.Command)
 		sb.WriteString("\n\n")
 	}
@@ -75,7 +82,10 @@ type ResolvedStep struct {
 	// it and carries on; only the executor treats it as fatal.
 	Err      error
 	Workflow string
-	Command  string
+	// Command is the gh dispatch command a dispatch-source step runs. Empty
+	// for a source: existing step, which adopts a run instead of starting one.
+	Command string
+	Source  config.SourceKind
 }
 
 // ResolveSteps interpolates every step's inputs in order, so a step's
@@ -95,16 +105,21 @@ func ResolveSteps(chain *config.Chain, variables map[string]string, branch strin
 
 		inputs, err := InterpolateInputs(step.Inputs, ctx)
 
-		cfg := runner.RunConfig{
-			Workflow: step.Workflow,
-			Branch:   branch,
-			Inputs:   inputs,
+		command := ""
+		if step.Source != config.SourceExisting {
+			cfg := runner.RunConfig{
+				Workflow: step.Workflow,
+				Branch:   branch,
+				Inputs:   inputs,
+			}
+			command = runner.FormatCommand(runner.BuildArgs(cfg))
 		}
 
 		resolved[i] = ResolvedStep{
 			Workflow: step.Workflow,
 			Inputs:   inputs,
-			Command:  runner.FormatCommand(runner.BuildArgs(cfg)),
+			Command:  command,
+			Source:   step.Source,
 			Err:      err,
 		}
 

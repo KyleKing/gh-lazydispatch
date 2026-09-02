@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -526,10 +527,9 @@ func (m Model) startChainFlow(name string, chainDef config.Chain) (tea.Model, te
 	m.pendingChainVariables = nil
 	m.modalStack.Push(modal.NewChainConfirmModal(name, &chainDef, nil, m.branch, m.watchRun))
 
-	return m, nil
+	return m, m.resolveChainAdoptionCmd(&chainDef, m.branch)
 }
 
-//nolint:unparam // uniform (tea.Model, tea.Cmd) signature, required by handleModalResultMsg's dispatch
 func (m Model) handleChainVariableResult(msg modal.ChainVariableResultMsg) (tea.Model, tea.Cmd) {
 	if msg.Canceled || m.pendingChain == nil {
 		m.pendingChainName = ""
@@ -547,7 +547,7 @@ func (m Model) handleChainVariableResult(msg modal.ChainVariableResultMsg) (tea.
 		m.watchRun,
 	))
 
-	return m, nil
+	return m, m.resolveChainAdoptionCmd(m.pendingChain, m.branch)
 }
 
 func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Model, tea.Cmd) {
@@ -603,6 +603,9 @@ func (Model) buildChainCommands(chainDef *config.Chain, variables map[string]str
 	commands := make([]string, len(resolved))
 	for i, step := range resolved {
 		commands[i] = step.Command
+		if step.Source == config.SourceExisting {
+			commands[i] = fmt.Sprintf("# adopts the run already going on %s for %s", branch, step.Workflow)
+		}
 	}
 
 	return commands
