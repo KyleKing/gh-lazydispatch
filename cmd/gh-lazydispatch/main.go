@@ -12,6 +12,7 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/app"
 	"github.com/kyleking/gh-lazydispatch/internal/cli"
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
@@ -55,7 +56,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	workflows, failures, err := workflow.Discover(cwd)
+	root, err := git.RepoRoot(cwd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	workflows, failures, err := workflow.Discover(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error discovering workflows: %v\n", err)
 		os.Exit(1)
@@ -92,7 +99,7 @@ func main() {
 
 	ui.InitTheme(theme.Detect())
 
-	model := app.New(workflows, history, repo)
+	model := app.New(workflows, history, repo, app.WithRepoRoot(root))
 
 	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {

@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -112,15 +113,55 @@ func TestExportChains_KeepsStepOrder(t *testing.T) {
 	}
 }
 
+// emptyCheckout is a repository root holding nothing, which is what separates
+// "this repository configures no chains" from "this is not a repository".
+func emptyCheckout(t *testing.T) string {
+	t.Helper()
+
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".git"), 0o750); err != nil {
+		t.Fatalf("failed to create .git: %v", err)
+	}
+
+	return root
+}
+
 //nolint:paralleltest // t.Chdir rules out t.Parallel
 func TestExportChains_ReportsAMissingConfigRatherThanCrashing(t *testing.T) {
-	_, stderr, code := runLocal(t, t.TempDir(), "chains")
+	_, stderr, code := runLocal(t, emptyCheckout(t), "chains")
 	if code != 1 {
-		t.Fatalf("exit %d, want 1 for a directory with no config", code)
+		t.Fatalf("exit %d, want 1 for a checkout with no config", code)
 	}
 
 	if !strings.Contains(stderr, "lazydispatch.yml") {
 		t.Errorf("stderr does not name the file it looked for: %q", stderr)
+	}
+}
+
+// Paths resolve against the checkout root, so a subdirectory reads the same
+// config the root does rather than looking for one beside itself.
+//
+//nolint:paralleltest // t.Chdir rules out t.Parallel
+func TestExportChains_ReadsTheConfigFromASubdirectory(t *testing.T) {
+	stdout, _, code := runLocal(t, filepath.Join(repoRoot(t), "internal", "cli"), "chains")
+	if code != 0 {
+		t.Fatalf("exit %d, want 0 from a subdirectory of the checkout", code)
+	}
+
+	if !strings.Contains(stdout, `"name"`) {
+		t.Errorf("stdout holds no chains: %q", stdout)
+	}
+}
+
+//nolint:paralleltest // t.Chdir rules out t.Parallel
+func TestExportChains_SaysWhenTheDirectoryIsNotACheckout(t *testing.T) {
+	_, stderr, code := runLocal(t, t.TempDir(), "chains")
+	if code != 1 {
+		t.Fatalf("exit %d, want 1 outside a repository", code)
+	}
+
+	if !strings.Contains(stderr, "not inside a git or jj repository") {
+		t.Errorf("stderr does not say the directory is not a checkout: %q", stderr)
 	}
 }
 

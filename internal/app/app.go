@@ -114,8 +114,26 @@ type ChainUpdateMsg struct {
 	Update chain.ChainUpdate
 }
 
+// Option configures an optional part of the model.
+type Option func(*options)
+
+type options struct {
+	repoRoot string
+}
+
+// WithRepoRoot reads the chain config from root rather than the working
+// directory, which is what lets the TUI start in a subdirectory.
+func WithRepoRoot(root string) Option {
+	return func(o *options) { o.repoRoot = root }
+}
+
 // New creates a new application model.
-func New(workflows []workflow.File, history *frecency.Store, repo string) Model {
+func New(workflows []workflow.File, history *frecency.Store, repo string, opts ...Option) Model {
+	settings := options{repoRoot: "."}
+	for _, opt := range opts {
+		opt(&settings)
+	}
+
 	ctx := context.Background()
 	currentBranch := git.GetCurrentBranch(ctx)
 
@@ -143,7 +161,7 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 		m.logManager = logs.NewManager(ghClient)
 	}
 
-	cfg, err := config.Load(".")
+	cfg, err := config.Load(settings.repoRoot)
 
 	switch {
 	// Most repositories configure no chains, so a missing file stays silent.

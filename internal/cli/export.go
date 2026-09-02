@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
@@ -97,9 +98,9 @@ func exportWorkflows(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("%w: %w", ErrUsage, err)
 	}
 
-	root, err := os.Getwd()
+	root, err := repoRootFromWD()
 	if err != nil {
-		return fmt.Errorf("resolving the working directory: %w", err)
+		return err
 	}
 
 	files, failures, err := workflow.Discover(root)
@@ -136,15 +137,31 @@ func summarizeWorkflow(file workflow.File) workflowSummary {
 	return workflowSummary{Name: file.Name, Filename: file.Filename, Inputs: inputs}
 }
 
+// repoRootFromWD resolves the checkout holding the working directory, so a
+// command run from a subdirectory reads the same files as one run from the root.
+func repoRootFromWD() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("resolving the working directory: %w", err)
+	}
+
+	root, err := git.RepoRoot(cwd)
+	if err != nil {
+		return "", fmt.Errorf("resolving the repository root: %w", err)
+	}
+
+	return root, nil
+}
+
 func exportChains(args []string, stdout, stderr io.Writer) error {
 	fs := newFlagSet("chains")
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("%w: %w", ErrUsage, err)
 	}
 
-	root, err := os.Getwd()
+	root, err := repoRootFromWD()
 	if err != nil {
-		return fmt.Errorf("resolving the working directory: %w", err)
+		return err
 	}
 
 	cfg, err := config.Load(root)
