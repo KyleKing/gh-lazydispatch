@@ -48,6 +48,7 @@ func chainColumnsFor(width int) []table.Column {
 type ChainListModel struct {
 	chains        map[string]config.Chain
 	chainNames    []string
+	err           error
 	selectedIndex int
 	width         int
 	height        int
@@ -69,6 +70,12 @@ func (m *ChainListModel) SetChains(chains map[string]config.Chain) {
 	}
 
 	sort.Strings(m.chainNames)
+}
+
+// SetError records a config that could not be read so the pane says why rather
+// than reading as a repository that configures no chains.
+func (m *ChainListModel) SetError(err error) {
+	m.err = err
 }
 
 // Count reports how many chains the repository configures.
@@ -130,6 +137,11 @@ func (m ChainListModel) window() (int, int) {
 
 // ViewContent renders the chain list content without the pane border.
 func (m ChainListModel) ViewContent() string {
+	if m.err != nil {
+		return ui.SubtitleStyle.Render("Could not read "+config.ConfigFilename) + "\n\n" +
+			ui.NormalStyle.Render(m.err.Error())
+	}
+
 	var content strings.Builder
 
 	// SetSize is given the pane's outer width, unlike the panes inside the

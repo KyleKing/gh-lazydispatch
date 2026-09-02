@@ -3,6 +3,7 @@ package app
 
 import (
 	"context"
+	"errors"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -142,7 +143,14 @@ func New(workflows []workflow.File, history *frecency.Store, repo string) Model 
 		m.logManager = logs.NewManager(ghClient)
 	}
 
-	if cfg, err := config.Load("."); err == nil && cfg != nil {
+	cfg, err := config.Load(".")
+
+	switch {
+	// Most repositories configure no chains, so a missing file stays silent.
+	case errors.Is(err, config.ErrConfigNotFound):
+	case err != nil:
+		m.chains.SetError(err)
+	case cfg != nil:
 		m.wfdConfig = cfg
 		m.chains.SetChains(cfg.Chains)
 	}

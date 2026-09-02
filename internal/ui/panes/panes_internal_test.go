@@ -1,6 +1,7 @@
 package panes
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -452,6 +453,23 @@ func TestChainListModel_ViewWithChains(t *testing.T) {
 	view := m.ViewContent()
 	if !findSubstring(view, "deploy") {
 		t.Error("view should contain chain name")
+	}
+}
+
+// A config that failed to load reads identically to a repository with no
+// chains unless the pane says why, which is what hid a broken symlink.
+func TestChainListModel_ViewNamesAConfigItCouldNotRead(t *testing.T) {
+	t.Parallel()
+
+	m := NewChainListModel()
+	m.SetSize(80, 24)
+	m.SetError(errors.New("its target \"../other/lazydispatch.yml\" does not exist"))
+
+	view := ansi.Strip(m.ViewContent())
+	for _, want := range []string{config.ConfigFilename, "../other/lazydispatch.yml"} {
+		if !findSubstring(view, want) {
+			t.Errorf("view %q does not name %q", view, want)
+		}
 	}
 }
 
