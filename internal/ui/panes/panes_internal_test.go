@@ -16,6 +16,8 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/watcher"
 )
 
+var errBrokenLink = errors.New("its target \"../other/lazydispatch.yml\" does not exist")
+
 const (
 	testValueStaging = "staging"
 	testChainAlpha   = "alpha"
@@ -463,7 +465,7 @@ func TestChainListModel_ViewNamesAConfigItCouldNotRead(t *testing.T) {
 
 	m := NewChainListModel()
 	m.SetSize(80, 24)
-	m.SetError(errors.New("its target \"../other/lazydispatch.yml\" does not exist"))
+	m.SetError(errBrokenLink)
 
 	view := ansi.Strip(m.ViewContent())
 	for _, want := range []string{config.ConfigFilename, "../other/lazydispatch.yml"} {

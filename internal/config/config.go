@@ -91,11 +91,7 @@ func LoadFrom(path string) (*WfdConfig, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // path built from repo root + fixed config filename
 	if err != nil {
 		if os.IsNotExist(err) {
-			if linkErr := describeBrokenSymlink(path); linkErr != nil {
-				return nil, linkErr
-			}
-
-			return nil, fmt.Errorf("%s: %w", path, ErrConfigNotFound)
+			return nil, missingFileErr(path)
 		}
 
 		return nil, fmt.Errorf("failed to read config file: %w", err)
@@ -115,6 +111,13 @@ func LoadFrom(path string) (*WfdConfig, error) {
 		return nil, fmt.Errorf("%w: got %d", ErrUnsupportedConfigVersion, config.Version)
 	}
 
+	applyDefaults(&config)
+
+	return &config, nil
+}
+
+// applyDefaults fills the optional keys a step or variable left unset.
+func applyDefaults(config *WfdConfig) {
 	for name, chain := range config.Chains {
 		for i := range chain.Steps {
 			if chain.Steps[i].WaitFor == "" {
@@ -134,22 +137,33 @@ func LoadFrom(path string) (*WfdConfig, error) {
 
 		config.Chains[name] = chain
 	}
-
-	return &config, nil
 }
 
-// describeBrokenSymlink reports why a symlink at path could not be read, or nil
-// when path is not a symlink. A relative target resolves against the link's own
-// directory rather than the working directory, which is the mistake it names.
-func describeBrokenSymlink(path string) error {
+// missingFileErr explains an unreadable path: a dangling symlink names its
+// target, because a relative target resolves against the link's own directory
+// rather than the working directory, and that is the mistake behind it.
+func missingFileErr(path string) error {
+	target, resolved, ok := symlinkTarget(path)
+	if !ok {
+		return fmt.Errorf("%s: %w", path, ErrConfigNotFound)
+	}
+
+	return fmt.Errorf("%s: %w: its target %q resolves to %s, which does not exist."+
+		" A relative target resolves against the link's own directory, %s",
+		path, ErrBrokenSymlink, target, resolved, filepath.Dir(path))
+}
+
+// symlinkTarget reports the link target at path and where it resolves to,
+// or a false third value when path is not a readable symlink.
+func symlinkTarget(path string) (string, string, bool) {
 	info, err := os.Lstat(path)
 	if err != nil || info.Mode()&os.ModeSymlink == 0 {
-		return nil
+		return "", "", false
 	}
 
 	target, err := os.Readlink(path)
 	if err != nil {
-		return fmt.Errorf("%s: %w", path, ErrBrokenSymlink)
+		return "", "", false
 	}
 
 	resolved := target
@@ -157,9 +171,7 @@ func describeBrokenSymlink(path string) error {
 		resolved = filepath.Join(filepath.Dir(path), target)
 	}
 
-	return fmt.Errorf("%s: %w: its target %q resolves to %s, which does not exist."+
-		" A relative target resolves against the link's own directory, %s",
-		path, ErrBrokenSymlink, target, resolved, filepath.Dir(path))
+	return target, resolved, true
 }
 
 // bareScalar reports the document's content when it parsed as a single scalar

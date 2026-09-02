@@ -485,19 +485,27 @@ func TestLoad_FailedSymlinks(t *testing.T) {
 			tc.write(t, filepath.Join(configDir, "lazydispatch.yml"))
 
 			cfg, err := config.Load(dir)
-			if !errors.Is(err, tc.wantErr) {
-				t.Fatalf("expected %v, got: %v", tc.wantErr, err)
-			}
-
 			if cfg != nil {
 				t.Error("expected nil config")
 			}
 
-			for _, want := range tc.wantMsg {
-				if !strings.Contains(err.Error(), want) {
-					t.Errorf("error %q does not name %q", err, want)
-				}
-			}
+			requireErrorNaming(t, err, tc.wantErr, tc.wantMsg)
 		})
+	}
+}
+
+// requireErrorNaming holds an error to both its sentinel and the details a
+// reader needs to act on it.
+func requireErrorNaming(t *testing.T, err, want error, names []string) {
+	t.Helper()
+
+	if !errors.Is(err, want) {
+		t.Fatalf("expected %v, got: %v", want, err)
+	}
+
+	for _, name := range names {
+		if !strings.Contains(err.Error(), name) {
+			t.Errorf("error %q does not name %q", err, name)
+		}
 	}
 }

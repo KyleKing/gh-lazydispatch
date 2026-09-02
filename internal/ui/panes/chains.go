@@ -47,8 +47,8 @@ func chainColumnsFor(width int) []table.Column {
 // ChainListModel manages the chain list display.
 type ChainListModel struct {
 	chains        map[string]config.Chain
-	chainNames    []string
 	err           error
+	chainNames    []string
 	selectedIndex int
 	width         int
 	height        int
