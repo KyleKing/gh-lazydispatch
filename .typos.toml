@@ -1,7 +1,12 @@
 [files]
 # Generated from commit subjects by commitizen, so a typo here can only be fixed
 # by rewriting history. Catch it in the commit message instead.
-extend-exclude = ["CHANGELOG.md"]
+extend-exclude = [
+  "CHANGELOG.md",
+  # A cassette is a byte-exact recording of what gh printed, so a "typo" in
+  # one is a UUID and correcting it would break the fixture it is.
+  "**/testdata/cassettes/*.golden",
+]
 
 [default]
 # Abbreviated commit hashes. Every one of them is a word made of a-f, and

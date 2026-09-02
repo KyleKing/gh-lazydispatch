@@ -212,13 +212,50 @@ Also in this phase, from the backlog:
   once, `d` stops watching every marked run. `space` was focus-config, which
   `tab` already does
 
-## Deferred / v2 ideas
+## Phase 9: acting on what the tool already reads
 
-Tracked in `DESIGN.md` and `CONTRIBUTING.md` design-decision sections:
+The tool could read a failed run, lay it on a time axis, and name what broke
+it, and then the only way to act on any of that was the browser.
 
-- Single-screen dashboard alternative to the modal-stack UX
-- SQLite-backed frecency store (currently JSON)
-- `environment`-type input resolution via repo-environments API call
-- Ranking failure signatures rather than reporting each once per step. Scoping the
-  scan to a failed step's last 200 lines removed the false positives that made
-  this look urgent, so it stays deferred until a real corpus shows noise again
+- **Re-run and cancel.** `gh run rerun --failed` and `gh run cancel` from the
+  action menu wherever a run is selected: Runs, Live, Flaky, and an open
+  timeline. Both are confirmed the way a dispatch is, since re-running or
+  canceling somebody's run is no less outward-facing than starting one, and the
+  confirmation shows the gh command rather than describing it
+- **A step's own log.** The timeline names the step that took the time or
+  failed, and reading it meant opening the whole run's log and finding that
+  step again. The action menu opens it on that step, with the rest of the run
+  folded around it rather than hidden
+- **Environment inputs.** An `environment`-type input names one of the
+  repository's deployment environments, which nothing in the workflow file
+  lists, so the modal had been a free-text box with an apology in it. The names
+  come from `repos/{owner}/{repo}/environments`, read once at startup and only
+  where a workflow declares such an input
+- **Pre-dispatch validation.** A choice set outside its options and a boolean
+  carrying "yes" went out and came back a 422 naming nothing.
+  `validation.ValidateDispatch` names the input instead
+
+Also in this phase, `internal/ui` got its first test file. It holds `PaneBox`,
+`ScrollWindow`, and the column sets, which is where the last three rendering
+defects lived, and it had 0% coverage. The `PaneBox` test holds the box to its
+rectangle for any content, and the column test found that `ConfigColumnsFor`
+took a table width while reading as a pane width.
+
+## Scrapped
+
+Both were filed as v2 alternatives and neither survived contact with what
+shipped:
+
+- **Single-screen dashboard.** It was an alternative to the modal-stack UX, and
+  Phase 8 removed most of the modal stack's job: details live in panes, the
+  timeline is a drill-down, the layout is lazygit's two-column shape. A second
+  view layer would fork maintenance against a problem that largely went away
+- **SQLite-backed frecency store.** It buys queries nobody runs. The JSON file
+  is one user's history on one machine, and nothing has measured a load cost
+
+## Still deferred
+
+- Ranking failure signatures rather than reporting each once per step. Scoping
+  the scan to a failed step's last 200 lines removed the false positives that
+  made this look urgent, so it stays deferred until a real corpus shows noise
+  again. `AGENTS.local.md` holds how to measure that

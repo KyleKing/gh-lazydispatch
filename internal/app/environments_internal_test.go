@@ -26,7 +26,7 @@ func environmentWorkflow() []workflow.File {
 // An environment input names one of the repository's deployment environments,
 // which nothing in the workflow file lists. Once they are read it picks from
 // them; until then it is free text that says the value goes out as typed.
-func TestEnvironmentInput_PicksFromTheRepositorysEnvironments(t *testing.T) {
+func TestEnvironmentInput_PicksFromTheEnvironmentsTheRepositoryHas(t *testing.T) {
 	t.Parallel()
 
 	m := resize(t, New(environmentWorkflow(), testHistory(), "owner/repo"), 120, 40)

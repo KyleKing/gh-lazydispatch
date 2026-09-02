@@ -2,7 +2,7 @@
 
 Open defects and follow-ups. Phased feature work lives in `ROADMAP.md`; the
 append-only pass log is `.freshen.md`. Every item was re-verified against the
-source on 2026-08-31. Each names the symbol to change rather than a line number,
+source on 2026-09-01. Each names the symbol to change rather than a line number,
 because line numbers drift.
 
 ## Behavior
@@ -13,6 +13,14 @@ carries the line that matched, which is what lets a reader see it is a false
 positive, but nothing ranks or scores them. If the noise becomes a problem, the
 fix is to weight a signature by where in the step it matched rather than to
 narrow the patterns.
+
+`.golangci.toml` sets gofumpt's `extra-rules`, which golangci-lint 2.13.2
+deprecates in favor of `extra.group-params`, so every format run prints a
+warning. The file is template-managed and
+[my_go_template](https://github.com/KyleKing/my_go_template) has already
+measured the swap and decided against it: the two keys are not equivalent, and
+taking the replacement means a reformat commit in every child. The warning
+stands until that is worth doing.
 
 ## Hooks
 
@@ -42,15 +50,20 @@ assuming.
 
 ## Template and dependencies
 
-On copier `my_go_template` v0.13.0. Bubbletea is already on `charm.land/*/v2`, so
+On copier `my_go_template` v0.15.1. Bubbletea is already on `charm.land/*/v2`, so
 no framework migration applies. No Dependabot PRs are open.
 
-`README.md`, `DESIGN.md`, `go.mod`, and `cmd/gh-lazydispatch/main.go` sit in the
-template's `_skip_if_exists`, so copier never touches them and each has diverged
-from the seed on purpose. `AGENTS.md` is in the same list but was still carrying
-the pre-v0.6 shape; the v0.9.1 rewrite was copied over by hand. Any future
-template change to those five needs the same manual diff against
-`my_go_template/.ctt/default/`.
+`README.md`, `DESIGN.md`, `go.mod`, `.config/mise.toml`, and
+`cmd/gh-lazydispatch/main.go` sit in the template's `_skip_if_exists`, so copier
+never touches them and each has diverged from the seed on purpose. Any future
+template change to those five needs a manual diff against
+`my_go_template/.ctt/default/`. `AGENTS.md` left that list, so `copier update`
+keeps it current on its own.
+
+`.typos.toml` excludes `**/testdata/cassettes/*.golden`, which is a local edit
+to a template-managed file and will come back as a `.rej` on the next `copier
+update`. Re-apply it: a cassette is a byte-exact recording of what gh printed,
+and a UUID inside one reads as a misspelling that must not be corrected.
 
 ## Running the live test
 
