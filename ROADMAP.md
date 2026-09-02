@@ -241,6 +241,66 @@ defects lived, and it had 0% coverage. The `PaneBox` test holds the box to its
 rectangle for any content, and the column test found that `ConfigColumnsFor`
 took a table width while reading as a pane width.
 
+## Phase 10: testing what only a recording can test
+
+Coverage went 75.0% to 85.6%, and the ten points came from deleting code as
+much as from writing tests. `internal/testutil/testutil.go` was 208 lines of
+assert helpers with no callers, and `internal/logs/test_helpers.go` was
+benchmark-only scaffolding in a non-test file, so its statements counted
+against the denominator while never running under `go test`.
+
+The tests that followed each sweep one axis rather than one function: every
+verb the action leader offers in every pane that offers it, every command the
+`:` bar registers, every modal driven through the editing keys and not just
+navigation, and every background message claimed by exactly one async handler.
+The AST check already proved a case existed for each message; that one proves
+it runs. The modal sweep found `RemapModal.selectOption` reading past the end
+of its error list once the wizard had decided the last one.
+
+Then the layer none of that reaches. Everything the tool learns about GitHub
+arrives as bytes from a `gh` subprocess, and a fixture of those bytes records
+what its author imagined. `internal/github` and `internal/app` now replay real
+recordings through `aragonite/ghcassette`: every read method on the client, and
+the whole path from a branch's state through a run's timeline to its log.
+`AGENTS.local.md` holds what a cassette test has to do to be worth its bytes.
+
+That work needed one product fix. The mutation guard blocked every `gh pr`
+call, so `gh pr list` (how a pull request's check rollup is read) panicked in
+tests and `PullRequestsInScope` could not be exercised at all. Operations are
+now allowlisted per name, so a read gets through and anything unrecognized
+stays blocked.
+
+## Not done
+
+Found this phase, not fixed:
+
+- **A pull request listing ignores the repository it was asked for.**
+  `PullRequestsInScope` passes the client's `owner/repo` to aragonite, which
+  uses it only as a cache key: the `gh pr list` behind it resolves its
+  repository from the process's working directory instead. The TUI happens to
+  agree, because you launch it inside the repository you are reading, so
+  nothing is visibly wrong today. It is still an unstated coupling, and the
+  cassette test has to stand the process in a throwaway checkout to record
+  against anything else. The fix is a `--repo` flag in aragonite's
+  `prListPage`, which means an upstream change and a release
+- **`gofumpt`'s `extra-rules` is deprecated.** `golangci-lint` warns on every
+  run. The replacement, `extra.group-params`, is not the same rule:
+  `my_go_template` measured 31 diff lines against plain gofumpt for
+  `extra-rules` and 12 for `group-params`, so taking it relaxes formatting and
+  forces a reformat commit in every child project. The template records that
+  decision; this repository just inherits the warning
+- **A local edit to `.typos.toml`.** Cassettes are excluded there because a
+  UUID inside one reads as a misspelling. The file is template-managed, so the
+  edit returns as a `.rej` on the next `copier update` and has to be re-applied
+- **Coverage is uneven under the line.** `internal/ui/panes` and
+  `internal/ui/modal` still hold the largest untested blocks, mostly in the
+  render paths that the contract tests exercise without asserting on. The
+  module clears 85% overall; no package floor is enforced
+- **`internal/runner` and the dispatch itself stay untested end to end.**
+  Dispatching is a mutation, so no cassette can record it and the guard panics
+  rather than let a test try. `mise run test:live` is the only thing that
+  covers it, and it spends Actions minutes
+
 ## Scrapped
 
 Both were filed as v2 alternatives and neither survived contact with what

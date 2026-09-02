@@ -21,11 +21,30 @@ A cassette is TOML named `.golden`, because `hk.pkl` excludes that suffix from t
 whitespace fixers and nothing else. A recorded log whose trailing spaces and tabs were
 normalized on commit is no longer what gh printed.
 
-`internal/logs/testdata/cassettes/` holds `passing-run` and `failing-run`, recorded
-against completed runs of the dispatch-only demo workflows. `TestRecorded_*` in
-`internal/logs` replays them; `TestRecorded_FixturesMatchTheRecordedShape` holds every
-fixture under `testdata/logs/` to the same line shape, so a new one cannot be written
-in a format gh never emits.
+Four packages hold cassettes, each covering the layer above the last:
+
+- `internal/logs` has `passing-run` and `failing-run`, the step-log parser and the
+  failure signatures against real log bytes. `TestRecorded_FixturesMatchTheRecordedShape`
+  holds every fixture under `testdata/logs/` to the same line shape, so a new one cannot
+  be written in a format gh never emits
+- `internal/cli` has the export subcommands, driven as a built binary
+- `internal/github` has `reads`, `pull-requests`, and `environments`: every read method
+  on the client, against the JSON GitHub actually returns
+- `internal/app` has `runs-journey`, the path the tool exists for, in one recording: a
+  branch's state, the run behind a row, and that run's log. It is one test rather than
+  four because the branch listing alone is a megabyte of JSON, and a second test wanting
+  a second copy of it is worth restructuring to avoid
+
+A recording is only worth its bytes if what it recorded is not empty. Both cassette
+tests that could go vacuous fail instead: the pull request scopes require a rollup to
+have parsed, and the branch state requires a row. `KyleKing/second-look` is the pull
+request target because this repository has no open pull request of its own, and a
+recording of an empty list tests nothing.
+
+A pull request listing resolves its repository from the *working directory's* remote
+rather than from the repository the client was built for, so the test stands the process
+in a throwaway checkout whose only remote is the target. That coupling is a defect
+rather than a convention; ROADMAP.md carries it.
 
 ### Re-recording
 
@@ -38,7 +57,7 @@ nothing: the runs it reads are already finished, and re-recording never dispatch
 Recording a *dispatch* is what `mise run test:live` is for, and that one spends Actions
 minutes; see [docs/live-testing.md](docs/live-testing.md).
 
-The run IDs are constants in `internal/logs/recorded_internal_test.go`. They belong to
+The run IDs are constants in each package's `recorded_internal_test.go`. They belong to
 `demo-test.yml` and `demo-chain-check.yml` on `main`, which exist to be dispatched and
 are never removed. Pick new IDs there if GitHub ages these out; `demo-chain-check.yml`
 prints a line matching every signature `logs.Detect` looks for, which is what the export
@@ -46,7 +65,17 @@ test asserts on.
 
 Recording talks to GitHub as you. `internal/exec`'s mutation guard panics on
 `gh workflow run` and friends during tests, so an in-process test cannot dispatch by
-accident, and replay reaches nothing at all: the stub has no `gh` to run.
+accident, and replay reaches nothing at all: the stub has no `gh` to run. The guard
+allowlists read *operations* (`list`, `view`, `status`, `checks`, `diff`, `watch`)
+against the subcommands that can write, so `gh pr list` gets through and `gh pr create`
+does not. Anything unrecognized stays blocked, which is why a gh release adding an
+operation blocks until someone decides it reads.
+
+Two more things a cassette test has to do, both of which pass silently when skipped.
+Call `cache.ClearAll()` before replaying, because aragonite caches some reads in process
+and a cached read never reaches the stub, so the replay passes while playing nothing.
+Resolve the cassette path before any `t.Chdir`, or `testdata` resolves against wherever
+the test went.
 
 ## Async messages and the modal stack
 
