@@ -51,8 +51,6 @@ func declaresEnvironmentInput(workflows []workflow.File) bool {
 // from. A failure is not reported: the input falls back to free text, which
 // says so itself, and a modal over the workflow list at startup would be
 // reporting on something nobody asked for yet.
-//
-//nolint:unparam // every Update handler returns a Cmd, and this one having none is not a reason to differ
 func (m Model) handleEnvironmentsMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	fetched, ok := msg.(EnvironmentsFetchedMsg)
 	if !ok {

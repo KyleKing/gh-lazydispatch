@@ -16,6 +16,8 @@ const (
 	keyEnter           = "enter"
 	nameBranch         = "branch"
 	nameRunsTab        = "Runs"
+	nameCancelRun      = "cancel this run"
+	nameRerunFailed    = "re-run the failed jobs"
 	nameViewLogs       = "view logs"
 	nameTimelineAction = "timeline for this run"
 	nameWorkflow       = "workflow"
@@ -126,6 +128,8 @@ func (m Model) liveActions() []paneAction {
 		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
 		{key: "d", name: "stop watching " + markLabel(marked), run: Model.unwatchMarkedRuns},
 		{key: "D", name: "stop watching every completed run", run: Model.clearCompletedRunsAction},
+		{key: "x", name: nameCancelRun, run: Model.cancelSelectedRun},
+		{key: "z", name: nameRerunFailed, run: Model.rerunSelectedRun},
 	}
 }
 
@@ -253,6 +257,8 @@ func timelineActions() []paneAction {
 		{key: keyEnter, name: "drill into the selected job's steps", run: Model.drillTimeline},
 		{key: "esc", name: "back out of the run", run: Model.undrillTimeline},
 		{key: "v", name: nameViewLogs, run: Model.logsForSelectedRun},
+		{key: "x", name: nameCancelRun, run: Model.cancelSelectedRun},
+		{key: "z", name: nameRerunFailed, run: Model.rerunSelectedRun},
 	}
 }
 
@@ -261,6 +267,7 @@ func flakyActions() []paneAction {
 		{key: "R", name: "reload the run history", run: Model.reloadFlaky},
 		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
 		{key: "v", name: nameViewLogs, run: Model.logsForSelectedRun},
+		{key: "z", name: nameRerunFailed, run: Model.rerunSelectedRun},
 	}
 }
 

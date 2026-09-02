@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -192,4 +193,25 @@ func (c *Client) ListEnvironments() ([]string, error) {
 	}
 
 	return names, nil
+}
+
+// RerunFailedJobs re-runs only the failed jobs of a run, which is what a run
+// that failed on one flaky job needs rather than a whole second run.
+func (c *Client) RerunFailedJobs(runID int64) error {
+	if _, stderr, err := c.executor.Execute("gh", "run", "rerun",
+		strconv.FormatInt(runID, 10), "--failed", "--repo", c.fullName()); err != nil {
+		return fmt.Errorf("re-running the failed jobs: %w (stderr: %s)", err, stderr)
+	}
+
+	return nil
+}
+
+// CancelRun stops a run that is still going.
+func (c *Client) CancelRun(runID int64) error {
+	if _, stderr, err := c.executor.Execute("gh", "run", "cancel",
+		strconv.FormatInt(runID, 10), "--repo", c.fullName()); err != nil {
+		return fmt.Errorf("canceling the run: %w (stderr: %s)", err, stderr)
+	}
+
+	return nil
 }

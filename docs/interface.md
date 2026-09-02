@@ -68,7 +68,7 @@ The two pull request scopes list one row per pull request carrying its own check
 | `s` | Next scope: branch, my PRs, awaiting my review |
 | `R` | Reload the current scope |
 | `enter` | Open the selected run on a time axis, or expand a pull request into its branch's runs |
-| `a` | Actions for the selected run, including its log and a diagnosis of its failure |
+| `a` | Actions for the selected run: its log, a diagnosis of its failure, and re-running or canceling it |
 
 `:runs [branch\|mine\|reviewing]` opens a scope by name.
 

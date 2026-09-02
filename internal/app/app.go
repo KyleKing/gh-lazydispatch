@@ -176,32 +176,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// work is usually the active one, so routing by "is a modal open" is what
 	// stopped a chain's status ever updating and dropped a modal's result when
 	// a keystroke raced it.
-	if model, cmd, handled := m.handleModalResultMsg(msg); handled {
-		return model, cmd
-	}
-
-	if model, cmd, handled := m.handleChainMsg(msg); handled {
-		return model, cmd
-	}
-
-	if model, cmd, handled := m.handleEnvironmentsMsg(msg); handled {
-		return model, cmd
-	}
-
-	if model, cmd, handled := m.handleLogMsg(msg); handled {
-		return model, cmd
-	}
-
-	if model, cmd, handled := m.handleTimelineMsg(msg); handled {
-		return model, cmd
-	}
-
-	if model, cmd, handled := m.handleRunsMsg(msg); handled {
-		return model, cmd
-	}
-
-	if model, cmd, handled := m.handleFlakyMsg(msg); handled {
-		return model, cmd
+	for _, handle := range m.asyncHandlers() {
+		if model, cmd, handled := handle(msg); handled {
+			return model, cmd
+		}
 	}
 
 	if done, ok := msg.(executionDoneMsg); ok {
@@ -235,6 +213,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+// asyncHandlers are the routes a background message takes, tried in order.
+func (m Model) asyncHandlers() []func(tea.Msg) (tea.Model, tea.Cmd, bool) {
+	return []func(tea.Msg) (tea.Model, tea.Cmd, bool){
+		m.handleModalResultMsg,
+		m.handleChainMsg,
+		m.handleEnvironmentsMsg,
+		m.handleRunMutationMsg,
+		m.handleLogMsg,
+		m.handleTimelineMsg,
+		m.handleRunsMsg,
+		m.handleFlakyMsg,
+	}
 }
 
 // handleWindowSize applies a terminal resize to the model's layout.
@@ -282,6 +274,11 @@ func (m Model) handleModalResultMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 
 	case modal.RemapResultMsg:
 		model, cmd := m.handleRemapResult(msg)
+		return model, cmd, true
+
+	case modal.RunActionResultMsg:
+		model, cmd := m.handleRunActionResult(msg)
+
 		return model, cmd, true
 
 	case modal.ValidationErrorResultMsg:

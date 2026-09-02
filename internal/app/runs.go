@@ -210,5 +210,7 @@ func runsActions() []paneAction {
 		{key: "s", name: "switch scope", run: Model.cycleRunsScope},
 		{key: "t", name: nameTimelineAction, run: Model.timelineForSelection},
 		{key: "v", name: nameViewLogs, run: Model.logsForSelectedRun},
+		{key: "x", name: nameCancelRun, run: Model.cancelSelectedRun},
+		{key: "z", name: nameRerunFailed, run: Model.rerunSelectedRun},
 	}
 }
