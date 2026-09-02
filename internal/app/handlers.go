@@ -643,6 +643,9 @@ func (m Model) executeWorkflow() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// validateAllInputs collects everything that would make the dispatch fail: the
+// repository's own rules, what GitHub rejects about a value's type, and an
+// environment the repository does not have.
 func (m Model) validateAllInputs(wf workflow.File) map[string][]string {
 	errs := make(map[string][]string)
 
@@ -653,6 +656,16 @@ func (m Model) validateAllInputs(wf workflow.File) map[string][]string {
 				errs[name] = validationErrs
 			}
 		}
+
+		if input.InputType() == inputTypeEnvironment {
+			if message := validation.ValidateEnvironment(m.inputs[name], m.environments); message != "" {
+				errs[name] = append(errs[name], message)
+			}
+		}
+	}
+
+	for name, messages := range validation.ValidateDispatch(inputs, m.inputs) {
+		errs[name] = append(errs[name], messages...)
 	}
 
 	return errs
