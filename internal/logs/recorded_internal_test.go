@@ -10,6 +10,7 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/testrepo"
 )
 
 func TestMain(m *testing.M) {
@@ -49,6 +50,8 @@ func cassette(t *testing.T, name string) string {
 // ones GitHub sent.
 func recordedFetcher(t *testing.T, name string) (*GHFetcher, *ghcassette.Session) {
 	t.Helper()
+
+	testrepo.RequirePublic(t, recordedRepo)
 
 	s := ghcassette.Start(t, cassette(t, name))
 	s.Apply(t)

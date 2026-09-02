@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/kyleking/aragonite/ghcassette"
+
+	"github.com/kyleking/gh-lazydispatch/internal/testrepo"
 )
 
 func TestMain(m *testing.M) {
@@ -45,6 +47,8 @@ func runRecorded(t *testing.T, name string, args ...string) (string, string, int
 	if err != nil {
 		t.Fatalf("resolving the cassette path: %v", err)
 	}
+
+	testrepo.RequirePublic(t, recordedRepo)
 
 	session := ghcassette.Start(t, path)
 	session.Apply(t)

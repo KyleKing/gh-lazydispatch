@@ -11,6 +11,7 @@ import (
 	"github.com/kyleking/aragonite/ghcassette"
 
 	"github.com/kyleking/gh-lazydispatch/internal/exec"
+	"github.com/kyleking/gh-lazydispatch/internal/testrepo"
 )
 
 // cassetteDir is where the cassettes live, resolved before any test moves the
@@ -75,17 +76,27 @@ func standIn(t *testing.T, repo string) {
 	}
 }
 
-// recordedClient points this process's gh calls at the named cassette and
-// returns a client wired to the real executor, so every read under test parses
-// the bytes GitHub sent rather than a fixture of what someone thought it sends.
-func recordedClient(t *testing.T, name, repo string) (*Client, *ghcassette.Session) {
+// startCassette binds a cassette to the test. It also builds the gh stand-in,
+// which is a `go build` in the process's working directory, so it has to happen
+// before anything moves the process out of the module.
+func startCassette(t *testing.T, name, repo string) *ghcassette.Session {
 	t.Helper()
 
-	s := ghcassette.Start(t, filepath.Join(cassetteDir, name+".golden"))
+	testrepo.RequirePublic(t, repo)
+
+	return ghcassette.Start(t, filepath.Join(cassetteDir, name+".golden"))
+}
+
+// clientFor points this process's gh calls at the session's cassette and
+// returns a client wired to the real executor, so every read under test parses
+// the bytes GitHub sent rather than a fixture of what someone thought it sends.
+func clientFor(t *testing.T, s *ghcassette.Session, repo string) *Client {
+	t.Helper()
+
 	s.Apply(t)
 
-	// A read cached in this process would not reach the cassette, so a replay
-	// would pass while playing nothing.
+	// A read this process already cached would never reach the cassette, so a
+	// replay would pass while playing nothing.
 	cache.ClearAll()
 
 	client, err := NewClientWithExecutor(repo, exec.NewRealExecutor())
@@ -93,7 +104,15 @@ func recordedClient(t *testing.T, name, repo string) (*Client, *ghcassette.Sessi
 		t.Fatalf("building the client: %v", err)
 	}
 
-	return client, s
+	return client
+}
+
+func recordedClient(t *testing.T, name, repo string) (*Client, *ghcassette.Session) {
+	t.Helper()
+
+	s := startCassette(t, name, repo)
+
+	return clientFor(t, s, repo), s
 }
 
 // Every read this client performs, against one recording. The fields each one
@@ -188,9 +207,13 @@ func assertJobsCarryTheirSteps(t *testing.T, jobs []Job) {
 //
 //nolint:paralleltest // Apply and Chdir move the process
 func TestRecorded_PullRequestScopesCarryTheirChecks(t *testing.T) {
+	// The stub is built before the process moves, and the remote is in place
+	// before the first gh call.
+	s := startCassette(t, "pull-requests", recordedPRRepo)
+
 	standIn(t, recordedPRRepo)
 
-	client, s := recordedClient(t, "pull-requests", recordedPRRepo)
+	client := clientFor(t, s, recordedPRRepo)
 
 	rollups := 0
 

@@ -10,6 +10,7 @@ import (
 	"github.com/kyleking/aragonite/cache"
 	"github.com/kyleking/aragonite/ghcassette"
 
+	"github.com/kyleking/gh-lazydispatch/internal/testrepo"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
@@ -41,6 +42,8 @@ func recordedApp(t *testing.T, name string) (Model, *ghcassette.Session) {
 	if err != nil {
 		t.Fatalf("resolving the cassette path: %v", err)
 	}
+
+	testrepo.RequirePublic(t, recordedRepo)
 
 	s := ghcassette.Start(t, path)
 	s.Apply(t)
