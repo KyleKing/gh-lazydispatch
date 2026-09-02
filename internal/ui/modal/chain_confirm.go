@@ -26,6 +26,8 @@ type adoptedRun struct {
 // ChainConfirmResultMsg is sent when chain execution is confirmed or canceled.
 type ChainConfirmResultMsg struct {
 	Variables map[string]string
+	// Adopted is the run already shown for each source: existing step, keyed by workflow.
+	Adopted   map[string]*github.WorkflowRun
 	ChainName string
 	Branch    string
 	Confirmed bool
@@ -79,14 +81,36 @@ func (m *ChainConfirmModal) resolveSteps() {
 }
 
 // SetAdoptedRun records what a source: existing step resolved to (or the
-// error it hit) before the chain runs. Sent asynchronously, one step at a
-// time, so a chain with several such steps fills them in as each resolves.
+// error it hit), filled in asynchronously as each step resolves.
 func (m *ChainConfirmModal) SetAdoptedRun(stepIndex int, run *github.WorkflowRun, err error) {
 	if m.adopted == nil {
 		m.adopted = make(map[int]adoptedRun, len(m.chain.Steps))
 	}
 
 	m.adopted[stepIndex] = adoptedRun{run: run, err: err}
+}
+
+// ChainName identifies which chain this modal is confirming.
+func (m *ChainConfirmModal) ChainName() string {
+	return m.chainName
+}
+
+// adoptedRuns collects the runs already resolved for source: existing steps,
+// keyed by workflow, for the executor to adopt without re-resolving.
+func (m *ChainConfirmModal) adoptedRuns() map[string]*github.WorkflowRun {
+	if len(m.adopted) == 0 {
+		return nil
+	}
+
+	runs := make(map[string]*github.WorkflowRun, len(m.adopted))
+
+	for i, a := range m.adopted {
+		if a.err == nil && a.run != nil && i < len(m.chain.Steps) {
+			runs[m.chain.Steps[i].Workflow] = a.run
+		}
+	}
+
+	return runs
 }
 
 // Update handles input for the chain confirm modal.
@@ -104,6 +128,7 @@ func (m *ChainConfirmModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 				Variables: m.variables,
 				Branch:    m.branch,
 				Watch:     m.watchMode,
+				Adopted:   m.adoptedRuns(),
 			}
 
 			return m, func() tea.Msg {
@@ -216,7 +241,7 @@ func (m *ChainConfirmModal) renderSteps(s *strings.Builder) {
 		s.WriteString(ui.TableDimmedStyle.Render(waitLabel))
 		s.WriteString("\n")
 
-		if stepDef.Source == config.SourceExisting {
+		if step.Source == config.SourceExisting {
 			m.renderAdoption(s, i)
 			continue
 		}

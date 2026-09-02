@@ -10,19 +10,17 @@ import (
 )
 
 // ChainStepAdoptedMsg carries what a source: existing step would adopt, or
-// the reason it found nothing, for the confirm modal to show before the chain
-// runs.
+// the reason it found nothing.
 type ChainStepAdoptedMsg struct {
 	Err       error
 	Run       *github.WorkflowRun
+	ChainName string
 	StepIndex int
 }
 
 // resolveChainAdoptionCmd resolves the run each source: existing step in
-// chainDef would adopt, one message per such step, so the confirm modal can
-// name it before the user commits. Nothing fires for a chain with no such
-// step.
-func (m Model) resolveChainAdoptionCmd(chainDef *config.Chain, branch string) tea.Cmd {
+// chainDef would adopt, one message per such step. Nil for a chain with none.
+func (m Model) resolveChainAdoptionCmd(chainName string, chainDef *config.Chain, branch string) tea.Cmd {
 	if m.ghClient == nil {
 		return nil
 	}
@@ -36,10 +34,9 @@ func (m Model) resolveChainAdoptionCmd(chainDef *config.Chain, branch string) te
 			continue
 		}
 
-		idx, workflowFile := i, step.Workflow
 		cmds = append(cmds, func() tea.Msg {
-			run, err := chain.ResolveExistingRun(client, workflowFile, branch)
-			return ChainStepAdoptedMsg{StepIndex: idx, Run: run, Err: err}
+			run, err := chain.ResolveExistingRun(client, step.Workflow, branch)
+			return ChainStepAdoptedMsg{ChainName: chainName, StepIndex: i, Run: run, Err: err}
 		})
 	}
 
@@ -50,8 +47,8 @@ func (m Model) resolveChainAdoptionCmd(chainDef *config.Chain, branch string) te
 	return tea.Batch(cmds...)
 }
 
-// handleChainStepAdoptedMsg pushes a resolved adoption into the open chain
-// confirm modal, if any.
+// handleChainStepAdoptedMsg pushes a resolved adoption into the confirm modal
+// still open for that chain, so a stale result never lands on a different one.
 func (m Model) handleChainStepAdoptedMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	adopted, ok := msg.(ChainStepAdoptedMsg)
 	if !ok {
@@ -59,8 +56,8 @@ func (m Model) handleChainStepAdoptedMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool)
 	}
 
 	found := m.modalStack.Find(func(ctx modal.Context) bool {
-		_, ok := ctx.(*modal.ChainConfirmModal)
-		return ok
+		confirmModal, ok := ctx.(*modal.ChainConfirmModal)
+		return ok && confirmModal.ChainName() == adopted.ChainName
 	})
 
 	if confirmModal, ok := found.(*modal.ChainConfirmModal); ok {
@@ -68,4 +65,16 @@ func (m Model) handleChainStepAdoptedMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool)
 	}
 
 	return m, nil, true
+}
+
+// pinnedAdoptionResolver adopts the run already shown in the confirm modal,
+// falling back to a live resolution for any workflow it didn't resolve.
+func pinnedAdoptionResolver(pinned map[string]*github.WorkflowRun) chain.ExistingRunResolver {
+	return func(client chain.GitHubClient, workflow, branch string) (*github.WorkflowRun, error) {
+		if run, ok := pinned[workflow]; ok {
+			return run, nil
+		}
+
+		return chain.ResolveExistingRun(client, workflow, branch)
+	}
 }

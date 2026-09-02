@@ -58,7 +58,7 @@ func ExportAsBash(chainName string, chain *config.Chain, variables map[string]st
 			continue
 		}
 
-		if step.Source == config.SourceExisting {
+		if resolved.Source == config.SourceExisting {
 			fmt.Fprintf(&sb, "# SKIPPED: source: existing adopts a run already going on the"+
 				" branch, which a script cannot express\n\n")
 

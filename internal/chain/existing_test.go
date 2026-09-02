@@ -11,10 +11,8 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/testutil"
 )
 
-// TestChainExecution_SourceExisting_AdoptsWithoutDispatching pins the case
-// docs/design-listeners.md calls the narrow fix: a step whose source is
-// "existing" attaches to a run already going on the branch instead of
-// starting a fresh one.
+// TestChainExecution_SourceExisting_AdoptsWithoutDispatching pins that a
+// source: existing step attaches to a run already going instead of starting one.
 func TestChainExecution_SourceExisting_AdoptsWithoutDispatching(t *testing.T) {
 	t.Parallel()
 
@@ -70,9 +68,7 @@ func TestChainExecution_SourceExisting_AdoptsWithoutDispatching(t *testing.T) {
 }
 
 // TestChainExecution_SourceExisting_FailsLoudWithNothingToAdopt pins that a
-// step with no run to adopt fails rather than silently dispatching one: a
-// step that sometimes starts a production build and sometimes adopts one is
-// a step nobody can read.
+// step with no run to adopt fails rather than silently dispatching one.
 func TestChainExecution_SourceExisting_FailsLoudWithNothingToAdopt(t *testing.T) {
 	t.Parallel()
 

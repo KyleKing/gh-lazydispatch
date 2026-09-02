@@ -527,7 +527,7 @@ func (m Model) startChainFlow(name string, chainDef config.Chain) (tea.Model, te
 	m.pendingChainVariables = nil
 	m.modalStack.Push(modal.NewChainConfirmModal(name, &chainDef, nil, m.branch, m.watchRun))
 
-	return m, m.resolveChainAdoptionCmd(&chainDef, m.branch)
+	return m, m.resolveChainAdoptionCmd(name, &chainDef, m.branch)
 }
 
 func (m Model) handleChainVariableResult(msg modal.ChainVariableResultMsg) (tea.Model, tea.Cmd) {
@@ -547,7 +547,7 @@ func (m Model) handleChainVariableResult(msg modal.ChainVariableResultMsg) (tea.
 		m.watchRun,
 	))
 
-	return m, m.resolveChainAdoptionCmd(m.pendingChain, m.branch)
+	return m, m.resolveChainAdoptionCmd(m.pendingChainName, m.pendingChain, m.branch)
 }
 
 func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Model, tea.Cmd) {
@@ -571,7 +571,12 @@ func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Mo
 	commands := m.buildChainCommands(chainDef, variables, branch)
 	m.pendingChainCommands = commands
 
-	executor := chain.NewExecutor(m.ghClient, m.watcher, chainName, chainDef)
+	var opts []chain.Option
+	if len(msg.Adopted) > 0 {
+		opts = append(opts, chain.WithExistingRunResolver(pinnedAdoptionResolver(msg.Adopted)))
+	}
+
+	executor := chain.NewExecutor(m.ghClient, m.watcher, chainName, chainDef, opts...)
 	m.chainExecutor = executor
 
 	if err := executor.Start(variables, branch); err != nil {

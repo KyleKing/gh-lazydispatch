@@ -92,6 +92,9 @@ var ErrConfigNotMapping = errors.New("config file is not a mapping of keys")
 // ErrUnsupportedConfigVersion indicates the configuration file declares an unsupported version.
 var ErrUnsupportedConfigVersion = errors.New("unsupported config version (expected 1 or 2)")
 
+// ErrUnknownSource indicates a step's source is neither empty, "dispatch", nor "existing".
+var ErrUnknownSource = errors.New("unknown step source")
+
 // Load loads the configuration from the default location.
 func Load(repoRoot string) (*WfdConfig, error) {
 	configPath := filepath.Join(repoRoot, ConfigFilename)
@@ -124,13 +127,15 @@ func LoadFrom(path string) (*WfdConfig, error) {
 		return nil, fmt.Errorf("%w: got %d", ErrUnsupportedConfigVersion, config.Version)
 	}
 
-	applyDefaults(&config)
+	if err := applyDefaults(&config); err != nil {
+		return nil, err
+	}
 
 	return &config, nil
 }
 
 // applyDefaults fills the optional keys a step or variable left unset.
-func applyDefaults(config *WfdConfig) {
+func applyDefaults(config *WfdConfig) error {
 	for name, chain := range config.Chains {
 		for i := range chain.Steps {
 			if chain.Steps[i].WaitFor == "" {
@@ -141,8 +146,13 @@ func applyDefaults(config *WfdConfig) {
 				chain.Steps[i].OnFailure = FailureAbort
 			}
 
-			if chain.Steps[i].Source == "" {
+			switch chain.Steps[i].Source {
+			case "":
 				chain.Steps[i].Source = SourceDispatch
+			case SourceDispatch, SourceExisting:
+			default:
+				return fmt.Errorf("chain %q step %d (%s): %w: %q",
+					name, i, chain.Steps[i].Workflow, ErrUnknownSource, chain.Steps[i].Source)
 			}
 		}
 
@@ -154,6 +164,8 @@ func applyDefaults(config *WfdConfig) {
 
 		config.Chains[name] = chain
 	}
+
+	return nil
 }
 
 // missingFileErr explains an unreadable path: a dangling symlink names its

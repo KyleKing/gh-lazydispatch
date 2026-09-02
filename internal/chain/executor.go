@@ -109,15 +109,12 @@ var ErrNoExistingRun = errors.New("no queued or in-progress run found")
 // rather than dispatching a fresh one.
 type ExistingRunResolver func(client GitHubClient, workflow, branch string) (*github.WorkflowRun, error)
 
-// existingRunStatuses is the order ResolveExistingRun checks: a run already
-// under way is what "existing" means, so an in-progress run wins over a
-// merely queued one.
+// existingRunStatuses is the order ResolveExistingRun checks: an in-progress
+// run wins over a merely queued one.
 var existingRunStatuses = []string{github.StatusInProgress, github.StatusQueued}
 
-// ResolveExistingRun is the real resolution: it asks GitHub for the newest
-// in-progress or queued run of workflow on branch. It never falls back to
-// dispatching, because a step that sometimes starts a run and sometimes
-// adopts one is a step nobody can read.
+// ResolveExistingRun asks GitHub for the newest in-progress or queued run of
+// workflow on branch. It never falls back to dispatching.
 func ResolveExistingRun(client GitHubClient, workflow, branch string) (*github.WorkflowRun, error) {
 	for _, status := range existingRunStatuses {
 		runs, err := client.ListRuns(github.RunQuery{Workflow: workflow, Branch: branch, Status: status, Limit: 1})
@@ -254,8 +251,10 @@ func NewExecutorFromHistory(
 			StepStatuses: stepStatuses,
 			Status:       ChainPending,
 		},
-		updates: make(chan ChainUpdate, 10),
-		stopCh:  make(chan struct{}),
+		updates:         make(chan ChainUpdate, 10),
+		stopCh:          make(chan struct{}),
+		dispatch:        dispatchThroughRunner,
+		resolveExisting: ResolveExistingRun,
 	}
 }
 
@@ -348,6 +347,12 @@ func (e *ChainExecutor) startStep(step config.ChainStep, inputs map[string]strin
 		run, err := e.resolveExisting(e.client, step.Workflow, e.branch)
 		if err != nil {
 			return 0, "", &chainerr.StepAdoptionError{Workflow: step.Workflow, Branch: e.branch, Cause: err}
+		}
+
+		if run == nil {
+			return 0, "", &chainerr.StepAdoptionError{
+				Workflow: step.Workflow, Branch: e.branch, Cause: ErrNoExistingRun,
+			}
 		}
 
 		return run.ID, run.URL, nil
