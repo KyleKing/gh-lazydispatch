@@ -7,6 +7,21 @@ because line numbers drift.
 
 ## Behavior
 
+`internal/ui/modal/ground.go` repaints the modal ground after every SGR reset,
+because a `Background` on a lipgloss frame is emitted once per line and any
+inner styled segment's reset clears it. The frame that renders the hole is
+aragonite's `overlay.Center`: its `Styles.Frame` takes a background and every
+caller who sets one gets bands of the terminal's ground from the first styled
+segment of each line onward. The fix belongs there, which means an upstream
+change and a release, so this repository carries it locally until then.
+
+A chain step can only wait on a run it dispatched itself, because
+`ChainExecutor.runStep` hands `waitForRun` the ID that `e.dispatch` just
+returned. Waiting on the run already going on a ref has no expression at all,
+and the confirmation modal names a step by its workflow, so an adopted run
+would read as a fresh dispatch.
+[docs/design-listeners.md](./docs/design-listeners.md) carries the design.
+
 Every failure signature `logs.Detect` reports is a regular expression over log
 text, so a test named "handles timeouts" matches `Timeout`. Each detection
 carries the line that matched, which is what lets a reader see it is a false

@@ -306,6 +306,37 @@ Found this phase, not fixed:
   rather than let a test try. `mise run test:live` is the only thing that
   covers it, and it spends Actions minutes
 
+## Phase 11: listeners over chains (proposed)
+
+[docs/design-listeners.md](./docs/design-listeners.md) argues the primitive is
+`when <condition> then <action>` over state the tool already reads, and that a
+chain is one combination of a source, a wait, and an action rather than the
+shape all of them take. Durable sequencing belongs in the repository's own
+`workflow_run` and `needs:`, which run whether or not a laptop is awake. What
+is left for this tool is the window around a change you just pushed.
+
+Nothing is committed to yet. The order the design proposes:
+
+- **`source: existing` on a chain step.** Resolve the newest queued or
+  in-progress run of that workflow on the ref and adopt it, failing where
+  nothing is running rather than dispatching instead. The confirmation modal
+  has to name the run it adopts, since a modal that reads as a dispatch over an
+  adopted run is what costs a duplicate deploy
+- **A listener package and `gh lazydispatch watch`.** Run-completion and
+  pr-checks conditions, notify and diagnose actions. This is the
+  `pr-merge-watch` replacement, and it cannot live in the TUI, because that
+  script is a blocking command inside `git push && ...`
+- **Arming a listener from a Runs or Live row** through the `a` menu, with the
+  armed count in the status bar. A listener pre-authorizes a mutation that
+  fires while nobody is watching, so it confirms at arm time with the exact
+  command and expires loudly
+- **`ChainExecutor` as a seed plus listeners**, with no further additions to
+  the chain DSL
+
+The open question is whether chains stay a user-facing concept. Keeping the
+file and the names costs nothing; growing the DSL costs a second scheduler
+maintained against `workflow_run`.
+
 ## Scrapped
 
 Both were filed as v2 alternatives and neither survived contact with what
