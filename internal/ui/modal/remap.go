@@ -175,6 +175,8 @@ func (m *RemapModal) selectOption() (Context, tea.Cmd) {
 	})
 
 	m.currentErrorIdx++
+	m.buildOptions()
+
 	if m.currentErrorIdx >= len(m.errors) {
 		m.done = true
 
@@ -182,8 +184,6 @@ func (m *RemapModal) selectOption() (Context, tea.Cmd) {
 			return RemapResultMsg{Decisions: m.decisions}
 		}
 	}
-
-	m.buildOptions()
 
 	return m, nil
 }
