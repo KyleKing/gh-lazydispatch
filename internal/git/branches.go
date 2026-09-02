@@ -17,8 +17,9 @@ const (
 	gitCommandTimeout    = 2 * time.Second
 )
 
-// repoPath is the checkout every read runs against: the working directory,
-// which is where the tool was started and where the workflows were found.
+// repoPath is the checkout every read runs against. The working directory is
+// enough because git and jj walk up to the root themselves, unlike the file
+// reads that resolve a path with RepoRoot.
 const repoPath = "."
 
 // FetchBranches names the branches the remote holds, which are the refs a
