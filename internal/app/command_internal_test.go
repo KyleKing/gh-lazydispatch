@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 )
 
 func testRegistry() Registry {
@@ -240,5 +242,252 @@ func TestDefaultRegistryIsComplete(t *testing.T) {
 		}
 
 		seen[command.Name] = true
+	}
+}
+
+// runLine runs one typed line and hands back what it asked for, without feeding
+// the result to Update: a command's answer is the message it returns, and
+// routing it further is what the handler tests already cover.
+func runLine(t *testing.T, m Model, line string) (Model, tea.Msg) {
+	t.Helper()
+
+	model, cmd := m.runCommandLine(line)
+
+	after := asModel(t, model)
+	if cmd == nil {
+		return after, nil
+	}
+
+	return after, cmd()
+}
+
+func statusOf(t *testing.T, msg tea.Msg) string {
+	t.Helper()
+
+	status, ok := msg.(StatusMsg)
+	if !ok {
+		t.Fatalf("the command answered with %T, want a status line", msg)
+	}
+
+	return status.Text
+}
+
+// A name you half-remember is the reason the bar exists, so guessing its
+// argument wrong has to say what it wanted rather than looking like it ran.
+func TestCommands_SayWhatTheyWantedWhenTheArgumentIsWrong(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		line string
+		want string
+	}{
+		{line: ":branch", want: "usage: :branch <name>"},
+		{line: ":chain", want: "usage: :chain <name>"},
+		{line: ":chain nope", want: `no chain named "nope"`},
+		{line: ":diagnose", want: "usage: :diagnose <run-id>"},
+		{line: ":diagnose abc", want: `"abc" is not a run ID`},
+		{line: ":logs", want: "usage: :logs <run-id>"},
+		{line: ":logs abc", want: `"abc" is not a run ID`},
+		{line: ":runs nowhere", want: "scopes are branch, mine, and reviewing"},
+		{line: ":timeline", want: "no run to draw a timeline for"},
+		{line: ":timeline abc", want: `"abc" is not a run ID`},
+		{line: ":workflow", want: "usage: :workflow <file>"},
+		{line: ":workflow nope.yml", want: `no workflow named "nope.yml"`},
+		{line: ":nope", want: "no command matches :nope"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.line, func(t *testing.T) {
+			t.Parallel()
+
+			m := resize(t, newRenderModel(), 120, 40)
+			m.wfdConfig = testChainConfig()
+
+			_, msg := runLine(t, m, strings.TrimPrefix(tt.line, ":"))
+			if got := statusOf(t, msg); got != tt.want {
+				t.Errorf("%s answered %q, want %q", tt.line, got, tt.want)
+			}
+		})
+	}
+}
+
+// What each command does when its argument is right. These are the routes no
+// key reaches, since a run ID typed by hand is the whole point of :logs.
+func TestCommands_DoWhatTheirNameSays(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		check func(*testing.T, Model, tea.Msg)
+		name  string
+		line  string
+	}{
+		{name: "branch", line: "branch topic", check: func(t *testing.T, m Model, _ tea.Msg) {
+			t.Helper()
+
+			if m.branch != "topic" {
+				t.Errorf("the dispatch ref is %q, want topic", m.branch)
+			}
+		}},
+		{name: "chain", line: "chain " + testChainName, check: func(t *testing.T, m Model, _ tea.Msg) {
+			t.Helper()
+
+			if m.pendingChainName != testChainName {
+				t.Errorf("the chain flow started on %q", m.pendingChainName)
+			}
+		}},
+		{name: "diagnose", line: "diagnose 42", check: func(t *testing.T, _ Model, msg tea.Msg) {
+			t.Helper()
+
+			want := FetchLogsMsg{RunID: 42, ErrorsOnly: true}
+			if msg != tea.Msg(want) {
+				t.Errorf("diagnose asked for %#v, want %#v", msg, want)
+			}
+		}},
+		{name: "filter", line: "filter env", check: func(t *testing.T, m Model, _ tea.Msg) {
+			t.Helper()
+
+			if m.filterText != "env" {
+				t.Errorf("the config filter is %q, want env", m.filterText)
+			}
+		}},
+		{name: "help", line: "help", check: func(t *testing.T, m Model, _ tea.Msg) {
+			t.Helper()
+
+			if !m.modalStack.HasActive() {
+				t.Error("the keyboard reference did not open")
+			}
+		}},
+		{name: "logs", line: "logs 42", check: func(t *testing.T, _ Model, msg tea.Msg) {
+			t.Helper()
+
+			want := FetchLogsMsg{RunID: 42}
+			if msg != tea.Msg(want) {
+				t.Errorf("logs asked for %#v, want %#v", msg, want)
+			}
+		}},
+		{name: "quit", line: "quit", check: func(t *testing.T, _ Model, msg tea.Msg) {
+			t.Helper()
+
+			if _, ok := msg.(tea.QuitMsg); !ok {
+				t.Errorf("quit answered %T", msg)
+			}
+		}},
+		{name: "runs", line: "runs mine", check: func(t *testing.T, m Model, _ tea.Msg) {
+			t.Helper()
+
+			if m.focused != PaneRight || m.rightPanel.ActiveTab() != panes.TabRuns {
+				t.Error(":runs did not move to the Runs tab")
+			}
+
+			if got := m.rightPanel.Runs().Scope(); got != panes.ScopeMine {
+				t.Errorf("the scope is %v, want mine", got)
+			}
+		}},
+		{name: "reset", line: "reset", check: func(t *testing.T, m Model, _ tea.Msg) {
+			t.Helper()
+
+			if got := m.inputs[testInputEnvironment]; got != testValueStaging {
+				t.Errorf("environment is %q, want the default %q", got, testValueStaging)
+			}
+		}},
+		{name: "timeline", line: "timeline 42", check: func(t *testing.T, _ Model, msg tea.Msg) {
+			t.Helper()
+
+			want := FetchTimelineMsg{RunID: 42, Title: "run 42"}
+			if msg != tea.Msg(want) {
+				t.Errorf("timeline asked for %#v, want %#v", msg, want)
+			}
+		}},
+		{name: "watch", line: "watch", check: func(t *testing.T, m Model, _ tea.Msg) {
+			t.Helper()
+
+			if !m.watchRun {
+				t.Error(":watch did not turn watching on")
+			}
+		}},
+		{name: "workflow", line: "workflow ci.yml", check: func(t *testing.T, m Model, _ tea.Msg) {
+			t.Helper()
+
+			if m.selectedWorkflow != 1 {
+				t.Errorf(":workflow selected %d, want the CI workflow", m.selectedWorkflow)
+			}
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := resize(t, newRenderModel(), 120, 40)
+			m.wfdConfig = testChainConfig()
+			m.inputs[testInputEnvironment] = "production"
+
+			after, msg := runLine(t, m, tt.line)
+			tt.check(t, after, msg)
+		})
+	}
+}
+
+// Completing an argument is what makes a command guessable past its name, so
+// each command that takes one has to offer what it will accept.
+func TestCommands_CompleteTheirOwnArguments(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		line string
+		want string
+	}{
+		{name: "a command name", line: "wor", want: nameWorkflow},
+		{name: "a workflow file", line: "workflow ", want: "ci.yml"},
+		{name: "a workflow prefix", line: "workflow dep", want: "deploy.yml"},
+		{name: "a chain name", line: "chain ", want: testChainName},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := resize(t, newRenderModel(), 120, 40)
+			m.wfdConfig = testChainConfig()
+
+			candidates, completable := m.registry.completionsFor(m, tt.line)
+			if !completable {
+				t.Fatalf("%q completes nothing", tt.line)
+			}
+
+			found := false
+			for _, candidate := range candidates {
+				if candidate.Name == tt.want {
+					found = true
+				}
+			}
+
+			if !found {
+				t.Errorf("%q offers %v, missing %q", tt.line, candidates, tt.want)
+			}
+		})
+	}
+
+	// A command with nothing to complete says so rather than offering the
+	// command names again, which would complete a word that is not one.
+	m := resize(t, newRenderModel(), 120, 40)
+	if _, completable := m.registry.completionsFor(m, "watch "); completable {
+		t.Error("a command taking no argument still offered completions")
+	}
+}
+
+// The listing is the reference for a caller with no help modal, so every
+// registered command has to appear in it beside its description.
+func TestRegistryListing_NamesEveryCommand(t *testing.T) {
+	t.Parallel()
+
+	registry := DefaultRegistry()
+	listing := registry.Listing()
+
+	for _, command := range registry.Commands() {
+		if !strings.Contains(listing, command.Name+"\t"+command.Description) {
+			t.Errorf("the listing is missing %q:\n%s", command.Name, listing)
+		}
 	}
 }
