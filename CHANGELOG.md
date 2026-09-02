@@ -1,3 +1,23 @@
+## v1.10.0 (2026-09-02)
+
+### Feat
+
+- **timeline**: open a step's own log from the step
+- **runs**: re-run and cancel a run from the row that names it
+- **dispatch**: reject locally what the dispatch would fail on
+- **inputs**: resolve environment inputs against the repository
+- **ui**: rebuild the layout around what each thing actually is
+
+### Fix
+
+- **exec**: let the test guard tell a read from a write per operation
+- **remap**: clear the options the wizard already decided
+- **ui**: overlay an input's details where the pane cannot hold them
+
+### Refactor
+
+- **modal**: center overlays through aragonite
+
 ## v1.9.0 (2026-09-01)
 
 ### Feat
