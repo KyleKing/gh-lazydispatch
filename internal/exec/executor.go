@@ -62,48 +62,57 @@ func (*RealExecutor) Execute(name string, args ...string) (stdout, stderr string
 	return stdoutBuf.String(), stderrBuf.String(), err
 }
 
-// isMutationCommand checks if a command could mutate GitHub resources.
+// mutationSubcommands are the gh subcommands that can write, and so are
+// blocked outright unless the operation after them is on readOperations.
+//
+//nolint:gochecknoglobals // a fixed table read by isMutationCommand
+var mutationSubcommands = map[string]bool{
+	"attestation":        true, // gh attestation verify can write
+	"cache":              true, // gh cache delete
+	"codespace":          true, // gh codespace create/delete
+	"gist":               true, // gh gist create/delete
+	"gpg-key":            true, // gh gpg-key add/delete
+	"issue":              true, // gh issue create/edit/close
+	"label":              true, // gh label create/delete
+	"pr":                 true, // gh pr create/merge/close
+	"project":            true, // gh project create/delete
+	"release":            true, // gh release create/delete
+	"repo":               true, // gh repo create/delete
+	ghRunSubcommand:      true, // gh run cancel/rerun
+	"secret":             true, // gh secret set/delete
+	"ssh-key":            true, // gh ssh-key add/delete
+	"variable":           true, // gh variable set/delete
+	ghWorkflowSubcommand: true, // gh workflow run
+}
+
+// readOperations name a subcommand's read-only operations. The allowlist is
+// per-operation rather than per-subcommand because the same noun both reads
+// and writes: `gh run view` reads a run and `gh run cancel` ends one, and
+// `gh pr list` is how this tool reads a pull request's checks. Anything absent
+// stays blocked, so a gh release adding an operation is blocked until someone
+// decides it reads.
+//
+//nolint:gochecknoglobals // a fixed table read by isMutationCommand
+var readOperations = map[string]bool{
+	"checks":        true,
+	"diff":          true,
+	"list":          true,
+	"status":        true,
+	ghViewOperation: true,
+	"watch":         true,
+}
+
+// isMutationCommand reports whether a gh call could write to GitHub. It errs
+// toward blocking: a subcommand that can write is a mutation unless its
+// operation is a named read.
 func isMutationCommand(name string, args []string) bool {
-	if name != "gh" {
+	if name != "gh" || len(args) == 0 {
 		return false
 	}
 
-	if len(args) == 0 {
+	if !mutationSubcommands[args[0]] {
 		return false
 	}
 
-	// Block commands that can mutate GitHub state
-	mutationCommands := map[string]bool{
-		ghWorkflowSubcommand: true, // gh workflow run
-		"issue":              true, // gh issue create/edit/close
-		"pr":                 true, // gh pr create/merge/close
-		"release":            true, // gh release create/delete
-		"repo":               true, // gh repo create/delete
-		"secret":             true, // gh secret set/delete
-		"variable":           true, // gh variable set/delete
-		"label":              true, // gh label create/delete
-		ghRunSubcommand:      true, // gh run cancel/rerun (but not "run view")
-		"gist":               true, // gh gist create/delete
-		"project":            true, // gh project create/delete
-		"cache":              true, // gh cache delete
-		"attestation":        true, // gh attestation verify can write
-		"codespace":          true, // gh codespace create/delete
-		"gpg-key":            true, // gh gpg-key add/delete
-		"ssh-key":            true, // gh ssh-key add/delete
-	}
-
-	subcommand := args[0]
-
-	// Special case: "gh run view" is read-only, but "gh run cancel/rerun" are mutations
-	if subcommand == ghRunSubcommand && len(args) > 1 {
-		operation := args[1]
-		// Allow read-only run operations
-		if operation == ghViewOperation || operation == "list" || operation == "watch" {
-			return false
-		}
-
-		return true // Block cancel, rerun, etc.
-	}
-
-	return mutationCommands[subcommand]
+	return len(args) < 2 || !readOperations[args[1]]
 }

@@ -138,6 +138,24 @@ func TestIsMutationCommand(t *testing.T) {
 			args:       []string{"pr", "create"},
 			isMutation: true,
 		},
+		{
+			name:       "gh pr list is read-only",
+			command:    "gh",
+			args:       []string{"pr", "list", "--json", "number", "--search", "is:open"},
+			isMutation: false,
+		},
+		{
+			name:       "gh release upload is mutation",
+			command:    "gh",
+			args:       []string{"release", "upload", "v1", "binary"},
+			isMutation: true,
+		},
+		{
+			name:       "a bare mutating subcommand is a mutation",
+			command:    "gh",
+			args:       []string{"secret"},
+			isMutation: true,
+		},
 	}
 
 	for _, tt := range tests {
