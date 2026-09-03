@@ -93,17 +93,19 @@ func buildDiagnosis(run *github.WorkflowRun, runLogs *logs.RunLogs, tailLines in
 		Conclusion:  run.Conclusion,
 		Branch:      run.HeadBranch,
 		URL:         run.URL,
-		FailedSteps: failedSteps(runLogs, tailLines),
+		FailedSteps: failedSteps(runLogs, tailLines, run.Conclusion != github.ConclusionSuccess),
 		Signatures:  signatures(runLogs),
 	}
 
 	return result
 }
 
-// failedSteps keeps the tail of every step that did not succeed. A run whose
-// steps all report success but which failed anyway still yields its last step,
-// because a diagnosis with nothing in it is worse than one line too many.
-func failedSteps(runLogs *logs.RunLogs, tailLines int) []failedStep {
+// failedSteps keeps the tail of every step that did not succeed. A run that
+// failed while every step reports success still yields its last step, because a
+// diagnosis with nothing in it is worse than one line too many. A run that
+// succeeded yields none, so a step is never reported as failed on its own
+// success.
+func failedSteps(runLogs *logs.RunLogs, tailLines int, runFailed bool) []failedStep {
 	all := runLogs.AllSteps()
 	steps := make([]failedStep, 0, len(all))
 
@@ -115,7 +117,7 @@ func failedSteps(runLogs *logs.RunLogs, tailLines int) []failedStep {
 		steps = append(steps, tailOf(step, tailLines))
 	}
 
-	if len(steps) == 0 && len(all) > 0 {
+	if runFailed && len(steps) == 0 && len(all) > 0 {
 		steps = append(steps, tailOf(all[len(all)-1], tailLines))
 	}
 
