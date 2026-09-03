@@ -338,6 +338,103 @@ The open question is whether chains stay a user-facing concept. Keeping the
 file and the names costs nothing; growing the DSL costs a second scheduler
 maintained against `workflow_run`.
 
+## Phase 12: telemetry, and the second round of aragonite consolidation
+
+Phase 7 moved reads to aragonite. This phase moves two more things: feature
+usage, which nothing here tracks yet, and the TUI primitives that this
+repository and [gh-repo-dashboard](https://github.com/KyleKing/gh-repo-dashboard)
+have each built their own copy of. Verified by reading both checkouts rather
+than assumed: `internal/app/command.go`, `commands_registry.go`, and
+`commandbar.go` exist in both repos under the same names with no shared code
+behind them, `internal/ui/table.go` and `styles.go` hold `PaneBox` and
+`ScrollWindow` here with no aragonite counterpart, and
+`aragonite/tui/keyhint` already exists and is imported by neither.
+
+### Telemetry
+
+The question is which features I stop using, and when, across every TUI I
+run, not just this one. `internal/frecency` is the wrong home: it exists to
+rank *dispatch targets* for the picker, keyed on workflow and inputs, and
+mixing a usage counter into it would make `TopForRepo` answer two questions
+at once. Telemetry gets its own package, `internal/telemetry`, shaped like
+`frecency.Store` on purpose (a JSON file under the same XDG cache directory,
+`Load`/`Save`, an atomic write) so the extraction later is a lift, not a
+redesign:
+
+- `Track(event string)` increments a count and a last-seen timestamp, called
+  from the command bar's dispatch point, the action leader's verb dispatch,
+  and chain/dispatch execution. Three call sites, not one per verb, because
+  the surface to instrument is "what got invoked," not the name of each verb
+- Local-only, one file, no network. There is nothing here to argue about on
+  the security front (no secrets, no upload) because there is no transport
+- Stays in this repository until a second TUI wants it. Point of truth:
+  gh-repo-dashboard adding its own copy of `Track` is the trigger to extract,
+  not a decision made ahead of that need
+- No dashboard or view over it in this phase. The first cut is the write
+  path; a `gh-lazydispatch export telemetry` (or a TUI pane) that reads it
+  back is worth doing once there is more than one week of data to look at
+
+### Extraction to aragonite
+
+Ordered by confirmed duplication first, speculative second:
+
+1. **The command registry.** `commands_registry.go`'s shape here (name,
+   args, completion, handler) is the same shape gh-repo-dashboard's
+   `commands.go` hand-rolls. This is the strongest candidate: two real
+   consumers, today, doing the same work differently. Goes to
+   `aragonite/tui/commandbar` as a registry type plus the Bubble Tea model
+   that renders it and drives tab completion; both repos migrate their
+   `command.go`/`commandbar.go` to construct one and register verbs against
+   it rather than reimplementing the bar
+2. **`PaneBox` and `ScrollWindow`.** Both are generic (a bordered content
+   box, a scrolling window with a floor and ceiling on the offset) and
+   neither reaches into this repository's domain types. Goes to
+   `aragonite/tui/paneframe` (or folds into `tui/table` if the overlap turns
+   out to be that close once it is next to it)
+3. **Wire `aragonite/tui/keyhint.Help` into both TUIs' footers**, replacing
+   whatever each currently hand-writes for "press `?` for help" and the verb
+   list under a menu. It already exists; the gap is that nothing calls it,
+   not that it needs building
+4. **The modal stack and the `a`-menu construction, deferred.** Both are
+   real patterns in this repository, but gh-repo-dashboard has not shown it
+   needs either yet: it has no equivalent of a run-scoped action menu. Do not
+   extract ahead of a second consumer, per the telemetry rule above
+
+Each extraction ships as: land the primitive in aragonite with its own
+tests, migrate gh-lazydispatch to it in the same PR that lands the deletion
+of the local copy, then migrate gh-repo-dashboard separately (a different
+repository, its own review). Landing all three in aragonite before migrating
+either consumer would mean carrying an unused primitive on trust; migrate as
+each one lands instead.
+
+### gh-repo-dashboard: not a merge
+
+The two tools answer "is CI green" at different zoom levels: gh-repo-dashboard
+across a fleet of repositories, this tool inside one. Merging them would
+mean one tool switching modes rather than two tools with a boundary, and nothing
+above needs that. The synergy worth building is narrower: a verb on
+gh-repo-dashboard's repo-detail view that shells out to
+`gh-lazydispatch export runs --current --branch <default>` (or opens the TUI
+scoped to that repo) rather than gh-repo-dashboard growing its own run
+reader. Not scheduled ahead of the extractions above, since the primitives
+those verbs would render with are exactly what Phase 12 is moving into
+aragonite first.
+
+## Candidate: absorb gha-perf from gh-sweep, and rename
+
+[gh-sweep](https://github.com/KyleKing/gh-sweep)'s `gha-perf` view (historical
+CI-timing analysis: duration trends, regressions, flaky heuristics,
+`internal/cache`) is scoped to one repo and doesn't fit gh-sweep's org/repo-list
+shape. It fits here instead, next to `export diagnose`, the timeline view, and
+the coming `watch` listeners: all run-level GHA depth, all already this tool's
+job. Not scheduled.
+
+If it lands, the name should change with it. "gh-lazydispatch" already reads
+narrower than what Phase 11 is building (`watch`, listeners, timeline,
+diagnose have nothing to do with dispatching or chaining), and gha-perf would
+make that gap harder to ignore, not easier. Land the move and the rename
+together rather than renaming ahead of the scope that justifies it.
+
 ## Scrapped
 
 Both were filed as v2 alternatives and neither survived contact with what
