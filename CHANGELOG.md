@@ -1,3 +1,9 @@
+## v1.11.1 (2026-09-03)
+
+### Fix
+
+- **diagnose**: Report no failed steps for a run that succeeded
+
 ## v1.11.0 (2026-09-02)
 
 ### Feat
