@@ -1,3 +1,14 @@
+## v1.12.0 (2026-09-03)
+
+### Feat
+
+- **cli**: add gh lazydispatch watch, the pr-merge-watch replacement
+- **chain**: adopt an already-running run with source: existing
+
+### Fix
+
+- **chain**: close races and gaps in source: existing adoption
+
 ## v1.11.1 (2026-09-03)
 
 ### Fix
