@@ -2,7 +2,7 @@
 
 Open defects and follow-ups. Phased feature work lives in `ROADMAP.md`; the
 append-only pass log is `.freshen.md`. Every item was re-verified against the
-source on 2026-09-01. Each names the symbol to change rather than a line number,
+source on 2026-09-02. Each names the symbol to change rather than a line number,
 because line numbers drift.
 
 ## Behavior
@@ -50,11 +50,6 @@ Tags v1.0.0 through v1.0.4 are kept on purpose even though their assetless
 releases were deleted: proxy.golang.org has cached them permanently, so
 `go install ...@v1.0.4` resolves from the proxy no matter what the repo does, and
 dropping the tags would only make the repo and the proxy disagree.
-
-Open: `TAP_DEPLOY_KEY` is provisioned on this repo but `kyleking/homebrew-tap`
-holds no `gh-lazydispatch` cask yet, because no release has been cut since the
-secret was added. The next release should push one; confirm it does rather than
-assuming.
 
 ## Template and dependencies
 
