@@ -4,6 +4,27 @@
 
 Pick a GitHub Actions workflow, fill in its `workflow_dispatch` inputs, and run it without leaving the terminal. Chain several workflows into one sequence and read the logs as they stream back.
 
+## Alternatives
+
+Other tools that trigger Actions runs, read their logs, or run them somewhere other than a GitHub-hosted runner:
+
+| Tool | Notes |
+| --- | --- |
+| [act](https://github.com/nektos/act) | "Think globally, `act` locally" |
+| [action-tmate](https://github.com/mxschmitt/action-tmate) | "Debug your GitHub Actions by using tmate" |
+| [Buildkite Test Engine](https://buildkite.com/platform/test-engine/) | "Deliver confidently with fast and reliable tests" (Closed source) |
+| [Datadog CI Visibility](https://www.datadoghq.com/product/ci-cd-monitoring/) | "Monitor & improve the performance of your business-critical builds & deployments in any CI/CD tool" (Closed source) |
+| [gh](https://github.com/cli/cli) | "GitHub CLI brings GitHub to your terminal", including the built-in `gh workflow run` and `gh run view --log-failed` |
+| [gh-act](https://github.com/nektos/gh-act) | "GitHub CLI Extension to run GitHub actions locally using nektos/act" |
+| [gh-annotations](https://github.com/swfz/gh-annotations) | "list of annotations from the recently executed Workflow" |
+| [gh-dash](https://github.com/dlvhdr/gh-dash) | "A rich terminal UI for GitHub that doesn't break your flow" |
+| [gh-dispatch](https://github.com/mdb/gh-dispatch) | "A gh CLI extension for sending GitHub dispatch events and watching the triggered GitHub Actions runs directly from your terminal" |
+| [ghui](https://github.com/kitlangton/ghui) | "Terminal UI for keeping up with your open GitHub pull requests across repositories", with a run and job drill-down for the checks on one |
+| [Mergify CI Insights](https://mergify.com/product/ci-insights) | "Your CI is a black box. Open it up." (Closed source) |
+| [Trunk Flaky Tests](https://trunk.io/flaky-tests) | "Trunk detects, quarantines, and eliminates flaky tests from your code base" (Closed source) |
+| [wrkflw](https://github.com/bahdotsh/wrkflw) | "A command-line tool for validating and executing GitHub Actions workflows locally" |
+| _[Awesome Actions](https://github.com/sdras/awesome-actions)_ | "A curated list of awesome actions to use on GitHub" |
+
 ## Install
 
 ```bash
