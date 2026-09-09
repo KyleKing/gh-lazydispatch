@@ -1,3 +1,9 @@
+## v1.13.0 (2026-09-09)
+
+### Feat
+
+- **cli**: add export ci-timing, per-commit CI wall-clock stats
+
 ## v1.12.0 (2026-09-03)
 
 ### Feat
