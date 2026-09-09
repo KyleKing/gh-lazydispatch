@@ -57,7 +57,7 @@ gh lazydispatch export diagnose 33423560774
 
 On a real CI failure in this repository that is 2,361 bytes against 237,144 through `gh run view --log-failed`. It reports which steps failed, the error lines each one logged, a window of context ending at the failure, and any known failure signature it matched.
 
-The other read-only commands are `export logs`, `export runs`, `export workflows`, and `export chains`. Every one writes JSON to stdout and its line counts to stderr; none of them dispatch anything. See [docs/cli.md](./docs/cli.md), and [skills/github-actions](./skills/github-actions) for the agent-facing version.
+The other read-only commands are `export logs`, `export runs`, `export workflows`, `export chains`, and `export ci-timing` (how long all of CI takes to finish, per commit). Every one writes JSON to stdout and its line counts to stderr; none of them dispatch anything. See [docs/cli.md](./docs/cli.md), and [skills/github-actions](./skills/github-actions) for the agent-facing version.
 
 `gh lazydispatch watch <run-id>` chains after a push: it blocks until the run finishes, writes an errors-only digest to disk, and prints the path. `--fix` hands that digest to an interactive `claude` session to investigate. See [docs/cli.md](./docs/cli.md#watch).
 

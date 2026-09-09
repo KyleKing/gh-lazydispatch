@@ -30,6 +30,7 @@ Usage:
   gh-lazydispatch export runs [flags]        Recent workflow runs, newest first
   gh-lazydispatch export logs <run-id>       One run's logs, parsed into steps
   gh-lazydispatch export diagnose <run-id>   Why a run failed, without its logs
+  gh-lazydispatch export ci-timing [flags]   How long all of CI takes per commit
   gh-lazydispatch watch <run-id> [flags]     Poll a run to completion and write its digest
 
 Flags (runs):
@@ -46,6 +47,11 @@ Flags (logs):
   --grep <pattern>    Keep lines matching a regular expression
   --limit <n>         Cap lines per step
   --format json|md    Default json
+
+Flags (ci-timing):
+  --branch <name>     Default: the repository's default branch
+  --event <event>     Default push
+  --limit <n>         Runs to sample, not commits. Default 500
 
 Flags (watch):
   --interval <secs>   Seconds between polls. Default 15

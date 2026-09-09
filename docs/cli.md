@@ -87,6 +87,25 @@ workflow is in on a branch now. It keeps the newest run of each workflow, keyed
 on the workflow file and its display title together so a workflow reporting a
 mode in its title keeps one state per mode, and it needs `--branch`.
 
+## ci-timing
+
+```sh
+gh-lazydispatch export ci-timing [--branch <name>] [--event <event>] [--limit <n>]
+```
+
+How long all of CI takes to finish, per commit: the span from the earliest
+triggered run's creation to the last one's completion, across every workflow
+one push started. `--branch` defaults to the repository's default branch,
+`--event` to `push`, and `--limit` (default 500) is a run count, not a commit
+count, so it needs to be several times the number of workflows a push
+triggers to cover a useful number of commits. A commit with a run still in
+flight is dropped rather than reported with a misleadingly short span.
+
+The output carries every fully-finished commit in the sample plus min, p50,
+mean, p90, and max across them, so a repository can answer "how long do I
+wait for CI to go green" without opening the Actions tab and doing the math
+by hand.
+
 ## workflows and chains
 
 ```sh

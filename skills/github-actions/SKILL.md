@@ -55,6 +55,7 @@ out over a list.
 | `export runs --current` | Is this branch green right now? |
 | `export workflows` | What can I dispatch, and what inputs does it take? |
 | `export chains` | What multi-workflow sequences are defined here? |
+| `export ci-timing` | How long does all of CI take to finish, per commit? |
 
 Nothing under `export` dispatches anything. To actually run a workflow, use
 `gh workflow run`, or `gh-lazydispatch` with no arguments for the TUI.
@@ -110,6 +111,7 @@ gh-lazydispatch export runs --workflow ci.yml --branch main --limit 5
 gh-lazydispatch export runs --status failure
 gh-lazydispatch export workflows
 gh-lazydispatch export chains
+gh-lazydispatch export ci-timing --branch main
 ```
 
 `--current` reduces a branch's runs to the newest of each workflow, which is
@@ -124,6 +126,12 @@ permitted values. Read that instead of opening the YAML files when you need to
 know what a workflow accepts.
 
 `export runs` takes a workflow filename, not its display name.
+
+`export ci-timing` groups sampled runs by commit and reports, for every commit
+where every triggered workflow finished, the span from the earliest one's
+start to the last one's completion, plus min/p50/mean/p90/max across the
+sample. Use it to answer "how long does a push wait for CI" rather than
+computing it by hand from `export runs`.
 
 ## Installing
 

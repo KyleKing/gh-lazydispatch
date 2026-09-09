@@ -33,6 +33,8 @@ func runExport(args []string, stdout, stderr io.Writer) error {
 		return exportLogs(args[1:], stdout, stderr)
 	case "diagnose":
 		return exportDiagnose(args[1:], stdout, stderr)
+	case "ci-timing":
+		return exportCITiming(args[1:], stdout, stderr)
 	default:
 		return fmt.Errorf("%w: unknown export command %q", ErrUsage, args[0])
 	}
