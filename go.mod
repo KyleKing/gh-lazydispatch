@@ -10,8 +10,8 @@ require (
 	github.com/charmbracelet/x/ansi v0.11.8
 	github.com/charmbracelet/x/exp/golden v0.0.0-20260830003929-9f48cc723c1c
 	github.com/charmbracelet/x/exp/teatest/v2 v2.0.0-20260830003929-9f48cc723c1c
-	github.com/cli/go-gh/v2 v2.13.0
-	github.com/kyleking/aragonite v0.10.0
+	github.com/cli/go-gh/v2 v2.16.0
+	github.com/kyleking/aragonite v0.15.1
 	github.com/sahilm/fuzzy v0.1.3
 	gopkg.in/yaml.v3 v3.0.1
 )
