@@ -8,6 +8,7 @@ import (
 	"charm.land/bubbles/v2/list"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/kyleking/aragonite/tui/skin"
 	"github.com/kyleking/aragonite/tui/theme"
 	"github.com/sahilm/fuzzy"
 )
@@ -122,16 +123,13 @@ func ApplyTheme() {
 
 	// The active tab is a filled segment rather than a bracketed name: every
 	// other bracket in this UI is a key you can press, and one that is not
-	// reads as a broken hint.
-	TabActiveStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(ModalBgColor).
-		Background(PrimaryColor).
-		Padding(0, 1)
+	// reads as a broken hint. The faces come from the shared skin so every
+	// tool's strip looks alike; the primary color is this tool's accent.
+	sk := skin.New(currentPalette, PrimaryColor)
 
-	TabInactiveStyle = lipgloss.NewStyle().
-		Foreground(MutedColor).
-		Padding(0, 1)
+	TabActiveStyle = sk.TabActive
+
+	TabInactiveStyle = sk.Tab
 
 	TableDefaultStyle = lipgloss.NewStyle().
 		Foreground(SoftMutedColor)
