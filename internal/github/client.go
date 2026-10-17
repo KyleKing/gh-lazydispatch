@@ -3,6 +3,7 @@ package github
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -71,6 +72,32 @@ func (c *Client) GetWorkflowRunJobs(runID int64) ([]Job, error) {
 	}
 
 	return jobs, nil
+}
+
+// Annotation is one check-run annotation, which is where GitHub records why a
+// runner died when it left no step log behind.
+type Annotation struct {
+	Level   string `json:"annotation_level"`
+	Message string `json:"message"`
+	Title   string `json:"title"`
+	Path    string `json:"path"`
+}
+
+// GetJobAnnotations fetches the annotations of a job, which GitHub serves as
+// the check run of the same ID.
+func (c *Client) GetJobAnnotations(jobID int64) ([]Annotation, error) {
+	stdout, stderr, err := c.executor.Execute("gh", "api",
+		fmt.Sprintf("repos/%s/check-runs/%d/annotations?per_page=100", c.fullName(), jobID))
+	if err != nil {
+		return nil, fmt.Errorf("reading the job's annotations: %w (stderr: %s)", err, stderr)
+	}
+
+	var annotations []Annotation
+	if err := json.Unmarshal([]byte(stdout), &annotations); err != nil {
+		return nil, fmt.Errorf("parsing the job's annotations: %w", err)
+	}
+
+	return annotations, nil
 }
 
 // GetLatestRun fetches the most recent run of a workflow file, or the most

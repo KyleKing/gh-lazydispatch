@@ -3,6 +3,8 @@ package logs
 import (
 	"sync"
 	"time"
+
+	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
 // LogEntry represents a single log line with metadata.
@@ -27,16 +29,40 @@ const (
 
 // StepLogs contains all log entries for a single workflow step.
 type StepLogs struct {
-	FetchedAt  time.Time  `json:"fetched_at"`
-	Error      error      `json:"-"`
-	Workflow   string     `json:"workflow"`
-	JobName    string     `json:"job_name"`
-	StepName   string     `json:"step_name"`
-	Status     string     `json:"status"`
-	Conclusion string     `json:"conclusion"`
-	Entries    []LogEntry `json:"entries"`
-	StepIndex  int        `json:"step_index"`
-	RunID      int64      `json:"run_id"`
+	FetchedAt  time.Time `json:"fetched_at"`
+	Error      error     `json:"-"`
+	Workflow   string    `json:"workflow"`
+	JobName    string    `json:"job_name"`
+	StepName   string    `json:"step_name"`
+	Status     string    `json:"status"`
+	Conclusion string    `json:"conclusion"`
+	// JobStatus and JobConclusion are the owning job's, which a step with a
+	// blank conclusion cannot be judged without.
+	JobStatus     string     `json:"job_status"`
+	JobConclusion string     `json:"job_conclusion"`
+	Entries       []LogEntry `json:"entries"`
+	StepIndex     int        `json:"step_index"`
+	RunID         int64      `json:"run_id"`
+	JobID         int64      `json:"job_id"`
+}
+
+// Unsuccessful reports whether the step ended as anything but a success or a
+// skip. A blank conclusion counts once its job has completed, because GitHub
+// leaves it blank on a step the runner died inside.
+func (s *StepLogs) Unsuccessful() bool {
+	if s.Conclusion == "" {
+		return s.JobStatus == github.StatusCompleted
+	}
+
+	return s.Conclusion != github.ConclusionSuccess && s.Conclusion != github.ConclusionSkipped
+}
+
+// JobFailed reports whether the step's job completed as anything but a success
+// or a skip.
+func (s *StepLogs) JobFailed() bool {
+	return s.JobStatus == github.StatusCompleted &&
+		s.JobConclusion != github.ConclusionSuccess &&
+		s.JobConclusion != github.ConclusionSkipped
 }
 
 // Failed reports whether the step is one a diagnosis should read. A step whose

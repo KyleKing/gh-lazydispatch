@@ -4131,3 +4131,8 @@ hooks	UNKNOWN STEP	2026-08-31T18:11:31.6467829Z Cleaning up orphan processes
 """
 args = ['run', 'view', '33423560774', '--log', '--job', '99591555237']
 exit = 0
+
+[[interaction]]
+stdout = '[{"path":".github","blob_href":"https://github.com/KyleKing/gh-lazydispatch/blob/1ac5ccef71c2d6220d6de214431ab04edb83c4bd/.github","start_line":2283,"start_column":null,"end_line":2283,"end_column":null,"annotation_level":"failure","title":"","message":"Process completed with exit code 1.","raw_details":""}]'
+args = ['api', 'repos/KyleKing/gh-lazydispatch/check-runs/99591555164/annotations?per_page=100']
+exit = 0

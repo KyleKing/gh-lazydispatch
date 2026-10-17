@@ -3,6 +3,7 @@ package logs
 import (
 	"bufio"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -63,6 +64,10 @@ func (f *GHFetcher) FetchStepLogsReal(runID int64, workflow string) ([]*StepLogs
 					Conclusion: step.Conclusion,
 					Error:      err,
 					FetchedAt:  time.Now(),
+
+					JobID:         job.ID,
+					JobStatus:     job.Status,
+					JobConclusion: job.Conclusion,
 				})
 				stepIndex++
 			}
@@ -120,11 +125,13 @@ func (*GHFetcher) parseJobLogsIntoSteps(
 	}
 
 	order, byStep := groupLogLinesByStep(steps, rawLogs)
-	if len(order) == 0 {
+	missing := declaredStepsWithoutLog(job, order)
+
+	if len(order) == 0 && len(missing) == 0 {
 		return nil
 	}
 
-	stepLogs := make([]*StepLogs, 0, len(order))
+	stepLogs := make([]*StepLogs, 0, len(order)+len(missing))
 
 	for i, name := range order {
 		step, declared := steps[name]
@@ -147,10 +154,55 @@ func (*GHFetcher) parseJobLogsIntoSteps(
 			Conclusion: step.Conclusion,
 			Entries:    ParseLogOutput(strings.Join(byStep[name], "\n"), stepName),
 			FetchedAt:  time.Now(),
+
+			JobID:         job.ID,
+			JobStatus:     job.Status,
+			JobConclusion: job.Conclusion,
+		})
+	}
+
+	for i, step := range missing {
+		stepLogs = append(stepLogs, &StepLogs{
+			StepIndex:  startIndex + len(order) + i,
+			Workflow:   workflow,
+			RunID:      runID,
+			JobName:    job.Name,
+			StepName:   step.Name,
+			Status:     step.Status,
+			Conclusion: step.Conclusion,
+			FetchedAt:  time.Now(),
+
+			JobID:         job.ID,
+			JobStatus:     job.Status,
+			JobConclusion: job.Conclusion,
 		})
 	}
 
 	return stepLogs
+}
+
+// declaredStepsWithoutLog returns the steps of a completed job that ended
+// unsuccessfully and wrote no line to the log. GitHub serves no log for a step
+// the runner died inside, so without these the step that failed is the one
+// step diagnosis cannot see. A job whose lines gh could not attribute to a step
+// is skipped, since its failed step's lines are there under the job's name.
+func declaredStepsWithoutLog(job *github.Job, logged []string) []github.Step {
+	if job.Status != github.StatusCompleted || slices.Contains(logged, unresolvedStep) {
+		return nil
+	}
+
+	var missing []github.Step
+
+	for _, step := range job.Steps {
+		if slices.Contains(logged, step.Name) || step.Conclusion == github.ConclusionSuccess ||
+			step.Conclusion == github.ConclusionSkipped {
+			continue
+		}
+
+		missing = append(missing, step)
+	}
+
+	return missing
 }
 
 // groupLogLinesByStep returns the step names in the order they first appear and

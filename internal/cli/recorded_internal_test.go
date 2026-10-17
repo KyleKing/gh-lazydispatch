@@ -96,6 +96,11 @@ func TestRecorded_DiagnoseReadsAJobGHCouldNotMapToSteps(t *testing.T) {
 		t.Errorf("stderr reports %q, want the full line count it read", strings.TrimSpace(stderr))
 	}
 
+	if len(result.Annotations) == 0 ||
+		!strings.Contains(result.Annotations[0].Message, "Process completed with exit code") {
+		t.Errorf("annotations = %+v, want the failed job's check-run annotation", result.Annotations)
+	}
+
 	step := result.FailedSteps[0]
 	if len(step.Errors) == 0 {
 		t.Fatal("the failed step reports no error lines")
