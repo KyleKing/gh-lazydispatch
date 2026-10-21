@@ -1,3 +1,13 @@
+## v1.13.1 (2026-10-21)
+
+### Fix
+
+- **cli**: diagnose reads job annotations and the first unsuccessful step of a failed job
+
+### Refactor
+
+- **ui**: take the tab faces from aragonite skin
+
 ## v1.13.0 (2026-09-09)
 
 ### Feat
