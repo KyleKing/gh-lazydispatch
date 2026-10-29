@@ -11,6 +11,7 @@ import (
 
 	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/runcache"
 )
 
 // Percentiles read off the sorted per-commit durations.
@@ -113,19 +114,15 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	now := time.Now().UTC()
 	windows := compareWindows(now, windowDays, baselineOffsetDays)
 
-	sample, err := client.ListRunTimings(branch, event, windows[0].from, now)
+	runs, err := loadRuns(client, branch, event, windows[0].from, now, stderr)
 	if err != nil {
-		return fmt.Errorf("listing runs: %w", err)
+		return err
 	}
 
-	stats := summarizeCITimings(sample.Runs)
+	stats := summarizeCITimings(runs)
 	stats.Windows = summarizeWindows(stats.Commits, windows)
 
-	notef(stderr, "%d commits with every run finished (from %d runs sampled)\n", len(stats.Commits), len(sample.Runs))
-
-	for _, day := range sample.Capped {
-		notef(stderr, "warning: %s hit the API's 1000-result cap; its runs are incomplete\n", day.Format(time.DateOnly))
-	}
+	notef(stderr, "%d commits with every run finished (from %d runs)\n", len(stats.Commits), len(runs))
 
 	if format == formatMarkdown {
 		return writeCITimingMarkdown(stdout, branch, stats.Windows)
@@ -366,4 +363,50 @@ func secondsPercentile(commits []ciTiming, p float64) float64 {
 	frac := rank - float64(lo)
 
 	return seconds[lo] + frac*(seconds[hi]-seconds[lo])
+}
+
+// loadRuns returns the runs created in [from, to), reading finished ones from
+// the on-disk cache and fetching only the ranges it does not cover. A fetch
+// that hit the API's result cap is reported and not cached, so a later run
+// retries it.
+func loadRuns(
+	client *github.Client, branch, event string, from, to time.Time, stderr io.Writer,
+) ([]github.RunTiming, error) {
+	path := runcache.Path(client.Owner()+"/"+client.Repo(), event, branch)
+
+	entry, err := runcache.Load(path)
+	if err != nil {
+		return nil, fmt.Errorf("loading the run cache: %w", err)
+	}
+
+	var (
+		fetched []github.RunTiming
+		capped  []time.Time
+	)
+
+	for _, missing := range entry.Missing(from, to) {
+		sample, err := client.ListRunTimings(branch, event, missing.From, missing.To)
+		if err != nil {
+			return nil, fmt.Errorf("listing runs: %w", err)
+		}
+
+		fetched = append(fetched, sample.Runs...)
+		capped = append(capped, sample.Capped...)
+	}
+
+	notef(stderr, "%d runs fetched, %d cached (%s)\n", len(fetched), len(entry.Runs), path)
+
+	for _, at := range capped {
+		notef(stderr, "warning: runs from %s hit the 1000-result cap and are incomplete\n", at.Format(time.RFC3339))
+	}
+
+	merged := entry.Merge(fetched, from, to)
+
+	if len(capped) == 0 {
+		if err := runcache.Save(path, merged); err != nil {
+			notef(stderr, "warning: the run cache was not saved: %v\n", err)
+		}
+	}
+
+	return runcache.Within(merged.Runs, fetched, from, to), nil
 }

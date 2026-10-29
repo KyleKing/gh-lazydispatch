@@ -110,7 +110,14 @@ by hand.
 `--window-days` (default 7): the baseline ending `--baseline-offset-days`
 (default 7) ago and the current one ending now. A commit belongs to the window
 its CI began in. The markdown table gives commits, p50, p90, and max for each
-window plus the p90 change. A warning prints for any day that hit the 1000-result cap.
+window plus the p90 change. A warning prints for any range that still hit the 1000-result cap.
+
+Finished runs are cached in
+`$XDG_CACHE_HOME/lazydispatch/<owner>/<repo>/ci-timing-<event>-<branch>.json`
+(`~/.cache` when unset), along with the time range they cover, so a repeat
+report fetches only runs created since. A run still in flight is not stored
+and is read again next time. Delete the file to rebuild it, for example after
+a rerun changed an old run's result.
 
 Each commit also carries `committed_at` and a `run_details` row per workflow
 run (name, conclusion, start, finish, seconds), so the same output can be

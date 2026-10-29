@@ -19,14 +19,14 @@ const maxRunTimingsPerPage = 100
 // It is not aragonite's WorkflowRun because that type carries no head_sha,
 // which grouping runs by commit depends on.
 type RunTiming struct {
-	CommittedAt time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	Name        string
-	Status      string
-	Conclusion  string
-	HeadSHA     string
-	ID          int64
+	CommittedAt time.Time `json:"committed_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Name        string    `json:"name"`
+	Status      string    `json:"status"`
+	Conclusion  string    `json:"conclusion"`
+	HeadSHA     string    `json:"head_sha"`
+	ID          int64     `json:"id"`
 }
 
 // IsComplete reports whether the run has reached a conclusion.
