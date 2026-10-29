@@ -91,6 +91,7 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 
 ```sh
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>] [--limit <n>]
+    [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
 ```
 
 How long all of CI takes to finish, per commit: the span from the earliest
@@ -105,6 +106,22 @@ The output carries every fully-finished commit in the sample plus min, p50,
 mean, p90, and max across them, so a repository can answer "how long do I
 wait for CI to go green" without opening the Actions tab and doing the math
 by hand.
+
+`windows` in the JSON, and the whole of `--format md`, compare two spans of
+`--window-days` (default 7): the baseline ending `--baseline-offset-days`
+(default 7) ago and the current one ending now. A commit belongs to the window
+its CI began in. The markdown table gives commits, p50, p90, and max for each
+window plus the p90 change. The run list is bounded by creation date, and a
+warning prints when `--limit` cut the sample short, since the older window
+is the one that goes missing.
+
+Each commit also carries `committed_at` and a `run_details` row per workflow
+run (name, conclusion, start, finish, seconds), so the same output can be
+re-cut by percentile, by slowest workflow, or by gap between commit and push
+without another API call. The clock starts at the first run's creation and
+not at `committed_at`, because a commit made locally and pushed days later
+would otherwise count the wait for the push as CI time. Runs are Actions
+workflow runs; checks from other apps are not included.
 
 ## workflows and chains
 

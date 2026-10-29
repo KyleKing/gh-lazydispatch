@@ -131,7 +131,9 @@ know what a workflow accepts.
 where every triggered workflow finished, the span from the earliest one's
 start to the last one's completion, plus min/p50/mean/p90/max across the
 sample. Use it to answer "how long does a push wait for CI" rather than
-computing it by hand from `export runs`.
+computing it by hand from `export runs`. `--format md` prints the p50/p90
+table for the last week against the week before; the JSON keeps one row per
+workflow run under each commit for other cuts.
 
 ## Installing
 
