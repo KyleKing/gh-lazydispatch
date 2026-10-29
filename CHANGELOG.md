@@ -1,3 +1,17 @@
+## v1.14.0 (2026-10-29)
+
+### Feat
+
+- **cli**: sample job reads per window and keep fetched jobs when the rate limit hits
+- **cli**: break one workflow into jobs and steps with queue wait and runner labels in ci-timing
+- **cli**: leave canceled and timed-out commits out of ci-timing percentiles and break time down by workflow
+- **cli**: cache finished runs so repeat ci-timing reports fetch only new ones
+- **cli**: compare p50 and p90 CI time across two windows in export ci-timing
+
+### Fix
+
+- **cli**: read ci-timing runs per day and split ranges that hit the API result cap
+
 ## v1.13.1 (2026-10-21)
 
 ### Fix
