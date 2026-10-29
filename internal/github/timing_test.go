@@ -29,7 +29,8 @@ func runTimingJSON(startID, n int) string {
 
 func runsPath(created string, page int) string {
 	return fmt.Sprintf(
-		"repos/owner/repo/actions/runs?branch=main&created=%s&event=push&page=%d&per_page=100", created, page)
+		"repos/owner/repo/actions/runs?branch=main&created=%s&event=push&page=%d&per_page=100", created, page,
+	)
 }
 
 // A CI timing rollup groups runs by commit, so head_sha has to survive the
