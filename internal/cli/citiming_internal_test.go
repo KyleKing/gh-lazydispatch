@@ -20,9 +20,9 @@ func mustParse(t *testing.T, s string) time.Time {
 }
 
 // A commit's CI timing is the span from the earliest triggered run's start to
-// the last one's finish, and a push still in flight must not report a
-// misleadingly short one.
-func TestSummarizeCITimings_SpansAcrossACommitsRunsAndDropsInFlightPushes(t *testing.T) {
+// the last one's finish, and a push still in flight stays in the raw rows
+// but out of the percentiles, since its span is not the real one yet.
+func TestSummarizeCITimings_SpansAcrossACommitsRunsAndExcludesInFlightPushes(t *testing.T) {
 	t.Parallel()
 
 	runs := []github.RunTiming{
@@ -46,13 +46,17 @@ func TestSummarizeCITimings_SpansAcrossACommitsRunsAndDropsInFlightPushes(t *tes
 
 	stats := summarizeCITimings(runs)
 
-	if len(stats.Commits) != 1 {
-		t.Fatalf("got %d commits, want 1 (the in-flight push must be dropped): %+v", len(stats.Commits), stats.Commits)
+	if len(stats.Commits) != 2 {
+		t.Fatalf("got %d commits, want both rows: %+v", len(stats.Commits), stats.Commits)
 	}
 
 	commit := stats.Commits[0]
-	if commit.HeadSHA != "done" {
-		t.Fatalf("kept commit is %q, want %q", commit.HeadSHA, "done")
+	if commit.HeadSHA != "done" || commit.Excluded != "" {
+		t.Fatalf("first commit is %+v, want %q counted", commit, "done")
+	}
+
+	if got := stats.Commits[1]; got.HeadSHA != "inflight" || got.Excluded != excludedIncomplete {
+		t.Fatalf("second commit is %+v, want %q excluded as incomplete", got, "inflight")
 	}
 
 	// Earliest CreatedAt (00:00) to latest UpdatedAt (00:10) is 600 seconds,
@@ -110,15 +114,24 @@ func TestSummarizeWindows_BucketsByStartAndRendersTheComparison(t *testing.T) {
 		start := now.AddDate(0, 0, -daysAgo)
 
 		return github.RunTiming{
-			HeadSHA: sha, Status: github.StatusCompleted, Name: "CI",
+			HeadSHA: sha, Status: github.StatusCompleted, Name: "CI", Conclusion: "success",
 			CreatedAt: start, UpdatedAt: start.Add(time.Duration(seconds) * time.Second),
 		}
 	}
+
+	canceled := makeRun("new-canceled", 2, 9000)
+	canceled.Conclusion = conclusionCanceled
+
+	supersededEarly := []github.RunTiming{makeRun("new-superseded", 1, 400), makeRun("new-superseded", 1, 100)}
+	supersededEarly[1].Conclusion = conclusionCanceled
 
 	stats := summarizeCITimings([]github.RunTiming{
 		makeRun("old-a", 10, 100),
 		makeRun("old-b", 9, 200),
 		makeRun("new-a", 3, 300),
+		canceled,
+		supersededEarly[0],
+		supersededEarly[1],
 		makeRun("ancient", 30, 999),
 	})
 
@@ -128,8 +141,8 @@ func TestSummarizeWindows_BucketsByStartAndRendersTheComparison(t *testing.T) {
 		t.Errorf("baseline is %+v, want 2 commits with p90 190", got[0])
 	}
 
-	if got[1].Commits != 1 || got[1].P90Seconds != 300 {
-		t.Errorf("current is %+v, want 1 commit with p90 300", got[1])
+	if got[1].Commits != 2 || got[1].P90Seconds != 390 {
+		t.Errorf("current is %+v, want 2 commits with p90 390", got[1])
 	}
 
 	var out strings.Builder
@@ -138,9 +151,10 @@ func TestSummarizeWindows_BucketsByStartAndRendersTheComparison(t *testing.T) {
 	}
 
 	wantRows := []string{
-		"| baseline (2026-01-01 to 2026-01-08) | 2 | 2m30s | 3m10s |",
-		"| current (2026-01-08 to 2026-01-15) | 1 | 5m0s | 5m0s |",
-		"P90 change: +58%",
+		"| baseline (2026-01-01 to 2026-01-08) | 2 | 0 | 2m30s | 3m10s | 3m20s |",
+		"| current (2026-01-08 to 2026-01-15) | 2 | 1 of 3 (33%: 1 canceled) | 5m50s | 6m30s | 6m40s |",
+		"P90 change: +105%",
+		"| CI | 100% | 5m0s | 6m20s | 3m10s | +100% | 6m20s |",
 	}
 
 	for _, want := range wantRows {

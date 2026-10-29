@@ -30,7 +30,9 @@ type ciRun struct {
 	CreatedAt  string  `json:"created_at"`
 	FinishedAt string  `json:"finished_at"`
 	Seconds    float64 `json:"seconds"`
-	ID         int64   `json:"id"`
+	// FinishedAfter is seconds from the push to this run's finish.
+	FinishedAfter float64 `json:"finished_after_seconds"`
+	ID            int64   `json:"id"`
 }
 
 // ciTiming is one push's CI wall-clock time: from the earliest triggered run's
@@ -38,27 +40,32 @@ type ciRun struct {
 // recorded for re-cutting but does not start the clock, because a commit made
 // locally days before it was pushed would count the wait for the push.
 type ciTiming struct {
-	HeadSHA     string  `json:"head_sha"`
-	CommittedAt string  `json:"committed_at,omitempty"`
-	StartedAt   string  `json:"started_at"`
-	FinishedAt  string  `json:"finished_at"`
-	RunDetails  []ciRun `json:"run_details"`
-	Seconds     float64 `json:"seconds"`
-	Runs        int     `json:"runs"`
+	HeadSHA     string `json:"head_sha"`
+	CommittedAt string `json:"committed_at,omitempty"`
+	StartedAt   string `json:"started_at"`
+	FinishedAt  string `json:"finished_at"`
+	// Excluded names why the commit stays out of every percentile ("" when it counts).
+	Excluded   string  `json:"excluded,omitempty"`
+	RunDetails []ciRun `json:"run_details"`
+	Seconds    float64 `json:"seconds"`
+	Runs       int     `json:"runs"`
 }
 
 // ciTimingWindow is the summary of the commits whose timing began in
 // [From, To).
 type ciTimingWindow struct {
-	Label       string  `json:"label"`
-	From        string  `json:"from"`
-	To          string  `json:"to"`
-	Commits     int     `json:"commits"`
-	MinSeconds  float64 `json:"min_seconds"`
-	P50Seconds  float64 `json:"p50_seconds"`
-	MeanSeconds float64 `json:"mean_seconds"`
-	P90Seconds  float64 `json:"p90_seconds"`
-	MaxSeconds  float64 `json:"max_seconds"`
+	// Excluded counts the commits left out of the percentiles, by reason.
+	Excluded    map[string]int `json:"excluded,omitempty"`
+	Label       string         `json:"label"`
+	From        string         `json:"from"`
+	To          string         `json:"to"`
+	Workflows   []ciWorkflow   `json:"workflows,omitempty"`
+	Commits     int            `json:"commits"`
+	MinSeconds  float64        `json:"min_seconds"`
+	P50Seconds  float64        `json:"p50_seconds"`
+	MeanSeconds float64        `json:"mean_seconds"`
+	P90Seconds  float64        `json:"p90_seconds"`
+	MaxSeconds  float64        `json:"max_seconds"`
 }
 
 // ciTimingStats is a per-commit CI timing rollup with summary statistics
@@ -122,7 +129,7 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	stats := summarizeCITimings(runs)
 	stats.Windows = summarizeWindows(stats.Commits, windows)
 
-	notef(stderr, "%d commits with every run finished (from %d runs)\n", len(stats.Commits), len(runs))
+	notef(stderr, "%d commits from %d runs\n", len(stats.Commits), len(runs))
 
 	if format == formatMarkdown {
 		return writeCITimingMarkdown(stdout, branch, stats.Windows)
@@ -169,7 +176,7 @@ func summarizeCITimings(runs []github.RunTiming) ciTimingStats {
 	commits := make([]ciTiming, 0, len(byCommit))
 
 	for sha, group := range byCommit {
-		if sha == "" || !allComplete(group) {
+		if sha == "" {
 			continue
 		}
 
@@ -178,13 +185,15 @@ func summarizeCITimings(runs []github.RunTiming) ciTimingStats {
 
 	sort.Slice(commits, func(i, j int) bool { return commits[i].StartedAt < commits[j].StartedAt })
 
+	kept := counted(commits)
+
 	return ciTimingStats{
 		Commits:     commits,
-		MinSeconds:  secondsPercentile(commits, 0),
-		P50Seconds:  secondsPercentile(commits, percentileMedian),
-		MeanSeconds: secondsMean(commits),
-		P90Seconds:  secondsPercentile(commits, percentileP90),
-		MaxSeconds:  secondsPercentile(commits, 1),
+		MinSeconds:  secondsPercentile(kept, 0),
+		P50Seconds:  secondsPercentile(kept, percentileMedian),
+		MeanSeconds: secondsMean(kept),
+		P90Seconds:  secondsPercentile(kept, percentileP90),
+		MaxSeconds:  secondsPercentile(kept, 1),
 	}
 }
 
@@ -198,6 +207,7 @@ func timeCommit(sha string, group []github.RunTiming) ciTiming {
 		Seconds:    end.Sub(start).Seconds(),
 		Runs:       len(group),
 		RunDetails: make([]ciRun, 0, len(group)),
+		Excluded:   exclusion(group),
 	}
 
 	if committed := earliestCommit(group); !committed.IsZero() {
@@ -213,6 +223,8 @@ func timeCommit(sha string, group []github.RunTiming) ciTiming {
 			FinishedAt: run.UpdatedAt.Format(timeFormat),
 			Seconds:    run.UpdatedAt.Sub(run.CreatedAt).Seconds(),
 			ID:         run.ID,
+
+			FinishedAfter: run.UpdatedAt.Sub(start).Seconds(),
 		})
 	}
 
@@ -236,14 +248,16 @@ func summarizeWindows(commits []ciTiming, windows [2]timeWindow) []ciTimingWindo
 	out := make([]ciTimingWindow, 0, len(windows))
 
 	for _, w := range windows {
-		var inWindow []ciTiming
+		var all []ciTiming
 
 		for _, c := range commits {
 			started, err := time.Parse(timeFormat, c.StartedAt)
 			if err == nil && !started.Before(w.from) && started.Before(w.to) {
-				inWindow = append(inWindow, c)
+				all = append(all, c)
 			}
 		}
+
+		inWindow := counted(all)
 
 		out = append(out, ciTimingWindow{
 			Label:       w.label,
@@ -255,6 +269,8 @@ func summarizeWindows(commits []ciTiming, windows [2]timeWindow) []ciTimingWindo
 			MeanSeconds: secondsMean(inWindow),
 			P90Seconds:  secondsPercentile(inWindow, percentileP90),
 			MaxSeconds:  secondsPercentile(inWindow, 1),
+			Excluded:    excludedCounts(all),
+			Workflows:   summarizeWorkflows(inWindow),
 		})
 	}
 
@@ -264,17 +280,21 @@ func summarizeWindows(commits []ciTiming, windows [2]timeWindow) []ciTimingWindo
 func writeCITimingMarkdown(w io.Writer, branch string, windows []ciTimingWindow) error {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "CI wall clock per commit on `%s`, push to last run finished.\n\n", branch)
-	b.WriteString("| Window | Commits | P50 | P90 | Max |\n| --- | ---: | ---: | ---: | ---: |\n")
+	fmt.Fprintf(&b, "CI wall clock per commit on `%s`, push to last run finished.\n", branch)
+	b.WriteString("Commits are left out (and counted) when a run timed out, was unfinished,\n")
+	b.WriteString("or was canceled after every completed run.\n\n")
+	b.WriteString("| Window | Commits | Left out | P50 | P90 | Max |\n| --- | ---: | --- | ---: | ---: | ---: |\n")
 
-	for _, win := range windows {
-		fmt.Fprintf(&b, "| %s (%s to %s) | %d | %s | %s | %s |\n",
-			win.Label, win.From[:len("2006-01-02")], win.To[:len("2006-01-02")], win.Commits,
+	for i := range windows {
+		win := &windows[i]
+		fmt.Fprintf(&b, "| %s (%s to %s) | %d | %s | %s | %s | %s |\n",
+			win.Label, win.From[:len("2006-01-02")], win.To[:len("2006-01-02")], win.Commits, formatExcluded(win),
 			formatSeconds(win.P50Seconds), formatSeconds(win.P90Seconds), formatSeconds(win.MaxSeconds))
 	}
 
 	if len(windows) == 2 && windows[0].P90Seconds > 0 && windows[1].Commits > 0 {
 		fmt.Fprintf(&b, "\nP90 change: %+.0f%%\n", (windows[1].P90Seconds/windows[0].P90Seconds-1)*percentScale)
+		writeWorkflowTable(&b, windows[0], windows[1])
 	}
 
 	if _, err := io.WriteString(w, b.String()); err != nil {
@@ -282,6 +302,57 @@ func writeCITimingMarkdown(w io.Writer, branch string, windows []ciTimingWindow)
 	}
 
 	return nil
+}
+
+func formatExcluded(win *ciTimingWindow) string {
+	total := win.Commits
+	for _, n := range win.Excluded {
+		total += n
+	}
+
+	if len(win.Excluded) == 0 {
+		return "0"
+	}
+
+	reasons := make([]string, 0, len(win.Excluded))
+	left := 0
+
+	for reason, n := range win.Excluded {
+		reasons = append(reasons, fmt.Sprintf("%d %s", n, reason))
+		left += n
+	}
+
+	sort.Strings(reasons)
+
+	rate := float64(left) / float64(total) * percentScale
+
+	return fmt.Sprintf("%d of %d (%.0f%%: %s)", left, total, rate, strings.Join(reasons, ", "))
+}
+
+// writeWorkflowTable compares each workflow's P90 finish time after the push
+// across the two windows, since the slowest workflow sets a commit's wall clock.
+func writeWorkflowTable(b *strings.Builder, baseline, current ciTimingWindow) {
+	before := make(map[string]ciWorkflow, len(baseline.Workflows))
+	for _, wf := range baseline.Workflows {
+		before[wf.Name] = wf
+	}
+
+	b.WriteString("\nWorkflow finish time after the push (current window, slowest P90 first).\n\n")
+	b.WriteString("| Workflow | Last | P50 | P90 | Baseline P90 | Change | Run P90 |\n")
+	b.WriteString("| --- | ---: | ---: | ---: | ---: | ---: | ---: |\n")
+
+	for _, wf := range current.Workflows {
+		prev, change := "-", "-"
+
+		if old, ok := before[wf.Name]; ok && old.P90FinishedAfter > 0 {
+			prev = formatSeconds(old.P90FinishedAfter)
+			change = fmt.Sprintf("%+.0f%%", (wf.P90FinishedAfter/old.P90FinishedAfter-1)*percentScale)
+		}
+
+		fmt.Fprintf(b, "| %s | %.0f%% | %s | %s | %s | %s | %s |\n", wf.Name, wf.LastShare*percentScale,
+			formatSeconds(wf.P50FinishedAfter), formatSeconds(wf.P90FinishedAfter),
+			prev, change, formatSeconds(wf.P90Seconds))
+	}
 }
 
 const percentScale = 100
@@ -337,14 +408,20 @@ func secondsMean(commits []ciTiming) float64 {
 // interpolation between the two nearest ranks, sorting a private copy so the
 // caller's chronological order survives.
 func secondsPercentile(commits []ciTiming, p float64) float64 {
-	n := len(commits)
-	if n == 0 {
-		return 0
+	seconds := make([]float64, len(commits))
+	for i := range commits {
+		seconds[i] = commits[i].Seconds
 	}
 
-	seconds := make([]float64, n)
-	for i, c := range commits {
-		seconds[i] = c.Seconds
+	return percentile(seconds, p)
+}
+
+// percentile reads p (0-1) out of values by linear interpolation, sorting
+// them in place.
+func percentile(seconds []float64, p float64) float64 {
+	n := len(seconds)
+	if n == 0 {
+		return 0
 	}
 
 	sort.Float64s(seconds)

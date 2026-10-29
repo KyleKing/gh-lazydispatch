@@ -98,11 +98,17 @@ How long all of CI takes to finish, per commit: the span from the earliest
 triggered run's creation to the last one's completion, across every workflow
 one push started. `--branch` defaults to the repository's default branch,
 and `--event` to `push`. Runs are read one day at a time, because the Actions
-API returns at most 1000 results for a filtered query. A commit with a run still in
-flight is dropped rather than reported with a misleadingly short span.
+API returns at most 1000 results for a filtered query.
 
-The output carries every fully-finished commit in the sample plus min, p50,
-mean, p90, and max across them, so a repository can answer "how long do I
+A commit stays out of every percentile (and is counted under `excluded`) when
+a run is still in flight, timed out or failed to start, or was canceled after
+every completed run, because its span is then cut short. A canceled run that
+finishes before a completed one is kept, since a newer push usually supersedes
+one workflow while the rest finish. Each commit row carries its `excluded`
+reason so nothing is lost from the raw data.
+
+The output carries every commit in the sample plus min, p50,
+mean, p90, and max across the counted ones, so a repository can answer "how long do I
 wait for CI to go green" without opening the Actions tab and doing the math
 by hand.
 
@@ -110,7 +116,8 @@ by hand.
 `--window-days` (default 7): the baseline ending `--baseline-offset-days`
 (default 7) ago and the current one ending now. A commit belongs to the window
 its CI began in. The markdown table gives commits, p50, p90, and max for each
-window plus the p90 change. A warning prints for any range that still hit the 1000-result cap.
+window plus the p90 change and a per-workflow table of when each workflow
+finishes after the push, with how often it finishes last. A warning prints for any range that still hit the 1000-result cap.
 
 Finished runs are cached in
 `$XDG_CACHE_HOME/lazydispatch/<owner>/<repo>/ci-timing-<event>-<branch>.json`
@@ -120,7 +127,7 @@ and is read again next time. Delete the file to rebuild it, for example after
 a rerun changed an old run's result.
 
 Each commit also carries `committed_at` and a `run_details` row per workflow
-run (name, conclusion, start, finish, seconds), so the same output can be
+run (name, conclusion, start, finish, seconds, seconds after the push), so the same output can be
 re-cut by percentile, by slowest workflow, or by gap between commit and push
 without another API call. The clock starts at the first run's creation and
 not at `committed_at`, because a commit made locally and pushed days later
