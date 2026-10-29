@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -57,7 +58,8 @@ func workflowRunIDs(commits []ciTiming, workflow string) []int64 {
 }
 
 // loadJobs returns the jobs of every run in ids, fetching the ones the cache
-// lacks.
+// lacks. The first failed fetch stops the rest, and what was fetched before it
+// is still saved, so a rate limit hit mid-way costs no finished work.
 func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jobs, error) {
 	path := runcache.JobsPath(client.Owner() + "/" + client.Repo())
 
@@ -76,32 +78,41 @@ func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jo
 
 	notef(stderr, "%d runs need their jobs fetched, %d cached (%s)\n", len(missing), len(ids)-len(missing), path)
 
-	fetched := make([][]github.JobTiming, len(missing))
-
-	var group errgroup.Group
+	var (
+		mu    sync.Mutex
+		group errgroup.Group
+	)
 
 	group.SetLimit(jobFetchConcurrency)
 
-	for i, id := range missing {
+	failed := make(chan struct{})
+
+	var once sync.Once
+
+	for _, id := range missing {
 		group.Go(func() error {
+			select {
+			case <-failed:
+				return nil
+			default:
+			}
+
 			jobs, err := client.ListRunJobTimings(id)
 			if err != nil {
+				once.Do(func() { close(failed) })
+
 				return fmt.Errorf("fetching jobs: %w", err)
 			}
 
-			fetched[i] = jobs
+			mu.Lock()
+			cached[id] = jobs
+			mu.Unlock()
 
 			return nil
 		})
 	}
 
-	if err := group.Wait(); err != nil {
-		return nil, fmt.Errorf("listing jobs: %w", err)
-	}
-
-	for i, id := range missing {
-		cached[id] = fetched[i]
-	}
+	fetchErr := group.Wait()
 
 	if len(missing) > 0 {
 		if err := runcache.SaveJobs(path, cached); err != nil {
@@ -109,7 +120,34 @@ func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jo
 		}
 	}
 
+	if fetchErr != nil {
+		return nil, fmt.Errorf("listing jobs (rerun to resume, finished runs are cached): %w", fetchErr)
+	}
+
 	return cached, nil
+}
+
+func runHash(id int64, multiplier uint64) uint64 {
+	return uint64(id) * multiplier //nolint:gosec // run IDs are positive
+}
+
+// sampleRuns returns at most n of ids, chosen by a hash of the run ID so the
+// same runs are picked as the window slides and their cached jobs stay in use.
+// A non-positive n keeps every run.
+func sampleRuns(ids []int64, n int) []int64 {
+	if n <= 0 || len(ids) <= n {
+		return ids
+	}
+
+	const golden = 0x9E3779B97F4A7C15
+
+	picked := append([]int64(nil), ids...)
+
+	sort.Slice(picked, func(i, j int) bool {
+		return runHash(picked[i], golden) < runHash(picked[j], golden)
+	})
+
+	return picked[:n]
 }
 
 type jobSamples struct {

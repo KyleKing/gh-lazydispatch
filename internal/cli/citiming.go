@@ -87,13 +87,14 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 
 	var branch, event, format, workflow string
 
-	var windowDays, baselineOffsetDays int
+	var windowDays, baselineOffsetDays, sample int
 
 	fs.StringVar(&branch, "branch", "", "branch to sample; default the repository's default branch")
 	fs.StringVar(&event, "event", "push", "event that triggered the runs")
 	fs.IntVar(&windowDays, "window-days", defaultWindowDays, "days of commits in each compared window")
 	fs.IntVar(&baselineOffsetDays, "baseline-offset-days", defaultWindowDays, "days before now the baseline ends")
 	fs.StringVar(&workflow, "workflow", "", "workflow name to break down into jobs and steps")
+	fs.IntVar(&sample, "sample", defaultJobSample, "with --workflow, runs per window to read jobs for; 0 reads all")
 	fs.StringVar(&format, "format", formatJSON, "json (raw rows and summaries) or md (comparison table)")
 
 	if err := fs.Parse(args); err != nil {
@@ -135,7 +136,7 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	notef(stderr, "%d commits from %d runs\n", len(stats.Commits), len(runs))
 
 	if workflow != "" {
-		if err := attachJobs(client, stats.Windows, stats.Commits, windows, workflow, stderr); err != nil {
+		if err := attachJobs(client, stats.Windows, stats.Commits, windows, workflow, sample, stderr); err != nil {
 			return err
 		}
 	}
@@ -146,6 +147,9 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 
 	return writeJSON(stdout, stats)
 }
+
+// defaultJobSample is enough runs per window for a stable P90 of a job's time.
+const defaultJobSample = 150
 
 // defaultWindowDays compares the last week of commits with the week before.
 const defaultWindowDays = 7
@@ -268,14 +272,14 @@ func windowCommits(commits []ciTiming, w timeWindow) []ciTiming {
 // attachJobs fills each window with the job and step rollup of workflow.
 func attachJobs(
 	client *github.Client, windows []ciTimingWindow, commits []ciTiming, spans [2]timeWindow, workflow string,
-	stderr io.Writer,
+	sample int, stderr io.Writer,
 ) error {
 	ids := make([]int64, 0, len(commits))
 	inWindow := make([][]ciTiming, len(spans))
 
 	for i, span := range spans {
 		inWindow[i] = counted(windowCommits(commits, span))
-		ids = append(ids, workflowRunIDs(inWindow[i], workflow)...)
+		ids = append(ids, sampleRuns(workflowRunIDs(inWindow[i], workflow), sample)...)
 	}
 
 	jobs, err := loadJobs(client, ids, stderr)

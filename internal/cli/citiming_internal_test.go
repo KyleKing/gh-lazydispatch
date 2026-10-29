@@ -219,3 +219,42 @@ func TestSummarizeJobs_QueueWaitAndRunnerChange(t *testing.T) {
 		t.Errorf("job table lacks %q:\n%s", want, out.String())
 	}
 }
+
+// Sliding the window by dropping the oldest runs keeps most of the sampled
+// runs, so their cached jobs are reused rather than refetched.
+func TestSampleRuns_StaysStableAsTheWindowSlides(t *testing.T) {
+	t.Parallel()
+
+	ids := make([]int64, 400)
+	for i := range ids {
+		ids[i] = int64(1_000_000 + i)
+	}
+
+	const n = 100
+
+	first := sampleRuns(ids, n)
+	if len(first) != n {
+		t.Fatalf("sampled %d runs, want %d", len(first), n)
+	}
+
+	if all := sampleRuns(ids, 0); len(all) != len(ids) {
+		t.Fatalf("n=0 sampled %d runs, want all %d", len(all), len(ids))
+	}
+
+	kept := make(map[int64]bool, n)
+	for _, id := range sampleRuns(ids[40:], n) {
+		kept[id] = true
+	}
+
+	shared := 0
+
+	for _, id := range first {
+		if kept[id] {
+			shared++
+		}
+	}
+
+	if shared < n*3/4 {
+		t.Errorf("only %d of %d sampled runs survived a 10%% slide", shared, n)
+	}
+}

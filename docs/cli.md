@@ -92,7 +92,7 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 ```sh
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
     [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
-    [--workflow <name>]
+    [--workflow <name>] [--sample <n>]
 ```
 
 How long all of CI takes to finish, per commit: the span from the earliest
@@ -128,7 +128,11 @@ creation, which is the time GitHub took to hand it to a runner. A runner label
 that differs between the windows is shown beside the job, because a runner
 swap moves every number after it. Jobs are cached by run ID in
 `ci-jobs.json` beside the run cache, since a finished run's jobs never change.
-Jobs of canceled runs are not read.
+Jobs of canceled runs are not read. To spare the API's rate limit
+(5000 calls an hour) only `--sample` runs per window (default 150, 0 for all)
+are read, picked by a hash of the run ID so the same runs are chosen as the
+window slides. A rate limit hit mid-way keeps what was fetched, and a rerun
+resumes.
 
 Finished runs are cached in
 `$XDG_CACHE_HOME/lazydispatch/<owner>/<repo>/ci-timing-<event>-<branch>.json`
