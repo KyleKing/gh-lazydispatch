@@ -7,10 +7,14 @@ version = "2"
 enable = ["gci", "gofmt", "gofumpt", "goimports"]
 
 [formatters.settings.gci]
-sections = ["standard", "default", "prefix(github.com/kyleking/gh-lazydispatch)"]
+sections = [
+  "standard",
+  "default",
+  "prefix(github.com/kyleking/gh-lazydispatch)",
+]
 
-[formatters.settings.gofumpt]
-extra-rules = true
+[formatters.settings.gofumpt.extra]
+group-params = true
 
 [formatters.settings.goimports]
 local-prefixes = ["github.com/kyleking/gh-lazydispatch"]

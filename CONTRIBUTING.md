@@ -12,31 +12,38 @@ mise run ci
 
 ## Tasks
 
-Shared tasks live in `.config/mise/conf.d/template.toml` (managed by the copier template). Project-specific tasks go in additional `.config/mise/conf.d/*.toml` files.
+Shared tasks live in `.config/mise/conf.d/template.toml` (managed by the copier template).
+Project-specific tasks go in additional `.config/mise/conf.d/*.toml` files.
 
-mise loads `conf.d/*.toml` files in alphabetical order, and a task defined in more than one file resolves to whichever file loaded last. Name your project file so it sorts after `template.toml` (`user.toml` works; `project.toml` does not, since `p` < `t`) or a same-named task override will silently do nothing.
+mise loads `conf.d/*.toml` files in alphabetical order, and a task defined in more
+than one file resolves to whichever file loaded last. Name your project file so it
+sorts after `template.toml` (`user.toml` works; `project.toml` does not, since
+`p` < `t`) or a same-named task override will silently do nothing.
 
-| Command                       | Description                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `mise run bench`              | Run benchmarks                                                                                                            |
-| `mise run build`              | Build binary                                                                                                              |
-| `mise run ci`                 | Full CI check (tests + build)                                                                                             |
-| `mise run clean`              | Clean build artifacts                                                                                                     |
-| `mise run demo`               | Generate VHS demo recordings (needs [vhs](https://github.com/charmbracelet/vhs) on `PATH`; it is not pinned in `[tools]`) |
-| `mise run dev`                | Run from source (`go run`, always reflects current code)                                                                  |
-| `mise run format`             | Auto-fix lint and formatting                                                                                              |
-| `mise run hooks`              | Run git hooks                                                                                                             |
-| `mise run lint`               | Run linter                                                                                                                |
-| `mise run test`               | Run tests with coverage                                                                                                   |
-| `mise run test:coverage-min`  | Fail below the 70% coverage threshold                                                                                     |
-| `mise run test:view-coverage` | Open the coverage report in a browser                                                                                     |
-| `mise tasks`                  | List all available tasks                                                                                                  |
+| Command | Description |
+|---------|-------------|
+| `mise run bench` | Run benchmarks |
+| `mise run build` | Build binary |
+| `mise run ci` | Full CI check (tests + build) |
+| `mise run clean` | Clean build artifacts |
+| `mise run demo` | Generate VHS demo recordings (needs [vhs](https://github.com/charmbracelet/vhs) on `PATH`; it is not pinned in `[tools]`) |
+| `mise run demo:stills` | Render still PNGs per breakpoint from `demo/stills.tape` (`STILLS_BREAKPOINTS`, `STILLS_FONT` override the sizes and font) |
+| `mise run dev` | Run from source (`go run`, always reflects current code) |
+| `mise run format` | Auto-fix lint and formatting |
+| `mise run hooks` | Run git hooks |
+| `mise run lint` | Run linter |
+| `mise run test` | Run tests with coverage |
+| `mise run test:coverage-min` | Fail below the 70% coverage threshold |
+| `mise run test:golden-orphans` | Fail on any `.golden` file no test regenerates (`GOLDEN_TAGS=golden mise run test:golden-orphans` when the golden tests sit behind a build tag) |
+| `mise run test:view-coverage` | Open the coverage report in a browser |
+| `mise tasks` | List all available tasks |
 
 `GH_LD_LIVE_TEST=1 mise run test:live` runs the live dispatch test against a throwaway GitHub repo. It creates and deletes a real repository and consumes Actions minutes, so it is opt-in. See [docs/live-testing.md](docs/live-testing.md).
 
 ## Code Guidelines
 
-Follow [AGENTS.md](AGENTS.md) for code organization, testing patterns, and error handling. [docs/go-best-practices.md](docs/go-best-practices.md) carries the worked examples.
+Follow [AGENTS.md](AGENTS.md) for code organization, testing patterns, and error handling.
+[docs/go-best-practices.md](docs/go-best-practices.md) carries the worked examples.
 
 Linting is configured in `.golangci.toml` with 40+ rules. Run `mise run format` to auto-fix.
 
