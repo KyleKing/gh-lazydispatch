@@ -51,7 +51,6 @@ Flags (logs):
 Flags (ci-timing):
   --branch <name>     Default: the repository's default branch
   --event <event>     Default push
-  --limit <n>         Runs to sample, not commits. Default 500
   --window-days <n>   Days of commits per compared window. Default 7
   --baseline-offset-days <n>
                       Days before now the baseline window ends. Default 7

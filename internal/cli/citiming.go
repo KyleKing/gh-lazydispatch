@@ -13,10 +13,6 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
-// defaultCITimingRunLimit samples enough runs to cover several dozen commits
-// on a repository with a dozen or so workflows per push.
-const defaultCITimingRunLimit = 500
-
 // Percentiles read off the sorted per-commit durations.
 const (
 	percentileMedian = 0.5
@@ -81,11 +77,10 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 
 	var branch, event, format string
 
-	var limit, windowDays, baselineOffsetDays int
+	var windowDays, baselineOffsetDays int
 
 	fs.StringVar(&branch, "branch", "", "branch to sample; default the repository's default branch")
 	fs.StringVar(&event, "event", "push", "event that triggered the runs")
-	fs.IntVar(&limit, "limit", defaultCITimingRunLimit, "runs to sample, not commits")
 	fs.IntVar(&windowDays, "window-days", defaultWindowDays, "days of commits in each compared window")
 	fs.IntVar(&baselineOffsetDays, "baseline-offset-days", defaultWindowDays, "days before now the baseline ends")
 	fs.StringVar(&format, "format", formatJSON, "json (raw rows and summaries) or md (comparison table)")
@@ -118,18 +113,18 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	now := time.Now().UTC()
 	windows := compareWindows(now, windowDays, baselineOffsetDays)
 
-	runs, err := client.ListRunTimings(branch, event, windows[0].from, limit)
+	sample, err := client.ListRunTimings(branch, event, windows[0].from, now)
 	if err != nil {
 		return fmt.Errorf("listing runs: %w", err)
 	}
 
-	stats := summarizeCITimings(runs)
+	stats := summarizeCITimings(sample.Runs)
 	stats.Windows = summarizeWindows(stats.Commits, windows)
 
-	notef(stderr, "%d commits with every run finished (from %d runs sampled)\n", len(stats.Commits), len(runs))
+	notef(stderr, "%d commits with every run finished (from %d runs sampled)\n", len(stats.Commits), len(sample.Runs))
 
-	if len(runs) >= limit {
-		notef(stderr, "warning: the %d-run limit was reached; the baseline may be short; raise --limit\n", limit)
+	for _, day := range sample.Capped {
+		notef(stderr, "warning: %s hit the API's 1000-result cap; its runs are incomplete\n", day.Format(time.DateOnly))
 	}
 
 	if format == formatMarkdown {

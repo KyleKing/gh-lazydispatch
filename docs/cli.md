@@ -90,16 +90,15 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 ## ci-timing
 
 ```sh
-gh-lazydispatch export ci-timing [--branch <name>] [--event <event>] [--limit <n>]
+gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
     [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
 ```
 
 How long all of CI takes to finish, per commit: the span from the earliest
 triggered run's creation to the last one's completion, across every workflow
 one push started. `--branch` defaults to the repository's default branch,
-`--event` to `push`, and `--limit` (default 500) is a run count, not a commit
-count, so it needs to be several times the number of workflows a push
-triggers to cover a useful number of commits. A commit with a run still in
+and `--event` to `push`. Runs are read one day at a time, because the Actions
+API returns at most 1000 results for a filtered query. A commit with a run still in
 flight is dropped rather than reported with a misleadingly short span.
 
 The output carries every fully-finished commit in the sample plus min, p50,
@@ -111,9 +110,7 @@ by hand.
 `--window-days` (default 7): the baseline ending `--baseline-offset-days`
 (default 7) ago and the current one ending now. A commit belongs to the window
 its CI began in. The markdown table gives commits, p50, p90, and max for each
-window plus the p90 change. The run list is bounded by creation date, and a
-warning prints when `--limit` cut the sample short, since the older window
-is the one that goes missing.
+window plus the p90 change. A warning prints for any day that hit the 1000-result cap.
 
 Each commit also carries `committed_at` and a `run_details` row per workflow
 run (name, conclusion, start, finish, seconds), so the same output can be

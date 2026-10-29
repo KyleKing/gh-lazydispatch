@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // The gh argv fragments the mock keys its canned responses on.
@@ -27,6 +28,8 @@ type MockExecutor struct {
 
 	// ExecutedCommands tracks all commands that were executed.
 	ExecutedCommands []ExecutedCommand
+
+	mu sync.Mutex
 }
 
 // ErrMockCommandNotConfigured indicates the MockExecutor has no result configured for a command.
@@ -61,6 +64,9 @@ func NewMockExecutor() *MockExecutor {
 
 // Execute simulates command execution by looking up the command in the Commands map.
 func (m *MockExecutor) Execute(name string, args ...string) (string, string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	// Track the executed command
 	m.ExecutedCommands = append(m.ExecutedCommands, ExecutedCommand{
 		Name: name,

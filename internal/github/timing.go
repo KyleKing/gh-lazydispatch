@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // maxRunTimingsPerPage is the largest per_page the Actions API accepts.
@@ -47,40 +49,131 @@ type apiRunTiming struct {
 	ID         int64     `json:"id"`
 }
 
-// ListRunTimings fetches recent runs of event on branch, newest first, up to
-// limit, paging through the Actions API as needed. A non-positive limit reads
-// one page, and a non-zero since drops runs created before it.
-func (c *Client) ListRunTimings(branch, event string, since time.Time, limit int) ([]RunTiming, error) {
-	if limit <= 0 {
-		limit = maxRunTimingsPerPage
+// maxFilteredResults is how many results the Actions API returns for one
+// filtered query, however many pages are requested.
+const maxFilteredResults = 1000
+
+// RunTimingSample is the runs created in a time range, plus the slices where
+// the API's result cap may have hidden some.
+type RunTimingSample struct {
+	Runs   []RunTiming
+	Capped []time.Time
+}
+
+// dayFetchConcurrency bounds the day queries in flight, to stay clear of
+// GitHub's secondary rate limit.
+const (
+	dayFetchConcurrency = 4
+	dayLength           = 24 * time.Hour
+)
+
+// ListRunTimings fetches runs of event on branch created in [from, to), one
+// day at a time because a filtered query returns at most 1000 results. A range
+// that hits the cap is split until it fits, and any range that still does is
+// listed in Capped. An empty event reads every event.
+func (c *Client) ListRunTimings(branch, event string, from, to time.Time) (RunTimingSample, error) {
+	var days []time.Time
+
+	for day := from; day.Before(to); day = day.Add(dayLength) {
+		days = append(days, day)
 	}
 
-	var timings []RunTiming
+	perDay := make([][]RunTiming, len(days))
+	cappedPerDay := make([][]time.Time, len(days))
 
-	for page := 1; len(timings) < limit; page++ {
-		perPage := maxRunTimingsPerPage
-		if remaining := limit - len(timings); remaining < perPage {
-			perPage = remaining
+	var group errgroup.Group
+
+	group.SetLimit(dayFetchConcurrency)
+
+	for i, day := range days {
+		group.Go(func() error {
+			end := day.Add(dayLength)
+			if end.After(to) {
+				end = to
+			}
+
+			runs, capped, err := c.fetchRange(branch, event, day, end)
+			perDay[i], cappedPerDay[i] = runs, capped
+
+			return err
+		})
+	}
+
+	if err := group.Wait(); err != nil {
+		return RunTimingSample{}, fmt.Errorf("listing runs by day: %w", err)
+	}
+
+	var sample RunTimingSample
+
+	seen := make(map[int64]bool)
+
+	for i, runs := range perDay {
+		sample.Capped = append(sample.Capped, cappedPerDay[i]...)
+
+		for j := range runs {
+			if !seen[runs[j].ID] {
+				seen[runs[j].ID] = true
+				sample.Runs = append(sample.Runs, runs[j])
+			}
 		}
+	}
 
-		batch, err := c.fetchRunTimingsPage(branch, event, since, page, perPage)
+	return sample, nil
+}
+
+// minSplitSpan is the narrowest range worth splitting when a query hits the
+// result cap; below it the range is reported as capped.
+const (
+	minSplitSpan = time.Hour
+	halves       = 2
+)
+
+// fetchRange reads every run created in [from, to), halving the range while a
+// query hits the result cap. It returns the runs and the ranges that still hit
+// the cap at minSplitSpan.
+func (c *Client) fetchRange(branch, event string, from, to time.Time) ([]RunTiming, []time.Time, error) {
+	var runs []RunTiming
+
+	for page := 1; ; page++ {
+		batch, err := c.fetchRunTimingsPage(branch, event, from, to, page)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		timings = append(timings, batch...)
+		runs = append(runs, batch...)
 
-		if len(batch) < perPage {
+		if len(batch) < maxRunTimingsPerPage || len(runs) >= maxFilteredResults {
 			break
 		}
 	}
 
-	return timings, nil
+	if len(runs) < maxFilteredResults {
+		return runs, nil, nil
+	}
+
+	span := to.Sub(from)
+	if span <= minSplitSpan {
+		return runs, []time.Time{from}, nil
+	}
+
+	mid := from.Add(span / halves)
+
+	first, firstCapped, err := c.fetchRange(branch, event, from, mid)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	second, secondCapped, err := c.fetchRange(branch, event, mid, to)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return append(first, second...), append(firstCapped, secondCapped...), nil
 }
 
-func (c *Client) fetchRunTimingsPage(branch, event string, since time.Time, page, perPage int) ([]RunTiming, error) {
+func (c *Client) fetchRunTimingsPage(branch, event string, from, to time.Time, page int) ([]RunTiming, error) {
 	params := url.Values{}
-	params.Set("per_page", strconv.Itoa(perPage))
+	params.Set("per_page", strconv.Itoa(maxRunTimingsPerPage))
 	params.Set("page", strconv.Itoa(page))
 
 	if branch != "" {
@@ -91,9 +184,7 @@ func (c *Client) fetchRunTimingsPage(branch, event string, since time.Time, page
 		params.Set("event", event)
 	}
 
-	if !since.IsZero() {
-		params.Set("created", ">="+since.UTC().Format(time.RFC3339))
-	}
+	params.Set("created", from.UTC().Format(time.RFC3339)+".."+to.UTC().Format(time.RFC3339))
 
 	path := "repos/" + c.fullName() + "/actions/runs?" + params.Encode()
 
