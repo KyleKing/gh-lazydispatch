@@ -92,6 +92,7 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 ```sh
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
     [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
+    [--workflow <name>]
 ```
 
 How long all of CI takes to finish, per commit: the span from the earliest
@@ -118,6 +119,16 @@ by hand.
 its CI began in. The markdown table gives commits, p50, p90, and max for each
 window plus the p90 change and a per-workflow table of when each workflow
 finishes after the push, with how often it finishes last. A warning prints for any range that still hit the 1000-result cap.
+
+`--workflow <name>` drills into one workflow (the one that finishes last most
+often, from the per-workflow table). It reads that workflow's jobs, one API
+call per run, and adds a job table (runner labels, queue wait, run time) and a
+slowest-steps table for each window. Queue wait is a job's start minus its
+creation, which is the time GitHub took to hand it to a runner. A runner label
+that differs between the windows is shown beside the job, because a runner
+swap moves every number after it. Jobs are cached by run ID in
+`ci-jobs.json` beside the run cache, since a finished run's jobs never change.
+Jobs of canceled runs are not read.
 
 Finished runs are cached in
 `$XDG_CACHE_HOME/lazydispatch/<owner>/<repo>/ci-timing-<event>-<branch>.json`

@@ -40,8 +40,8 @@ type Range struct {
 	From, To time.Time
 }
 
-// Path returns the cache file for one repository, event, and branch.
-func Path(repo, event, branch string) string {
+// Dir returns the cache directory for one repository.
+func Dir(repo string) string {
 	root := os.Getenv("XDG_CACHE_HOME")
 	if root == "" {
 		home, err := os.UserHomeDir()
@@ -52,9 +52,12 @@ func Path(repo, event, branch string) string {
 		root = filepath.Join(home, ".cache")
 	}
 
-	name := "ci-timing-" + sanitize(event) + "-" + sanitize(branch) + ".json"
+	return filepath.Join(root, "lazydispatch", filepath.FromSlash(repo))
+}
 
-	return filepath.Join(root, "lazydispatch", filepath.FromSlash(repo), name)
+// Path returns the cache file for one repository, event, and branch.
+func Path(repo, event, branch string) string {
+	return filepath.Join(Dir(repo), "ci-timing-"+sanitize(event)+"-"+sanitize(branch)+".json")
 }
 
 func sanitize(s string) string {
@@ -63,42 +66,55 @@ func sanitize(s string) string {
 
 // Load reads the cache at path. A missing file is an empty Entry.
 func Load(path string) (Entry, error) {
-	data, err := os.ReadFile(path) //nolint:gosec // path derived from XDG_CACHE_HOME/home dir and the repo name
-	if errors.Is(err, os.ErrNotExist) {
-		return Entry{}, nil
-	}
-
-	if err != nil {
-		return Entry{}, fmt.Errorf("reading the run cache: %w", err)
-	}
-
 	var entry Entry
-	if err := json.Unmarshal(data, &entry); err != nil {
-		return Entry{}, fmt.Errorf("parsing the run cache %s (delete it to rebuild): %w", path, err)
-	}
 
-	return entry, nil
+	err := readJSON(path, &entry, "run cache")
+
+	return entry, err
 }
 
 // Save writes entry to path through a temporary file, so an interrupted write
 // leaves the previous cache intact.
 func Save(path string, entry Entry) error {
+	return writeJSON(path, entry, "run cache")
+}
+
+// readJSON decodes the file at path into v, leaving v as it was when the file
+// does not exist.
+func readJSON(path string, v any, what string) error {
+	data, err := os.ReadFile(path) //nolint:gosec // path derived from XDG_CACHE_HOME/home dir and the repo name
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("reading the %s: %w", what, err)
+	}
+
+	if err := json.Unmarshal(data, v); err != nil {
+		return fmt.Errorf("parsing the %s %s (delete it to rebuild): %w", what, path, err)
+	}
+
+	return nil
+}
+
+func writeJSON(path string, v any, what string) error {
 	if err := os.MkdirAll(filepath.Dir(path), dirPerm); err != nil {
 		return fmt.Errorf("creating the cache directory: %w", err)
 	}
 
-	data, err := json.Marshal(entry)
+	data, err := json.Marshal(v)
 	if err != nil {
-		return fmt.Errorf("encoding the run cache: %w", err)
+		return fmt.Errorf("encoding the %s: %w", what, err)
 	}
 
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, data, filePerm); err != nil {
-		return fmt.Errorf("writing the run cache: %w", err)
+		return fmt.Errorf("writing the %s: %w", what, err)
 	}
 
 	if err := os.Rename(tmp, path); err != nil {
-		return fmt.Errorf("replacing the run cache: %w", err)
+		return fmt.Errorf("replacing the %s: %w", what, err)
 	}
 
 	return nil

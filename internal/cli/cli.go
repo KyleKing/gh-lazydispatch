@@ -55,6 +55,7 @@ Flags (ci-timing):
   --baseline-offset-days <n>
                       Days before now the baseline window ends. Default 7
   --format json|md    json: raw rows and summaries. md: P50/P90 comparison table
+  --workflow <name>   Add job queue, runner, and step timings for one workflow
 
 Flags (watch):
   --interval <secs>   Seconds between polls. Default 15

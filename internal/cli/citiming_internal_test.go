@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/runcache"
 )
 
 func mustParse(t *testing.T, s string) time.Time {
@@ -146,7 +147,7 @@ func TestSummarizeWindows_BucketsByStartAndRendersTheComparison(t *testing.T) {
 	}
 
 	var out strings.Builder
-	if err := writeCITimingMarkdown(&out, "main", got); err != nil {
+	if err := writeCITimingMarkdown(&out, "main", "", got); err != nil {
 		t.Fatal(err)
 	}
 
@@ -161,5 +162,60 @@ func TestSummarizeWindows_BucketsByStartAndRendersTheComparison(t *testing.T) {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("table lacks %q:\n%s", want, out.String())
 		}
+	}
+}
+
+// A job's queue wait is start minus creation, a skipped job is left out, and a
+// runner label that differs between windows shows up beside the job.
+func TestSummarizeJobs_QueueWaitAndRunnerChange(t *testing.T) {
+	t.Parallel()
+
+	at := func(s string) time.Time { return mustParse(t, s) }
+
+	commit := func(runID int64) ciTiming {
+		return ciTiming{
+			StartedAt: "2026-01-01T00:00:00Z",
+			RunDetails: []ciRun{
+				{Name: "Build", Conclusion: "success", ID: runID},
+				{Name: "Build", Conclusion: conclusionCanceled, ID: runID + 1},
+			},
+		}
+	}
+
+	job := func(label string, queue, run int) github.JobTiming {
+		created := at("2026-01-01T00:00:00Z")
+		started := created.Add(time.Duration(queue) * time.Second)
+
+		return github.JobTiming{
+			Name: "image", Conclusion: "success", Labels: []string{label},
+			CreatedAt: created, StartedAt: started, CompletedAt: started.Add(time.Duration(run) * time.Second),
+			Steps: []github.StepTiming{{
+				Name: "docker build", Conclusion: "success",
+				StartedAt: started, CompletedAt: started.Add(time.Duration(run) * time.Second),
+			}},
+		}
+	}
+
+	skipped := job("small", 0, 0)
+	skipped.Conclusion = "skipped"
+
+	baseline, _ := summarizeJobs([]ciTiming{commit(1)}, "Build", runcache.Jobs{1: {job("small", 30, 600), skipped}})
+	current, steps := summarizeJobs([]ciTiming{commit(10)}, "Build", runcache.Jobs{10: {job("large", 10, 300)}})
+
+	if len(baseline) != 1 || baseline[0].P50Queue != 30 || baseline[0].P50Seconds != 600 {
+		t.Fatalf("baseline jobs are %+v, want one job with 30s queue and 600s run", baseline)
+	}
+
+	if len(steps) != 1 || steps[0].Job != "image" || steps[0].P90Seconds != 300 {
+		t.Fatalf("steps are %+v, want the docker build step at 300s", steps)
+	}
+
+	var out strings.Builder
+
+	writeJobTables(&out, "Build", ciTimingWindow{Jobs: baseline}, ciTimingWindow{Jobs: current, Steps: steps})
+
+	want := "| image | large (was small) | 10s | 10s | 5m0s | 5m0s | 10m0s | -50% |"
+	if !strings.Contains(out.String(), want) {
+		t.Errorf("job table lacks %q:\n%s", want, out.String())
 	}
 }

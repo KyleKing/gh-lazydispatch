@@ -60,6 +60,8 @@ type ciTimingWindow struct {
 	From        string         `json:"from"`
 	To          string         `json:"to"`
 	Workflows   []ciWorkflow   `json:"workflows,omitempty"`
+	Jobs        []ciJob        `json:"jobs,omitempty"`
+	Steps       []ciStep       `json:"steps,omitempty"`
 	Commits     int            `json:"commits"`
 	MinSeconds  float64        `json:"min_seconds"`
 	P50Seconds  float64        `json:"p50_seconds"`
@@ -83,7 +85,7 @@ type ciTimingStats struct {
 func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs := newFlagSet("ci-timing")
 
-	var branch, event, format string
+	var branch, event, format, workflow string
 
 	var windowDays, baselineOffsetDays int
 
@@ -91,6 +93,7 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&event, "event", "push", "event that triggered the runs")
 	fs.IntVar(&windowDays, "window-days", defaultWindowDays, "days of commits in each compared window")
 	fs.IntVar(&baselineOffsetDays, "baseline-offset-days", defaultWindowDays, "days before now the baseline ends")
+	fs.StringVar(&workflow, "workflow", "", "workflow name to break down into jobs and steps")
 	fs.StringVar(&format, "format", formatJSON, "json (raw rows and summaries) or md (comparison table)")
 
 	if err := fs.Parse(args); err != nil {
@@ -131,8 +134,14 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 
 	notef(stderr, "%d commits from %d runs\n", len(stats.Commits), len(runs))
 
+	if workflow != "" {
+		if err := attachJobs(client, stats.Windows, stats.Commits, windows, workflow, stderr); err != nil {
+			return err
+		}
+	}
+
 	if format == formatMarkdown {
-		return writeCITimingMarkdown(stdout, branch, stats.Windows)
+		return writeCITimingMarkdown(stdout, branch, workflow, stats.Windows)
 	}
 
 	return writeJSON(stdout, stats)
@@ -243,20 +252,50 @@ func earliestCommit(group []github.RunTiming) time.Time {
 	return earliest
 }
 
+func windowCommits(commits []ciTiming, w timeWindow) []ciTiming {
+	var in []ciTiming
+
+	for _, c := range commits {
+		started, err := time.Parse(timeFormat, c.StartedAt)
+		if err == nil && !started.Before(w.from) && started.Before(w.to) {
+			in = append(in, c)
+		}
+	}
+
+	return in
+}
+
+// attachJobs fills each window with the job and step rollup of workflow.
+func attachJobs(
+	client *github.Client, windows []ciTimingWindow, commits []ciTiming, spans [2]timeWindow, workflow string,
+	stderr io.Writer,
+) error {
+	ids := make([]int64, 0, len(commits))
+	inWindow := make([][]ciTiming, len(spans))
+
+	for i, span := range spans {
+		inWindow[i] = counted(windowCommits(commits, span))
+		ids = append(ids, workflowRunIDs(inWindow[i], workflow)...)
+	}
+
+	jobs, err := loadJobs(client, ids, stderr)
+	if err != nil {
+		return err
+	}
+
+	for i := range windows {
+		windows[i].Jobs, windows[i].Steps = summarizeJobs(inWindow[i], workflow, jobs)
+	}
+
+	return nil
+}
+
 // summarizeWindows rolls up the commits that began inside each window.
 func summarizeWindows(commits []ciTiming, windows [2]timeWindow) []ciTimingWindow {
 	out := make([]ciTimingWindow, 0, len(windows))
 
 	for _, w := range windows {
-		var all []ciTiming
-
-		for _, c := range commits {
-			started, err := time.Parse(timeFormat, c.StartedAt)
-			if err == nil && !started.Before(w.from) && started.Before(w.to) {
-				all = append(all, c)
-			}
-		}
-
+		all := windowCommits(commits, w)
 		inWindow := counted(all)
 
 		out = append(out, ciTimingWindow{
@@ -277,7 +316,7 @@ func summarizeWindows(commits []ciTiming, windows [2]timeWindow) []ciTimingWindo
 	return out
 }
 
-func writeCITimingMarkdown(w io.Writer, branch string, windows []ciTimingWindow) error {
+func writeCITimingMarkdown(w io.Writer, branch, workflow string, windows []ciTimingWindow) error {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "CI wall clock per commit on `%s`, push to last run finished.\n", branch)
@@ -295,6 +334,10 @@ func writeCITimingMarkdown(w io.Writer, branch string, windows []ciTimingWindow)
 	if len(windows) == 2 && windows[0].P90Seconds > 0 && windows[1].Commits > 0 {
 		fmt.Fprintf(&b, "\nP90 change: %+.0f%%\n", (windows[1].P90Seconds/windows[0].P90Seconds-1)*percentScale)
 		writeWorkflowTable(&b, windows[0], windows[1])
+
+		if workflow != "" {
+			writeJobTables(&b, workflow, windows[0], windows[1])
+		}
 	}
 
 	if _, err := io.WriteString(w, b.String()); err != nil {
