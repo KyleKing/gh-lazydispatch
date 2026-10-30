@@ -56,6 +56,7 @@ out over a list.
 | `export workflows` | What can I dispatch, and what inputs does it take? |
 | `export chains` | What multi-workflow sequences are defined here? |
 | `export ci-timing` | How long does all of CI take to finish, per commit? |
+| `export ci-report` | Where does CI time go, and what should be optimized first? |
 
 Nothing under `export` dispatches anything. To actually run a workflow, use
 `gh workflow run`, or `gh-lazydispatch` with no arguments for the TUI.
@@ -134,6 +135,16 @@ sample. Use it to answer "how long does a push wait for CI" rather than
 computing it by hand from `export runs`. `--format md` prints the p50/p90
 table for the last week against the week before; the JSON keeps one row per
 workflow run under each commit for other cuts.
+
+`export ci-report --out report.md` runs the analysis for pull requests, the
+default branch, and the merge queue in one go. It reads the jobs of a sample of
+pushes (6 a day by default) and writes findings, then the tables behind them:
+the job and `needs` chain that end most pushes, queue wait by runner vendor,
+runner minutes per push, jobs that never run, re-runs that passed, and merge
+queue evictions. Start from its Findings list, and treat each as a lead to
+check against the tables. Job reads spend REST calls (about 13 per sampled
+push); it stops with the reset time when the allowance runs short, and a rerun
+resumes from the cache.
 
 ## Installing
 

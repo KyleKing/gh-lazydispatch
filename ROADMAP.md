@@ -420,20 +420,38 @@ reader. Not scheduled ahead of the extractions above, since the primitives
 those verbs would render with are exactly what Phase 12 is moving into
 aragonite first.
 
-## Candidate: absorb gha-perf from gh-sweep, and rename
+## CI timing and `ci-report` (shipped as `export`)
 
-[gh-sweep](https://github.com/KyleKing/gh-sweep)'s `gha-perf` view (historical
-CI-timing analysis: duration trends, regressions, flaky heuristics,
-`internal/cache`) is scoped to one repo and doesn't fit gh-sweep's org/repo-list
-shape. It fits here instead, next to `export diagnose`, the timeline view, and
-the coming `watch` listeners: all run-level GHA depth, all already this tool's
-job. Not scheduled.
+The gha-perf absorption landed as `export ci-timing` and `export ci-report`,
+backed by `internal/citiming`. It answers where a push's wall clock goes and
+what changed it: per-push CI time, epochs cut at each commit that touched
+`.github/workflows`, the job that ends a push and its `needs` chain, runner
+queue by vendor, runner minutes and skipped jobs, re-runs as a flake signal,
+and merge queue evictions from the pull request timeline. `ci-report` runs the
+analysis for pull requests, the default branch, and the merge queue and adds
+rule-based findings. `docs/cli.md` describes each table.
 
-If it lands, the name should change with it. "gh-lazydispatch" already reads
-narrower than what Phase 11 is building (`watch`, listeners, timeline,
-diagnose have nothing to do with dispatching or chaining), and gha-perf would
-make that gap harder to ignore, not easier. Land the move and the rename
-together rather than renaming ahead of the scope that justifies it.
+The rename the absorption was meant to trigger has not happened.
+"gh-lazydispatch" reads narrower than `watch`, the timeline, `diagnose`, and
+CI timing together, so the name still wants to change. Land the rename with its
+own release rather than inside a feature.
+
+Open work on CI timing:
+
+- The runs and jobs fetch is the cost: about 13 REST calls per sampled push.
+  `ci-report` checks the allowance first and stops with the reset time rather
+  than building a partial report. A GraphQL read of jobs for several runs in one
+  call would cut that, and has not been measured
+- Cache hits are inferred from a cache post step that uploaded, not read from
+  logs. Reading step logs for `Cache hit` would settle it at one log download
+  per sampled job
+- `needs` edges come from the checkout's workflow files and stop at a workflow
+  boundary. A `workflow_run` trigger or a job that polls another workflow shows
+  up only as time waiting on earlier jobs
+- Flake detection stops at re-runs that passed. Telling a flake from a real
+  failure needs the failing test name from the logs
+- The generic parts (percentiles, the day-split run query, merge queue events)
+  could move to aragonite for the other tools to share
 
 ## Scrapped
 

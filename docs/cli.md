@@ -215,6 +215,34 @@ not at `committed_at`, because a commit made locally and pushed days later
 would otherwise count the wait for the push as CI time. Runs are Actions
 workflow runs; checks from other apps are not included.
 
+## ci-report
+
+```sh
+gh-lazydispatch export ci-report [--days <n>] [--author <login,...>]
+    [--window-days <n>] [--sample <n>] [--epoch-min <n>] [--ignore-job <name,...>]
+    [--out <path>]
+```
+
+One markdown report for the repository's pull requests (every author, or
+`--author`), pushes to the default branch, and merge queue. Each section is
+`ci-timing --format md` with `--epoch-days` and `--critical-sample` set, and a
+trigger with no runs in the range is left out. Above the sections is a list of
+findings, each a rule over the tables: a P90 that moved more than 10% between the
+windows, over 15% of pushes canceled or re-run, the job and chain that most often
+end a push, billed minutes per push that grew more than 30%, jobs skipped on
+every sampled push, re-runs that passed, jobs whose P90 is twice their median,
+a runner vendor trial, and merge queue evictions over 5%. Thresholds are
+constants in `internal/citiming/cireport.go`.
+
+Gate jobs (a job that ends a quarter of the pushes within 15 seconds of the job
+before it) are detected and left out of the path, because they only wait on
+other jobs. `--ignore-job` names them instead.
+
+Reading jobs is the cost, about 13 REST calls per sampled push. The command
+checks the remaining allowance first and stops with the time it resets rather
+than writing a report from part of the data. Runs and jobs are cached, so a
+rerun after the reset resumes.
+
 ## workflows and chains
 
 ```sh
