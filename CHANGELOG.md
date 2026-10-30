@@ -1,3 +1,10 @@
+## v1.16.1 (2026-10-30)
+
+### Fix
+
+- **app**: skip a collapsed chains pane on tab, quit on ctrl+c over a modal, show progress while logs load, and put run first in the footer
+- **workflow**: list workflows that declare a bare workflow_dispatch
+
 ## v1.16.0 (2026-10-30)
 
 ### Feat
