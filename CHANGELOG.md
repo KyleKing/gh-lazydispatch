@@ -1,3 +1,26 @@
+## v1.15.0 (2026-10-30)
+
+### Feat
+
+- **cli**: add ci-report, detect gate jobs, and check the API allowance before reading jobs
+- **cli**: compare runner vendors, trace needs chains, and report spend, flakes, and merge queue evictions
+- **cli**: let ci-timing leave a gate job out of the critical path
+- **cli**: report outcome rates, workflow trends, and the critical path per ci-timing epoch
+- **cli**: split capped run queries down to a minute and document author comparison
+- **cli**: compare ci-timing by author with per-workflow epochs and PR samples
+- **cli**: split ci-timing into epochs at each workflow change
+
+### Fix
+
+- **cli**: match a run named with a run-name suffix to its workflow's needs
+- **cli**: retry transient failures when reading a run's jobs
+- **cli**: sample only pull requests the listed author opened
+
+### Refactor
+
+- **github**: read run and job timings, merge queue events, and percentiles from aragonite 1.8
+- **citiming**: move the ci-timing analysis out of internal/cli into its own package
+
 ## v1.14.0 (2026-10-29)
 
 ### Feat
