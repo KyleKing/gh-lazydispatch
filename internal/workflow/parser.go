@@ -77,18 +77,30 @@ func (t *rawOnTrigger) UnmarshalYAML(node *yaml.Node) error {
 			}
 		}
 	case yaml.MappingNode:
-		var m struct {
-			//nolint:tagliatelle // matches GitHub Actions workflow YAML schema
-			Dispatch *Dispatch `yaml:"workflow_dispatch"`
-		}
-
-		if err := node.Decode(&m); err != nil {
-			return fmt.Errorf("decoding workflow \"on\" trigger: %w", err)
-		}
-
-		t.Dispatch = m.Dispatch
+		return t.decodeTriggers(node)
 	case yaml.DocumentNode, yaml.AliasNode:
 		// not valid shapes for the "on" field; nothing to decode
+	}
+
+	return nil
+}
+
+// decodeTriggers finds workflow_dispatch among the triggers. A bare
+// `workflow_dispatch:` has a null value yet still makes the workflow
+// dispatchable, so the key's presence decides and its value only adds inputs.
+func (t *rawOnTrigger) decodeTriggers(node *yaml.Node) error {
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		if node.Content[i].Value != workflowDispatchTrigger {
+			continue
+		}
+
+		t.Dispatch = &Dispatch{}
+
+		if node.Content[i+1].Kind == yaml.MappingNode {
+			if err := node.Content[i+1].Decode(t.Dispatch); err != nil {
+				return fmt.Errorf("decoding workflow \"on\" trigger: %w", err)
+			}
+		}
 	}
 
 	return nil

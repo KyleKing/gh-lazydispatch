@@ -71,23 +71,29 @@ on:
 func TestParse_SimpleDispatch(t *testing.T) {
 	t.Parallel()
 
-	data := []byte(`
-name: Simple
-on: workflow_dispatch
-`)
+	// A bare `workflow_dispatch:` in a mapping has a null value and still
+	// makes the workflow dispatchable.
+	for name, on := range map[string]string{
+		"scalar":          "on: workflow_dispatch",
+		"bare in mapping": "on:\n  push:\n  workflow_dispatch:",
+		"empty mapping":   "on:\n  workflow_dispatch: {}",
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-	wf, err := workflow.Parse(data)
-	if err != nil {
-		t.Fatalf("Parse failed: %v", err)
-	}
+			wf, err := workflow.Parse([]byte("name: Simple\n" + on + "\n"))
+			if err != nil {
+				t.Fatalf("Parse failed: %v", err)
+			}
 
-	if !wf.IsDispatchable() {
-		t.Error("expected workflow to be dispatchable")
-	}
+			if !wf.IsDispatchable() {
+				t.Error("expected workflow to be dispatchable")
+			}
 
-	inputs := wf.GetInputs()
-	if len(inputs) != 0 {
-		t.Errorf("expected 0 inputs, got %d", len(inputs))
+			if inputs := wf.GetInputs(); len(inputs) != 0 {
+				t.Errorf("expected 0 inputs, got %d", len(inputs))
+			}
+		})
 	}
 }
 

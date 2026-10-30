@@ -68,8 +68,8 @@ func TestExportWorkflows_DescribesEveryDispatchableInput(t *testing.T) {
 		t.Errorf("fail_mode is %+v, want a choice with options and a default", mode)
 	}
 
-	if _, listed := byFile["ci.yml"]; listed {
-		t.Error("ci.yml is not dispatchable and should not be listed")
+	if _, listed := byFile["ci.yml"]; !listed {
+		t.Error("ci.yml declares a bare workflow_dispatch: and should be listed with no inputs")
 	}
 
 	if !strings.Contains(stderr, "dispatchable workflows") {
