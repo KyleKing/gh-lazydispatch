@@ -58,6 +58,8 @@ Flags (ci-timing):
   --workflow <name>   Add job queue, runner, and step timings for one workflow
   --sample <n>        With --workflow, runs per window to read jobs for. Default 150, 0 for all
   --epoch-days <n>    Split the last n days at each workflow change (and .github/ci-epochs dates); 0 skips
+  --author <a,b>      Compare these GitHub logins (reads only their runs); use with --event pull_request
+  --sample-prs <n>    Spot-check each author's n largest pull requests; --pr <n,...> names them
 
 Flags (watch):
   --interval <secs>   Seconds between polls. Default 15

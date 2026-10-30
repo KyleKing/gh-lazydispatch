@@ -93,12 +93,14 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
     [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
     [--workflow <name>] [--sample <n>] [--epoch-days <n>]
+    [--author <login,...>] [--sample-prs <n>] [--pr <n,...>]
 ```
 
 How long all of CI takes to finish, per commit: the span from the earliest
 triggered run's creation to the last one's completion, across every workflow
-one push started. `--branch` defaults to the repository's default branch,
-and `--event` to `push`. Runs are read one day at a time, because the Actions
+one push started. `--event` defaults to `push`, and `--branch` to the
+repository's default branch for `push` and to any branch for other events
+(`pull_request`, `merge_group`). Runs are read one day at a time, because the Actions
 API returns at most 1000 results for a filtered query.
 
 A commit stays out of every percentile (and is counted under `excluded`) when
@@ -143,8 +145,28 @@ with fewer than 30 counted commits folds into the next, because a P90 over
 fewer is noise. Only the newest epoch, or a manual one, can stay small, and
 it is marked "(under 30)".
 
+A run created more than ten minutes after the push's first run (a title
+edit, a label, a manual dispatch) is a retrigger: it stays in `run_details`
+but out of the span. A commit with a rerun attempt is left out as `rerun`,
+since the wait for someone to press the button is not CI time.
+
+`--author a,b` reads only those logins' runs (the API filters by actor, so a
+busy repository stays affordable) and adds tables by author: baseline against
+current window, then epoch, then day, all cut at the same dates so the rows
+line up. `--epoch-days` also adds workflow epochs, which cut each workflow's
+run duration at the commits that changed that workflow's own file, to say
+which change moved which workflow. Workflow epochs need the run's `path`, so a
+cache written before it existed has none: delete it to rebuild. Epochs open
+with a "start of range" row so the span before the first change is a row too.
+
+`--sample-prs n` picks each author's n largest pull requests (by files
+changed) from their eight most-pushed, and `--pr 1,2` adds named ones. Each
+row gives the PR's size beside the P50 and P90 CI time of its pushes and the
+workflow that finished last. Epoch dates come from the default branch's
+history, while a PR run uses the workflow files of its own merge ref.
+
 Finished runs are cached in
-`$XDG_CACHE_HOME/lazydispatch/<owner>/<repo>/ci-timing-<event>-<branch>.json`
+`$XDG_CACHE_HOME/lazydispatch/<owner>/<repo>/ci-timing-<event>-<branch|all>[-<actor>].json`
 (`~/.cache` when unset), along with the time range they cover, so a repeat
 report fetches only runs created since. A run still in flight is not stored
 and is read again next time. Delete the file to rebuild it, for example after

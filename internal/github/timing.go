@@ -142,7 +142,7 @@ func (c *Client) ListRunTimings(filter RunFilter, from, to time.Time) (RunTiming
 // minSplitSpan is the narrowest range worth splitting when a query hits the
 // result cap; below it the range is reported as capped.
 const (
-	minSplitSpan = time.Hour
+	minSplitSpan = time.Minute
 	halves       = 2
 )
 
