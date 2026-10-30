@@ -163,8 +163,8 @@ with a "start of range" row so the span before the first change is a row too.
 re-run, timed out, unfinished) and each slow workflow's run time, failure rate,
 and cancel rate per epoch, from run data alone.
 
-`--critical-sample n` reads the jobs of n counted pushes per epoch (chosen by
-a hash, so the same pushes return as the range grows) and splits each push's
+`--critical-sample n` reads the jobs of n counted pushes per day (chosen by
+a hash, so the same pushes return as the range grows) and groups them by epoch and splits each push's
 wall clock along the job that finished last: waiting on earlier jobs (the
 job's creation after the push began), runner queue, the job running, and the
 tail after it. It ranks the jobs that end pushes by headroom, the gap to the
@@ -174,6 +174,25 @@ job, and steps whose name mentions a cache (their time and skip share, since
 the API does not report hits). Job reads are cached by run ID. A gate job that
 only waits on the others always finishes last, so `--ignore-job` drops it and
 the path ends at the real work.
+
+The same job sample feeds more tables. A runner comparison finds when
+Blacksmith runners were in use and lines each job seen on them up against its
+own runs before, during, and after. Handoff tables read the `needs` edges of
+the checkout's workflows and report the lag between a job's last dependency
+finishing and the job starting, plus the most common dependency chains behind
+the last job to finish. The widest-spread jobs list the step that varies most
+and a cache signal: how often a cache post step uploaded an entry (which
+follows a miss) and the job's median with and without an upload. A spend table
+gives runner minutes and billed minutes (each job rounded up to a minute) per
+push, the share of jobs skipped, and the jobs skipped most. Failure and re-run
+tables count a workflow's failed runs and its re-runs that ended green, the
+closest the API gets to flakiness, since it cannot tell a flake from a fix
+pushed in between.
+
+With `--event merge_group`, the entries of the merge queue come from each pull
+request's timeline (GraphQL): entries, merges, evictions (any removal other
+than a merge) with their reasons, and the wait from joining the queue to
+merging. Merge group CI time uses the same windows and epochs as any event.
 
 `--sample-prs n` picks each author's n largest pull requests (by files
 changed) from their eight most-pushed, and `--pr 1,2` adds named ones. Each
