@@ -33,3 +33,42 @@ func TestRecorded_WatchWritesTheDigestForAnAlreadyFinishedRun(t *testing.T) {
 		t.Errorf("digest has no Detected issues section:\n%s", doc)
 	}
 }
+
+// A run ID or --pr names the target, in either order, and neither or both is a
+// usage error.
+func TestParseWatchTarget_AcceptsARunIDOrAPullRequestNotBothOrNeither(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		args   []string
+		runID  int64
+		pr     int
+		wantOK bool
+	}{
+		{"run id", []string{"42"}, 42, 0, true},
+		{"run id then flag", []string{"42", "--interval", "5"}, 42, 0, true},
+		{"pull request", []string{"--pr", "7", "--interval", "5"}, 0, 7, true},
+		{"both", []string{"42", "--pr", "7"}, 0, 7, false},
+		{"neither", []string{"--interval", "5"}, 0, 0, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			fs := newFlagSet("watch")
+
+			var pr, interval int
+
+			fs.IntVar(&pr, "pr", 0, "")
+			fs.IntVar(&interval, "interval", 0, "")
+
+			runID, err := parseWatchTarget(fs, tt.args, &pr)
+			if (err == nil) != tt.wantOK || runID != tt.runID || pr != tt.pr {
+				t.Errorf("parseWatchTarget(%v) = %d, pr %d, err %v; want run %d, pr %d, ok %v",
+					tt.args, runID, pr, err, tt.runID, tt.pr, tt.wantOK)
+			}
+		})
+	}
+}

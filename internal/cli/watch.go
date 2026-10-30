@@ -113,7 +113,11 @@ func parseWatchTarget(fs *flag.FlagSet, args []string, pr *int) (int64, error) {
 		return 0, err
 	}
 
-	if *pr <= 0 {
+	if parseErr := fs.Parse(args); parseErr != nil {
+		return 0, fmt.Errorf("%w: %w", ErrUsage, parseErr)
+	}
+
+	if *pr <= 0 || fs.NArg() > 0 {
 		return 0, err
 	}
 
