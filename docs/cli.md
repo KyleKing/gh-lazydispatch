@@ -280,7 +280,8 @@ order.
 
 ```sh
 gh-lazydispatch watch <run-id> [--interval <secs>] [--out <path>]
-                               [--fix] [--fix-cmd <cmd>]
+                               [--fix] [--fix-cmd <cmd>] [--notify-cmd <cmd>]
+gh-lazydispatch watch --pr <number> [same flags]
 ```
 
 The `pr-merge-watch` replacement `docs/design-listeners.md` describes. Chain
@@ -296,6 +297,15 @@ completes, then writes an errors-only markdown digest (the same document
 `./lazydispatch-run-<id>.md` in the working directory) and prints that path on
 stdout. That alone is the point: a summary that stays on disk instead of a
 terminal you have to keep open.
+
+`--pr <number>` waits for every check on a pull request to settle instead
+(`gh pr checks`), then writes one digest for each failing Actions run and prints
+their paths. A pull request whose checks have not appeared yet is still pending.
+Both forms ring the terminal bell when they settle, and `--notify-cmd` also runs
+a command of yours with the outcome line as its one argument (`osascript`,
+`notify-send`, or a script). A notifier that fails is an error, because a
+notification that silently did not arrive defeats the point of watching. The
+poll loop and the conditions live in `internal/listener`.
 
 `--fix` runs only when the run failed. It hands the digest's path to an
 interactive `claude` session in the foreground (`--fix-cmd` to use a different

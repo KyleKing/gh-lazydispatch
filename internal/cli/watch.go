@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +13,7 @@ import (
 	"time"
 
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/listener"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 )
 
@@ -23,29 +26,25 @@ const defaultWatchInterval = 15 * time.Second
 // command, nothing else, matching a file that may end up quoted into a prompt.
 const digestFilePerm = 0o600
 
-// RunGetter fetches one workflow run by ID. The subset of *github.Client that
-// watch's poll loop needs, so the loop is testable without a live repository.
-type RunGetter interface {
-	GetWorkflowRun(runID int64) (*github.WorkflowRun, error)
-}
-
 func runWatch(args []string, stdout, stderr io.Writer) error {
 	fs := newFlagSet("watch")
 
 	var (
-		intervalSecs int
-		outPath      string
-		fixCmd       string
-		fix          bool
+		intervalSecs, pr int
+		outPath, fixCmd  string
+		notifyCmd        string
+		fix              bool
 	)
 
 	fs.IntVar(&intervalSecs, "interval", int(defaultWatchInterval/time.Second), "seconds between polls")
 	fs.StringVar(&outPath, "out", "", "where to write the digest (default: ./lazydispatch-run-<id>.md)")
+	fs.IntVar(&pr, "pr", 0, "watch a pull request's checks instead of one run")
+	fs.StringVar(&notifyCmd, "notify-cmd", "", "a command run with the outcome as its argument")
 	fs.BoolVar(&fix, "fix", false,
 		"on failure, hand the digest to an interactive Claude Code session to investigate")
 	fs.StringVar(&fixCmd, "fix-cmd", "claude", "the command --fix spawns")
 
-	runID, err := parseRunID(fs, args)
+	runID, err := parseWatchTarget(fs, args, &pr)
 	if err != nil {
 		return err
 	}
@@ -55,56 +54,101 @@ func runWatch(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	run, err := pollUntilDone(client, runID, time.Duration(intervalSecs)*time.Second, stderr)
-	if err != nil {
-		return err
+	cond := listener.RunDone(client, runID)
+	if pr > 0 {
+		cond = listener.ChecksSettled(client, pr)
 	}
 
-	path, err := writeDigest(client, runID, outPath, stderr)
-	if err != nil {
-		return err
-	}
-
-	notef(stderr, "run %d finished: %s (%s)\n", runID, run.Status, run.Conclusion)
-
-	if _, err := fmt.Fprintln(stdout, path); err != nil {
-		return fmt.Errorf("writing the digest path: %w", err)
-	}
-
-	if !fix || run.Conclusion == github.ConclusionSuccess {
-		return nil
-	}
-
-	return investigate(fixCmd, path, run)
-}
-
-// pollUntilDone asks client about runID until it reports completed, waiting
-// interval between polls. A poll that already finds it done never sleeps at
-// all, which is what keeps a recorded test instant.
-func pollUntilDone(
-	client RunGetter, runID int64, interval time.Duration, stderr io.Writer,
-) (*github.WorkflowRun, error) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	for {
-		run, err := client.GetWorkflowRun(runID)
-		if err != nil {
-			return nil, fmt.Errorf("fetching run %d: %w", runID, err)
-		}
+	outcome, err := listener.Wait(ctx, cond, time.Duration(intervalSecs)*time.Second,
+		func(line string) { notef(stderr, "%s\n", line) })
+	if err != nil {
+		return fmt.Errorf("waiting: %w", err)
+	}
 
-		if run.Status == github.StatusCompleted {
-			return run, nil
-		}
+	notef(stderr, "%s\n", outcome.Summary)
 
-		notef(stderr, "run %d: %s...\n", runID, run.Status)
+	paths, err := writeDigests(client, digestRuns(runID, outcome), outPath, stderr)
+	if err != nil {
+		return err
+	}
 
-		select {
-		case <-ctx.Done():
-			return nil, fmt.Errorf("watch stopped: %w", ctx.Err())
-		case <-time.After(interval):
+	for _, path := range paths {
+		if _, err := fmt.Fprintln(stdout, path); err != nil {
+			return fmt.Errorf("writing the digest path: %w", err)
 		}
 	}
+
+	if err := listener.Notify(ctx, stderr, notifyCmd, outcome); err != nil {
+		return fmt.Errorf("notifying: %w", err)
+	}
+
+	if !fix || !outcome.Failed || len(paths) == 0 || len(outcome.Runs) == 0 {
+		return nil
+	}
+
+	run, err := client.GetWorkflowRun(outcome.Runs[0])
+	if err != nil {
+		return fmt.Errorf("fetching run %d: %w", outcome.Runs[0], err)
+	}
+
+	return investigate(fixCmd, paths[0], run)
+}
+
+// parseWatchTarget reads the run ID that watch waits on, or none when --pr
+// names a pull request instead.
+func parseWatchTarget(fs *flag.FlagSet, args []string, pr *int) (int64, error) {
+	runID, err := parseRunID(fs, args)
+	if err == nil {
+		if *pr > 0 {
+			return 0, fmt.Errorf("%w: give a run ID or --pr, not both", ErrUsage)
+		}
+
+		return runID, nil
+	}
+
+	if !errors.Is(err, errNoRunID) {
+		return 0, err
+	}
+
+	if *pr <= 0 {
+		return 0, err
+	}
+
+	return 0, nil
+}
+
+// digestRuns names the runs to write a digest for. A watched run always gets one,
+// since the digest of a green run is still the record of what it printed; a
+// pull request gets one per failing run.
+func digestRuns(runID int64, outcome listener.Outcome) []int64 {
+	if runID != 0 {
+		return []int64{runID}
+	}
+
+	return outcome.Runs
+}
+
+func writeDigests(client *github.Client, ids []int64, outPath string, stderr io.Writer) ([]string, error) {
+	paths := make([]string, 0, len(ids))
+
+	for _, id := range ids {
+		path := ""
+		if len(ids) == 1 {
+			path = outPath
+		}
+
+		written, err := writeDigest(client, id, path, stderr)
+		if err != nil {
+			return nil, err
+		}
+
+		paths = append(paths, written)
+	}
+
+	return paths, nil
 }
 
 // writeDigest fetches runID's logs and writes them, errors-only, as markdown

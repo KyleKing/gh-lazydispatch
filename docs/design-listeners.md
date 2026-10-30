@@ -155,9 +155,11 @@ require merge to be asked for per invocation rather than configured once.
    which is the notify and diagnose actions for the run-completion condition.
    `--fix` goes further than the design called for here, handing the digest to
    an interactive `claude` session that may commit locally (never pushes).
-   Not yet built: the pr-checks condition, a reusable listener package a TUI
-   arming could also drive (this is a standalone poll loop in `internal/cli`),
-   and anything that survives closing the terminal
+   `internal/listener` now holds the poll loop, the run-completion and
+   pr-checks conditions (`watch --pr <n>`), and the notify action (terminal
+   bell plus `--notify-cmd`). Not yet built: the mergeable condition and merge
+   action, which need `--merge` per invocation, and anything that survives
+   closing the terminal
 3. Arming a listener from a Runs or Live row through the `a` menu, with the
    armed count in the status bar
 4. Reimplement `ChainExecutor` as a seed plus listeners, and stop adding to the

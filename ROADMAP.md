@@ -320,7 +320,7 @@ The order the design proposes:
   nothing is running rather than dispatching instead. The confirmation modal
   resolves and names the adopted run (ID, age, URL) asynchronously, the same
   way it already tracks a running chain's state
-- **A listener package and `gh lazydispatch watch`.** Run-completion and
+- **A listener package and `gh lazydispatch watch` (shipped).** Run-completion and
   pr-checks conditions, notify and diagnose actions. This is the
   `pr-merge-watch` replacement, and it cannot live in the TUI, because that
   script is a blocking command inside `git push && ...`

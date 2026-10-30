@@ -34,6 +34,7 @@ Usage:
   gh-lazydispatch export ci-report [flags]   One shareable report: pull requests, default branch, merge queue
   gh-lazydispatch export telemetry [flags]   How often each command, verb, and dispatch was used
   gh-lazydispatch watch <run-id> [flags]     Poll a run to completion and write its digest
+  gh-lazydispatch watch --pr <n> [flags]     Wait for a pull request's checks to settle, digest the failing runs
 
 Flags (runs):
   --workflow <file>   Filename, e.g. ci.yml
@@ -84,6 +85,8 @@ Flags (telemetry):
   --format json|md    Default json
 
 Flags (watch):
+  --pr <n>            Watch a pull request's checks instead of one run
+  --notify-cmd <cmd>  Run cmd with the outcome as its argument, after the terminal bell
   --interval <secs>   Seconds between polls. Default 15
   --out <path>        Where to write the digest. Default ./lazydispatch-run-<id>.md
   --fix               On failure, hand the digest to an interactive Claude Code

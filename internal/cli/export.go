@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -315,6 +316,9 @@ func newClient() (*github.Client, error) {
 // parseRunID pulls the run ID out of args wherever it sits and parses the
 // rest as flags. Go's flag package stops at the first positional, so leaving
 // the ID in place would silently discard every flag written after it.
+// The error parseRunID wraps when no run ID is given.
+var errNoRunID = errors.New("expected a run ID")
+
 func parseRunID(fs *flag.FlagSet, args []string) (int64, error) {
 	rest := make([]string, 0, len(args))
 	found := ""
@@ -336,7 +340,7 @@ func parseRunID(fs *flag.FlagSet, args []string) (int64, error) {
 	}
 
 	if found == "" {
-		return 0, fmt.Errorf("%w: expected a run ID", ErrUsage)
+		return 0, fmt.Errorf("%w: %w", ErrUsage, errNoRunID)
 	}
 
 	if err := fs.Parse(rest); err != nil {
