@@ -63,6 +63,8 @@ Flags (ci-timing):
   --critical-sample <n>
                       With --epoch-days, read the jobs of n pushes per epoch and report where
                       the wall clock goes, which jobs end the push, runner queue, and cache steps
+  --ignore-job <a,b>  With --critical-sample, job names left out of the path, such as a gate job
+                      that only waits on the others
   --sample-prs <n>    Spot-check each author's n largest pull requests; --pr <n,...> names them
 
 Flags (watch):

@@ -96,7 +96,7 @@ type ciTimingStats struct {
 }
 
 type ciTimingOptions struct {
-	branch, event, format, workflow, authors, prs                                          string
+	branch, event, format, workflow, authors, prs, ignoreJobs                              string
 	windowDays, baselineOffsetDays, sample, epochDays, samplePRs, criticalSample, epochMin int
 }
 
@@ -113,6 +113,7 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs.IntVar(&opts.sample, "sample", defaultJobSample, "with --workflow, runs per window to read jobs of; 0 reads all")
 	fs.IntVar(&opts.epochDays, "epoch-days", 0, "days of history to split into epochs; 0 skips")
 	fs.IntVar(&opts.epochMin, "epoch-min", minEpochCommits, "fewest counted commits per epoch before it stands alone")
+	fs.StringVar(&opts.ignoreJobs, "ignore-job", "", "with --critical-sample, job names to leave out of the path")
 	fs.IntVar(&opts.criticalSample, "critical-sample", 0,
 		"with --epoch-days, pushes per epoch whose jobs are read for the critical path; 0 skips")
 	fs.StringVar(&opts.authors, "author", "", "comma-separated GitHub logins to compare; only their runs are read")
@@ -184,7 +185,9 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 	}
 
 	if opts.criticalSample > 0 {
-		if err := addCriticalPath(client, &stats, windows, opts.criticalSample, now, stderr); err != nil {
+		ignore := splitList(opts.ignoreJobs)
+
+		if err := addCriticalPath(client, &stats, windows, opts.criticalSample, ignore, now, stderr); err != nil {
 			return err
 		}
 	}
@@ -206,7 +209,8 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 // addCriticalPath rolls the sampled pushes' jobs up by epoch, or by compared
 // window when no epochs were asked for.
 func addCriticalPath(
-	client *github.Client, stats *ciTimingStats, windows [2]timeWindow, sample int, now time.Time, stderr io.Writer,
+	client *github.Client, stats *ciTimingStats, windows [2]timeWindow, sample int, ignore []string,
+	now time.Time, stderr io.Writer,
 ) error {
 	spans := epochSpans(stats.Epochs, now)
 	if len(spans) == 0 {
@@ -220,7 +224,7 @@ func addCriticalPath(
 		return err
 	}
 
-	stats.Critical = summarizeCritical(pushes, spans, stats.Commits, jobs)
+	stats.Critical = summarizeCritical(pushes, spans, stats.Commits, jobs, ignore)
 
 	return nil
 }

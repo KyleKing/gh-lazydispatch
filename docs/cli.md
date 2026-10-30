@@ -93,7 +93,7 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
     [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
     [--workflow <name>] [--sample <n>] [--epoch-days <n>]
-    [--author <login,...>] [--sample-prs <n>] [--pr <n,...>] [--critical-sample <n>]
+    [--author <login,...>] [--sample-prs <n>] [--pr <n,...>] [--critical-sample <n>] [--ignore-job <name,...>]
 ```
 
 How long all of CI takes to finish, per commit: the span from the earliest
@@ -171,7 +171,9 @@ tail after it. It ranks the jobs that end pushes by headroom, the gap to the
 job that finished before them, which is the most a push gains from speeding up
 that job alone. It also tabulates queue wait by runner label across every
 job, and steps whose name mentions a cache (their time and skip share, since
-the API does not report hits). Job reads are cached by run ID.
+the API does not report hits). Job reads are cached by run ID. A gate job that
+only waits on the others always finishes last, so `--ignore-job` drops it and
+the path ends at the real work.
 
 `--sample-prs n` picks each author's n largest pull requests (by files
 changed) from their eight most-pushed, and `--pr 1,2` adds named ones. Each

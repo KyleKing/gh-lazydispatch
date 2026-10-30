@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -122,7 +123,7 @@ func pushRunIDs(pushes [][]ciTiming) []int64 {
 	return ids
 }
 
-func pushJobs(c *ciTiming, jobs runcache.Jobs) []pathJob {
+func pushJobs(c *ciTiming, jobs runcache.Jobs, ignore []string) []pathJob {
 	var out []pathJob
 
 	for _, run := range c.RunDetails {
@@ -132,7 +133,8 @@ func pushJobs(c *ciTiming, jobs runcache.Jobs) []pathJob {
 
 		for k := range jobs[run.ID] {
 			job := &jobs[run.ID][k]
-			if !countable(job.Conclusion) || job.StartedAt.IsZero() || job.CompletedAt.IsZero() {
+			if !countable(job.Conclusion) || job.StartedAt.IsZero() || job.CompletedAt.IsZero() ||
+				slices.Contains(ignore, job.Name) {
 				continue
 			}
 
@@ -172,7 +174,7 @@ type cacheSamples struct {
 }
 
 func summarizeCritical(
-	pushes [][]ciTiming, spans []timeWindow, commits []ciTiming, jobs runcache.Jobs,
+	pushes [][]ciTiming, spans []timeWindow, commits []ciTiming, jobs runcache.Jobs, ignore []string,
 ) []ciCriticalSpan {
 	out := make([]ciCriticalSpan, 0, len(spans))
 
@@ -184,7 +186,7 @@ func summarizeCritical(
 		}
 
 		for c := range pushes[i] {
-			s.add(&pushes[i][c], jobs)
+			s.add(&pushes[i][c], jobs, ignore)
 		}
 
 		out = append(out, s.span(span, len(counted(commitsBetween(commits, span.from, span.to)))))
@@ -193,8 +195,8 @@ func summarizeCritical(
 	return out
 }
 
-func (s *spanSamples) add(c *ciTiming, jobs runcache.Jobs) {
-	all := pushJobs(c, jobs)
+func (s *spanSamples) add(c *ciTiming, jobs runcache.Jobs, ignore []string) {
+	all := pushJobs(c, jobs, ignore)
 	if len(all) == 0 {
 		return
 	}

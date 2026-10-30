@@ -46,7 +46,7 @@ func TestSummarizeCritical_SplitsTheLastJobsPathAndMeasuresHeadroom(t *testing.T
 	stats := summarizeCITimings(runs)
 	spans := []timeWindow{{from: at(-60), to: at(3600), label: "2026-01-01"}}
 	pushes := sampledPushes(stats.Commits, spans, 10)
-	got := summarizeCritical(pushes, spans, stats.Commits, jobs)[0]
+	got := summarizeCritical(pushes, spans, stats.Commits, jobs, nil)[0]
 
 	type path struct{ upstream, queue, run, after float64 }
 
