@@ -1,3 +1,19 @@
+## v1.16.0 (2026-10-30)
+
+### Feat
+
+- **listener**: wait for a pull request's checks to settle and notify, behind watch --pr
+- **citiming**: read cache hits and misses from job logs
+- **telemetry**: count commands, verbs, and dispatches locally and add export telemetry
+
+### Refactor
+
+- **app**: use aragonite's command registry, pane box, and scroll window
+
+### Perf
+
+- **github**: serve a finished run's jobs from memory so opening a log re-reads nothing
+
 ## v1.15.0 (2026-10-30)
 
 ### Feat
