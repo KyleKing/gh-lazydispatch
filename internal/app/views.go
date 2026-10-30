@@ -215,9 +215,9 @@ const (
 func (m Model) footerHints() []string {
 	switch m.focused {
 	case PaneWorkflows:
-		return []string{hintSelect, "[space] mark", "[Enter] run"}
+		return []string{"[Enter] run", "[space] mark", hintSelect}
 	case PaneChains:
-		return []string{hintSelect, "[Enter] run chain"}
+		return []string{"[Enter] run chain", hintSelect}
 	case PaneConfig:
 		return []string{"[Enter] run", "[1-0] edit", "[/] filter"}
 	case PaneRight:

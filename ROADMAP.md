@@ -478,6 +478,38 @@ Open work on CI timing:
   per-job timings), and `MergeQueueEvents`. gh-sweep's `gha_perf.go` reads the
   same runs and jobs with its own code and can switch to them
 
+## Phase 13: what a PTY review at 80x24 and 200x50 found
+
+A review driving the TUI under tmux in this repository and in a 51-workflow
+repository fixed these: workflows that declare a bare `workflow_dispatch:` were
+missing from the list, Tab could focus a chains pane the layout had collapsed,
+ctrl+c was swallowed by every modal, opening logs gave no sign of progress, and
+the 80-column footer dropped `[Enter] run` first. What it found and nobody has
+done yet, most valuable first:
+
+- Use the right panel's width: at 200 columns the Runs table stops near 38
+  characters of name and leaves about 110 empty, with only Workflow and Time
+  shown. Add droppable columns for event, actor, duration, and conclusion
+- Filter the workflow list with `/` and sort by display name; at 80x24 with 26
+  workflows two rows show, and the help promises `1-9` selection that rows do
+  not number
+- Filter the action menu by state: a successful run offers diagnose, cancel, and
+  re-run-failed
+- Make the bare `v` key open logs from Runs and run detail, as the menu and help
+  advertise
+- Generate the help modal from the key map and command registry; it names keys
+  that no longer exist (`C`, `c`, `h/l` for tabs) and omits `:timeline`
+- Wrap API errors to the pane width and name rate limiting with the reset time
+- Rebalance the 80-column layout: the config pane's 22 columns cut the command
+  preview from the left, and a workflow with no inputs shows an empty table
+- Label the status glyphs, and explain the `Flaky 100%` badge
+- Teach in the command bar: the placeholder shows only its first letter, and
+  `:timeline ` completes to nothing instead of hinting `<run-id>`
+- Bugs: the branch picker treats `k` as navigation while filtering; the chain
+  picker pads and truncates at 80x24; modal widths jump while scrolling; j/k in
+  the config pane opens a modal rather than moving a row cursor; the log viewer
+  opens the whole run when drilled into a job
+
 ## Scrapped
 
 Both were filed as v2 alternatives and neither survived contact with what

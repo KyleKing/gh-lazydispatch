@@ -237,14 +237,16 @@ func (m Model) reloadFocusedTab(tab panes.RightTab) (tea.Model, tea.Cmd, bool) {
 }
 
 // stepPane is the next focusable pane in one direction, skipping the chains
-// pane in a repository that configures none: the layout does not draw it, so
-// stopping on it would be a stop with nothing on screen.
+// pane when it is not drawn: a repository that configures no chains, or a
+// terminal too short to fit it. Stopping on it would be a stop with nothing on
+// screen.
 func (m Model) stepPane(step int) FocusedPane {
 	next := m.focused
+	chainsShown := m.chains.Count() > 0 && (m.height == 0 || m.layout().chainsHeight > 0)
 
 	for range paneCount {
 		next = FocusedPane((int(next) + step + paneCount) % paneCount)
-		if next != PaneChains || m.chains.Count() > 0 {
+		if next != PaneChains || chainsShown {
 			return next
 		}
 	}

@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -238,6 +239,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.modalStack.HasActive() {
+		if m.quitsFromModal(msg) {
+			return m, tea.Quit
+		}
+
 		return m.updateModal(msg)
 	}
 
@@ -387,9 +392,13 @@ func (m Model) handleChainMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 func (m Model) handleLogMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
 	switch msg := msg.(type) {
 	case FetchLogsMsg:
+		m.status = fmt.Sprintf("Fetching the logs of run %d...", msg.RunID)
+
 		return m, m.fetchLogs(msg), true
 
 	case LogsFetchedMsg:
+		m.status = ""
+
 		if msg.Error != nil {
 			m.modalStack.Push(modal.NewErrorModal("Failed to Fetch Logs", msg.Error.Error()))
 			return m, nil, true
@@ -476,6 +485,20 @@ func (m Model) topLogsViewer() (*modal.LogsViewerModal, bool) {
 	viewer, ok := topModal.(*modal.LogsViewerModal)
 
 	return viewer, ok
+}
+
+// quitsFromModal reports whether msg is ctrl+c with a modal open. It quits
+// like it does everywhere else, except over a running chain's status, where the
+// same key stops the chain.
+func (m Model) quitsFromModal(msg tea.Msg) bool {
+	keyMsg, ok := msg.(tea.KeyPressMsg)
+	if !ok || keyMsg.String() != "ctrl+c" {
+		return false
+	}
+
+	_, isChainStatus := m.modalStack.Current().(*modal.ChainStatusModal)
+
+	return !isChainStatus
 }
 
 func (m Model) updateModal(msg tea.Msg) (tea.Model, tea.Cmd) {

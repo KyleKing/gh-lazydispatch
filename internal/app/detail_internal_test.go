@@ -125,6 +125,18 @@ func TestStepPane_SkipsThePaneTheLayoutDoesNotDraw(t *testing.T) {
 		t.Errorf("tab landed on pane %d with chains configured, want the chains pane", got)
 	}
 
+	short := resize(t, newRenderModel(), 80, 20)
+	short.focused = PaneWorkflows
+
+	if short.layout().chainsHeight != 0 {
+		t.Fatalf("the 80x20 layout draws a %d-row chains pane, so this case no longer tests a collapsed one",
+			short.layout().chainsHeight)
+	}
+
+	if got := short.stepPane(1); got == PaneChains {
+		t.Error("tab landed on the chains pane the 80x20 layout collapsed to nothing")
+	}
+
 	m.chains.SetChains(nil)
 
 	if got := m.stepPane(1); got != PaneConfig {
@@ -229,5 +241,25 @@ func TestTimelineStep_OpensTheLogOnTheStepUnderTheCursor(t *testing.T) {
 
 	if fetch.RunID != 11 || fetch.Step != step {
 		t.Errorf("the fetch asks for run %d step %q, want 11 and %q", fetch.RunID, fetch.Step, step)
+	}
+}
+
+// ctrl+c leaves the program from over a modal, as the help promises, rather than
+// being swallowed by whichever modal is on top.
+func TestCtrlC_QuitsFromOverAModal(t *testing.T) {
+	t.Parallel()
+
+	m := pressRune(t, resize(t, newRenderModel(), 120, 40), '?')
+	if !m.modalStack.HasActive() {
+		t.Fatal("? did not open the help modal")
+	}
+
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
+	if cmd == nil {
+		t.Fatal("ctrl+c over a modal returned no command")
+	}
+
+	if _, quit := cmd().(tea.QuitMsg); !quit {
+		t.Errorf("ctrl+c over a modal did not quit: %T", cmd())
 	}
 }
