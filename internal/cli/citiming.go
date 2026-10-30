@@ -37,6 +37,8 @@ type ciRun struct {
 	// Retrigger marks a run created long after the push (a title edit, a label, a rerun),
 	// which the commit's span leaves out.
 	Retrigger bool `json:"retrigger,omitempty"`
+	// Attempt is above 1 when someone re-ran the workflow.
+	Attempt int `json:"attempt,omitempty"`
 }
 
 // ciTiming is one push's CI wall-clock time: from the earliest triggered run's
@@ -46,6 +48,7 @@ type ciRun struct {
 type ciTiming struct {
 	HeadSHA     string `json:"head_sha"`
 	Actor       string `json:"actor,omitempty"`
+	Branch      string `json:"branch,omitempty"`
 	PRs         []int  `json:"prs,omitempty"`
 	CommittedAt string `json:"committed_at,omitempty"`
 	StartedAt   string `json:"started_at"`
@@ -88,6 +91,9 @@ type ciTimingStats struct {
 	Outcomes    []ciOutcome        `json:"outcomes,omitempty"`
 	Trends      []ciTrend          `json:"workflow_trends,omitempty"`
 	Critical    []ciCriticalSpan   `json:"critical_path,omitempty"`
+	Insights    *ciInsights        `json:"insights,omitempty"`
+	Flaky       []ciFlaky          `json:"flaky_workflows,omitempty"`
+	Queue       []ciQueue          `json:"merge_queue,omitempty"`
 	MinSeconds  float64            `json:"min_seconds"`
 	P50Seconds  float64            `json:"p50_seconds"`
 	MeanSeconds float64            `json:"mean_seconds"`
@@ -115,7 +121,7 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs.IntVar(&opts.epochMin, "epoch-min", minEpochCommits, "fewest counted commits per epoch before it stands alone")
 	fs.StringVar(&opts.ignoreJobs, "ignore-job", "", "with --critical-sample, job names to leave out of the path")
 	fs.IntVar(&opts.criticalSample, "critical-sample", 0,
-		"with --epoch-days, pushes per epoch whose jobs are read for the critical path; 0 skips")
+		"with --epoch-days, pushes per day whose jobs are read for job-level tables; 0 skips")
 	fs.StringVar(&opts.authors, "author", "", "comma-separated GitHub logins to compare; only their runs are read")
 	fs.IntVar(&opts.samplePRs, "sample-prs", 0, "with --author, largest pull requests to spot-check per author")
 	fs.StringVar(&opts.prs, "pr", "", "comma-separated pull request numbers to spot-check")
@@ -184,12 +190,8 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 		}
 	}
 
-	if opts.criticalSample > 0 {
-		ignore := splitList(opts.ignoreJobs)
-
-		if err := addCriticalPath(client, &stats, windows, opts.criticalSample, ignore, now, stderr); err != nil {
-			return err
-		}
+	if err := addJobData(client, &stats, opts, windows, now, stderr); err != nil {
+		return err
 	}
 
 	if opts.workflow != "" {
@@ -206,25 +208,24 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 	return writeJSON(stdout, stats)
 }
 
-// addCriticalPath rolls the sampled pushes' jobs up by epoch, or by compared
-// window when no epochs were asked for.
-func addCriticalPath(
-	client *github.Client, stats *ciTimingStats, windows [2]timeWindow, sample int, ignore []string,
-	now time.Time, stderr io.Writer,
+// addJobData fills the tables that read each run's jobs or the merge queue.
+func addJobData(
+	client *github.Client, stats *ciTimingStats, opts ciTimingOptions, windows [2]timeWindow, now time.Time,
+	stderr io.Writer,
 ) error {
-	spans := epochSpans(stats.Epochs, now)
-	if len(spans) == 0 {
-		spans = windows[:]
+	if opts.epochDays > 0 {
+		stats.Flaky = summarizeFlaky(stats.Commits)
 	}
 
-	pushes := sampledPushes(stats.Commits, spans, sample)
-
-	jobs, err := loadJobs(client, pushRunIDs(pushes), stderr)
-	if err != nil {
-		return err
+	if opts.event == "merge_group" {
+		if err := addMergeQueue(client, stats, windows, now, stderr); err != nil {
+			return err
+		}
 	}
 
-	stats.Critical = summarizeCritical(pushes, spans, stats.Commits, jobs, ignore)
+	if opts.criticalSample > 0 {
+		return addCriticalPath(client, stats, windows, opts.criticalSample, splitList(opts.ignoreJobs), now, stderr)
+	}
 
 	return nil
 }
@@ -413,6 +414,7 @@ func timeCommit(sha string, group []github.RunTiming) ciTiming {
 		RunDetails: make([]ciRun, 0, len(group)),
 		Excluded:   exclusion(primary),
 		Actor:      primary[0].Actor,
+		Branch:     primary[0].HeadBranch,
 	}
 
 	for i := range primary {
@@ -437,6 +439,7 @@ func timeCommit(sha string, group []github.RunTiming) ciTiming {
 			Seconds:    run.UpdatedAt.Sub(run.CreatedAt).Seconds(),
 			ID:         run.ID,
 			Retrigger:  run.CreatedAt.Sub(start) > retriggerGap,
+			Attempt:    run.RunAttempt,
 
 			FinishedAfter: run.UpdatedAt.Sub(start).Seconds(),
 		})
@@ -576,6 +579,9 @@ func writeCITimingMarkdown(w io.Writer, filter github.RunFilter, workflow string
 	writeOutcomeTable(&b, stats.Outcomes)
 	writeTrendTable(&b, stats.Trends)
 	writeCriticalTables(&b, stats.Critical)
+	writeFlaky(&b, stats.Flaky, nil)
+	writeInsights(&b, stats.Insights)
+	writeQueue(&b, stats.Queue)
 	writeAuthorTables(&b, stats.Authors)
 	writeWorkflowEpochTable(&b, stats.Workflows)
 	writePRTable(&b, stats.PRSamples)

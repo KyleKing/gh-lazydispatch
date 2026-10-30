@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
 // maxTrendWorkflows caps the workflow trend to the slowest few.
@@ -97,7 +99,7 @@ func trendsIn(commits []ciTiming) map[string]*trendSamples {
 			switch run.Conclusion {
 			case conclusionCanceled:
 				s.abort++
-			case "failure", "timed_out", "startup_failure":
+			case github.ConclusionFailure, "timed_out", "startup_failure":
 				s.failed++
 			}
 

@@ -25,6 +25,7 @@ type RunTiming struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	Name        string    `json:"name"`
 	Actor       string    `json:"actor,omitempty"`
+	HeadBranch  string    `json:"head_branch,omitempty"`
 	Path        string    `json:"path,omitempty"`
 	Status      string    `json:"status"`
 	Conclusion  string    `json:"conclusion"`
@@ -56,6 +57,7 @@ type apiRunTiming struct {
 		Login string `json:"login"`
 	} `json:"actor"`
 	Name         string `json:"name"`
+	HeadBranch   string `json:"head_branch"`
 	Path         string `json:"path"`
 	Status       string `json:"status"`
 	Conclusion   string `json:"conclusion"`
@@ -231,6 +233,7 @@ func (c *Client) fetchRunTimingsPage(filter RunFilter, from, to time.Time, page 
 			UpdatedAt:   r.UpdatedAt,
 			Name:        r.Name,
 			Actor:       r.Actor.Login,
+			HeadBranch:  r.HeadBranch,
 			Path:        workflowPath(r.Path),
 			Status:      r.Status,
 			Conclusion:  r.Conclusion,
