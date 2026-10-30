@@ -450,8 +450,10 @@ Open work on CI timing:
   up only as time waiting on earlier jobs
 - Flake detection stops at re-runs that passed. Telling a flake from a real
   failure needs the failing test name from the logs
-- The generic parts (percentiles, the day-split run query, merge queue events)
-  could move to aragonite for the other tools to share
+- The generic parts moved to aragonite v1.8.0: `stats` (percentile, mean),
+  `forge/github.ListRunTimings` and `RunJobTimings` (the day-split run query and
+  per-job timings), and `MergeQueueEvents`. gh-sweep's `gha_perf.go` reads the
+  same runs and jobs with its own code and can switch to them
 
 ## Scrapped
 

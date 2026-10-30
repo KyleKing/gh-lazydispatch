@@ -11,6 +11,9 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
+// reasonMerged is the removal reason of an entry that merged.
+const reasonMerged = "merged"
+
 var queueBranch = regexp.MustCompile(`/pr-(\d+)-`)
 
 // ciQueue is a span's merge queue traffic: how many entries merged or left
@@ -72,9 +75,9 @@ func summarizeQueue(events map[int][]github.QueueEvent, spans []timeWindow) []ci
 
 		for _, ev := range evs {
 			switch ev.Type {
-			case "added":
+			case github.QueueAdded:
 				added = ev.At
-			case "removed":
+			case github.QueueRemoved:
 				i := spanIndex(spans, added)
 				if i < 0 {
 					continue
@@ -82,7 +85,7 @@ func summarizeQueue(events map[int][]github.QueueEvent, spans []timeWindow) []ci
 
 				samples[i].entries++
 
-				if ev.Reason == "merged" {
+				if ev.Reason == reasonMerged {
 					samples[i].merged++
 					samples[i].waits = append(samples[i].waits, ev.At.Sub(added).Seconds())
 				} else {

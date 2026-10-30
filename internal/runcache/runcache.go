@@ -177,7 +177,7 @@ func (e Entry) Merge(fetched []github.RunTiming, from, to time.Time) Entry {
 
 	for i := range fetched {
 		run := fetched[i]
-		if run.IsComplete() || run.CreatedAt.Before(to.Add(-StaleAfter)) {
+		if github.IsComplete(&run) || run.CreatedAt.Before(to.Add(-StaleAfter)) {
 			byID[run.ID] = run
 
 			continue

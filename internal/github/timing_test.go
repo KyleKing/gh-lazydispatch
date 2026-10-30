@@ -73,8 +73,8 @@ func TestListRunTimings_PagesEachDayAndDedupesTheBoundary(t *testing.T) {
 		t.Errorf("CommittedAt is %v, want %v", got.Runs[0].CommittedAt, want)
 	}
 
-	if !got.Runs[0].IsComplete() {
-		t.Error("a completed run reports IsComplete false")
+	if !github.IsComplete(&got.Runs[0]) {
+		t.Error("a completed run is not complete")
 	}
 
 	if len(got.Capped) != 0 {

@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	agstats "github.com/kyleking/aragonite/stats"
 
 	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/github"
@@ -632,7 +633,7 @@ func formatSeconds(seconds float64) string {
 // push still in progress does not report a partial, misleadingly short span.
 func allComplete(group []github.RunTiming) bool {
 	for i := range group {
-		if !group[i].IsComplete() {
+		if !github.IsComplete(&group[i]) {
 			return false
 		}
 	}
@@ -683,30 +684,9 @@ func secondsPercentile(commits []ciTiming, p float64) float64 {
 	return percentile(seconds, p)
 }
 
-// percentile reads p (0-1) out of values by linear interpolation, sorting
-// them in place.
+// percentile reads p (0-1) out of values by linear interpolation.
 func percentile(seconds []float64, p float64) float64 {
-	n := len(seconds)
-	if n == 0 {
-		return 0
-	}
-
-	sort.Float64s(seconds)
-
-	if n == 1 {
-		return seconds[0]
-	}
-
-	rank := p * float64(n-1)
-	lo, hi := int(math.Floor(rank)), int(math.Ceil(rank))
-
-	if lo == hi {
-		return seconds[lo]
-	}
-
-	frac := rank - float64(lo)
-
-	return seconds[lo] + frac*(seconds[hi]-seconds[lo])
+	return agstats.Percentile(seconds, p)
 }
 
 // loadRuns returns the runs created in [from, to), reading finished ones from

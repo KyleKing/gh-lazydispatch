@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	agstats "github.com/kyleking/aragonite/stats"
+
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/runcache"
 )
@@ -271,16 +273,7 @@ func nonNegative(d time.Duration) float64 {
 }
 
 func mean(values []float64) float64 {
-	if len(values) == 0 {
-		return 0
-	}
-
-	var sum float64
-	for _, v := range values {
-		sum += v
-	}
-
-	return sum / float64(len(values))
+	return agstats.Mean(values)
 }
 
 func (s *spanSamples) span(span timeWindow, pushes int) ciCriticalSpan {
