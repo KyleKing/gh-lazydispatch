@@ -376,7 +376,24 @@ redesign:
   path; a `gh-lazydispatch export telemetry` (or a TUI pane) that reads it
   back is worth doing once there is more than one week of data to look at
 
-### Extraction to aragonite
+### Extraction to aragonite (shipped in aragonite v1.9.0)
+
+The command registry (`tui/commandbar`), the exact-size bordered box
+(`tui/box`), and `table.ScrollWindow` landed and this repository now uses them:
+`app.Command`, `app.Registry`, and `app.Candidate` alias the library's, and
+`ui.PaneBox` and `ui.ScrollWindow` call it. What stayed behind on purpose:
+
+- The Bubble Tea key handling and rendering of the bar. gh-lazydispatch fills the
+  shared prefix on tab and lists the rest on one footer line, while
+  gh-repo-dashboard cycles candidates on repeated tab presses, so only the
+  registry and completion logic are common. gh-repo-dashboard migrates its own
+  `command.go` separately (see the migration steps in the commit history of
+  aragonite's `tui/commandbar`)
+- `keyhint.Fit` for the footer. It brackets a single-character key inside its
+  word (`[a]ctions`), so adopting it rewrites the footer strings and every
+  golden frame. Worth doing as its own change when the footer is next touched
+
+The plan this section was written from follows.
 
 Ordered by confirmed duplication first, speculative second:
 

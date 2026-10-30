@@ -3,11 +3,10 @@ package ui
 
 import (
 	"image/color"
-	"strings"
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/x/ansi"
+	"github.com/kyleking/aragonite/tui/box"
 	"github.com/kyleking/aragonite/tui/skin"
 	"github.com/kyleking/aragonite/tui/theme"
 	"github.com/sahilm/fuzzy"
@@ -159,30 +158,13 @@ func ApplyTheme() {
 
 // PaneBorderSize is the space a pane's border occupies on each axis, which is
 // what separates the width a pane is given from the width its content gets.
-const PaneBorderSize = 2
+const PaneBorderSize = box.BorderSize
 
 // PaneBox draws content inside a pane of exactly width by height cells.
 // Content is truncated rather than wrapped, because a wrapped line costs the
 // pane the bottom border MaxHeight then clips in its place.
 func PaneBox(width, height int, focused bool, content string) string {
-	style := BorderStyle
-	if focused {
-		style = FocusedBorderStyle
-	}
-
-	inner := max(width-PaneBorderSize, 0)
-	rows := max(height-PaneBorderSize, 0)
-
-	lines := strings.Split(content, "\n")
-	if len(lines) > rows {
-		lines = lines[:rows]
-	}
-
-	for i, line := range lines {
-		lines[i] = ansi.Truncate(line, inner, "…")
-	}
-
-	return style.Width(width).Height(height).MaxHeight(height).Render(strings.Join(lines, "\n"))
+	return box.Render(box.Styles{Idle: BorderStyle, Focused: FocusedBorderStyle}, width, height, focused, content)
 }
 
 // FormatEmptyValue returns the display string for a value, showing ("") for empty strings.

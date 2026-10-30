@@ -18,76 +18,6 @@ func testRegistry() Registry {
 	)
 }
 
-// TestRegistryLookup covers the rule that keeps `:c` from running whichever
-// command happens to sort first: a prefix resolves only when one command
-// answers to it.
-func TestRegistryLookup(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		query string
-		want  string
-	}{
-		{"exact", "reset", "reset"},
-		{"unique prefix", "r", "reset"},
-		{"ambiguous prefix", "ch", ""},
-		{"exact wins over prefix", "chain", "chain"},
-		{"unknown", "zzz", ""},
-		{"empty", "", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			command, found := testRegistry().Lookup(tt.query)
-
-			if tt.want == "" {
-				if found {
-					t.Errorf("Lookup(%q) resolved to %q, want nothing", tt.query, command.Name)
-				}
-
-				return
-			}
-
-			if !found || command.Name != tt.want {
-				t.Errorf("Lookup(%q) = %q (%v), want %q", tt.query, command.Name, found, tt.want)
-			}
-		})
-	}
-}
-
-func TestCommonPrefix(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		want  string
-		names []string
-	}{
-		{"none", "", nil},
-		{"one", "chain", []string{"chain"}},
-		{"shared", "ch", []string{"chain", "check"}},
-		{"nothing shared", "", []string{"chain", "reset"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			candidates := make([]Candidate, len(tt.names))
-			for i, name := range tt.names {
-				candidates[i] = Candidate{Name: name}
-			}
-
-			if got := commonPrefix(candidates); got != tt.want {
-				t.Errorf("commonPrefix(%v) = %q, want %q", tt.names, got, tt.want)
-			}
-		})
-	}
-}
-
 // typeCommand opens the bar and types line into it.
 func typeCommand(t *testing.T, m Model, line string) Model {
 	t.Helper()
@@ -460,7 +390,7 @@ func TestCommands_CompleteTheirOwnArguments(t *testing.T) {
 			m := resize(t, newRenderModel(), 120, 40)
 			m.wfdConfig = testChainConfig()
 
-			candidates, completable := m.registry.completionsFor(m, tt.line)
+			candidates, completable := m.registry.Completions(m, tt.line)
 			if !completable {
 				t.Fatalf("%q completes nothing", tt.line)
 			}
@@ -481,7 +411,7 @@ func TestCommands_CompleteTheirOwnArguments(t *testing.T) {
 	// A command with nothing to complete says so rather than offering the
 	// command names again, which would complete a word that is not one.
 	m := resize(t, newRenderModel(), 120, 40)
-	if _, completable := m.registry.completionsFor(m, "watch "); completable {
+	if _, completable := m.registry.Completions(m, "watch "); completable {
 		t.Error("a command taking no argument still offered completions")
 	}
 }

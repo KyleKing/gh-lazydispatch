@@ -132,22 +132,7 @@ func TableRow(layout table.Layout, values map[string]string) string {
 	return table.Join(cells)
 }
 
-// ScrollWindow returns the half-open range of rows a pane should draw so that
-// selected stays visible. A negative selected holds the window at the top,
-// which is what a cleared selection wants.
+// ScrollWindow keeps selected visible in a window of rows.
 func ScrollWindow(selected, total, rows int) (int, int) {
-	if rows < 1 {
-		rows = 1
-	}
-
-	if total <= rows {
-		return 0, total
-	}
-
-	first := 0
-	if selected >= rows {
-		first = selected - rows + 1
-	}
-
-	return first, first + rows
+	return table.ScrollWindow(selected, total, rows)
 }

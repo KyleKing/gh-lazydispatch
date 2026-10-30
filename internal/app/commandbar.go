@@ -7,6 +7,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/kyleking/aragonite/tui/commandbar"
 
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 )
@@ -113,17 +114,17 @@ func (m Model) runCommandLine(line string) (tea.Model, tea.Cmd) {
 // them when they disagree. Filling only the shared prefix is what keeps tab
 // from choosing between two commands on the user's behalf.
 func (m *Model) completeCommandLine() {
-	candidates, completable := m.registry.completionsFor(*m, m.commandInput.Value())
+	candidates, completable := m.registry.Completions(*m, m.commandInput.Value())
 	if !completable || len(candidates) == 0 {
 		m.completions = nil
 
 		return
 	}
 
-	shared := commonPrefix(candidates)
+	shared := commandbar.CommonPrefix(candidates)
 	line := m.commandInput.Value()
 
-	if replaced := replaceLastWord(line, shared); shared != "" && replaced != line {
+	if replaced := commandbar.ReplaceLastWord(line, shared); shared != "" && replaced != line {
 		m.commandInput.SetValue(replaced)
 		m.commandInput.SetCursor(len(replaced))
 	}
@@ -135,22 +136,6 @@ func (m *Model) completeCommandLine() {
 	}
 
 	m.completions = candidates
-}
-
-// replaceLastWord swaps the word being typed for word, keeping everything
-// before it. A line ending in a space is opening a new word rather than
-// extending the last one.
-func replaceLastWord(line, word string) string {
-	if strings.HasSuffix(line, " ") || line == "" {
-		return line + word
-	}
-
-	idx := strings.LastIndex(line, " ")
-	if idx < 0 {
-		return word
-	}
-
-	return line[:idx+1] + word
 }
 
 // viewCommandBar renders the bar and, beside it, whatever tab could not choose

@@ -66,40 +66,6 @@ func assertBox(t *testing.T, rendered string, width, height int) {
 	}
 }
 
-// The window is what keeps a selection on screen. A pane that drew every row
-// and let MaxHeight cut the overflow hid the selection instead.
-func TestScrollWindow_KeepsTheSelectionInsideAHalfOpenRange(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name                  string
-		selected, total, rows int
-		first, last           int
-	}{
-		{name: "everything fits", selected: 3, total: 4, rows: 10, first: 0, last: 4},
-		{name: "selection above the window", selected: -1, total: 40, rows: 5, first: 0, last: 5},
-		{name: "selection inside the first window", selected: 2, total: 40, rows: 5, first: 0, last: 5},
-		{name: "selection just past it", selected: 5, total: 40, rows: 5, first: 1, last: 6},
-		{name: "selection at the end", selected: 39, total: 40, rows: 5, first: 35, last: 40},
-		{name: "no room for a row", selected: 7, total: 40, rows: 0, first: 7, last: 8},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			first, last := ui.ScrollWindow(tt.selected, tt.total, tt.rows)
-			if first != tt.first || last != tt.last {
-				t.Errorf("window is [%d,%d), want [%d,%d)", first, last, tt.first, tt.last)
-			}
-
-			if tt.selected >= 0 && tt.selected < tt.total && (tt.selected < first || tt.selected >= last) {
-				t.Errorf("row %d is outside the window [%d,%d) that is meant to show it", tt.selected, first, last)
-			}
-		})
-	}
-}
-
 // A column set that does not fit hands the header an overflow marker, and that
 // marker is what wraps the header onto a second line and costs the pane its
 // bottom border. So the header the set produces has to fit the width it was
