@@ -93,7 +93,7 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
     [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
     [--workflow <name>] [--sample <n>] [--epoch-days <n>]
-    [--author <login,...>] [--sample-prs <n>] [--pr <n,...>]
+    [--author <login,...>] [--sample-prs <n>] [--pr <n,...>] [--critical-sample <n>]
 ```
 
 How long all of CI takes to finish, per commit: the span from the earliest
@@ -141,9 +141,9 @@ resumes.
 checkout), plus the dates in an optional `.github/ci-epochs` file (one
 `YYYY-MM-DD label` per line, for changes git cannot show such as a runner
 swap). The table gives each epoch's commits, p50, p90, and max. An epoch
-with fewer than 30 counted commits folds into the next, because a P90 over
-fewer is noise. Only the newest epoch, or a manual one, can stay small, and
-it is marked "(under 30)".
+with fewer than `--epoch-min` (default 30) counted commits folds into the next,
+because a P90 over fewer is noise. Only the newest epoch, or a manual one, can
+stay small, and it is marked "(few)".
 
 A run created more than ten minutes after the push's first run (a title
 edit, a label, a manual dispatch) is a retrigger: it stays in `run_details`
@@ -158,6 +158,20 @@ run duration at the commits that changed that workflow's own file, to say
 which change moved which workflow. Workflow epochs need the run's `path`, so a
 cache written before it existed has none: delete it to rebuild. Epochs open
 with a "start of range" row so the span before the first change is a row too.
+
+`--epoch-days` also prints how pushes ended in each epoch (counted, canceled,
+re-run, timed out, unfinished) and each slow workflow's run time, failure rate,
+and cancel rate per epoch, from run data alone.
+
+`--critical-sample n` reads the jobs of n counted pushes per epoch (chosen by
+a hash, so the same pushes return as the range grows) and splits each push's
+wall clock along the job that finished last: waiting on earlier jobs (the
+job's creation after the push began), runner queue, the job running, and the
+tail after it. It ranks the jobs that end pushes by headroom, the gap to the
+job that finished before them, which is the most a push gains from speeding up
+that job alone. It also tabulates queue wait by runner label across every
+job, and steps whose name mentions a cache (their time and skip share, since
+the API does not report hits). Job reads are cached by run ID.
 
 `--sample-prs n` picks each author's n largest pull requests (by files
 changed) from their eight most-pushed, and `--pr 1,2` adds named ones. Each

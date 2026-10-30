@@ -85,6 +85,9 @@ type ciTimingStats struct {
 	Authors     []ciAuthor         `json:"authors,omitempty"`
 	Workflows   []ciWorkflowEpochs `json:"workflow_epochs,omitempty"`
 	PRSamples   []ciPR             `json:"pull_requests,omitempty"`
+	Outcomes    []ciOutcome        `json:"outcomes,omitempty"`
+	Trends      []ciTrend          `json:"workflow_trends,omitempty"`
+	Critical    []ciCriticalSpan   `json:"critical_path,omitempty"`
 	MinSeconds  float64            `json:"min_seconds"`
 	P50Seconds  float64            `json:"p50_seconds"`
 	MeanSeconds float64            `json:"mean_seconds"`
@@ -93,8 +96,8 @@ type ciTimingStats struct {
 }
 
 type ciTimingOptions struct {
-	branch, event, format, workflow, authors, prs                string
-	windowDays, baselineOffsetDays, sample, epochDays, samplePRs int
+	branch, event, format, workflow, authors, prs                                          string
+	windowDays, baselineOffsetDays, sample, epochDays, samplePRs, criticalSample, epochMin int
 }
 
 func exportCITiming(args []string, stdout, stderr io.Writer) error {
@@ -109,6 +112,9 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&opts.workflow, "workflow", "", "workflow name to break down into jobs and steps")
 	fs.IntVar(&opts.sample, "sample", defaultJobSample, "with --workflow, runs per window to read jobs of; 0 reads all")
 	fs.IntVar(&opts.epochDays, "epoch-days", 0, "days of history to split into epochs; 0 skips")
+	fs.IntVar(&opts.epochMin, "epoch-min", minEpochCommits, "fewest counted commits per epoch before it stands alone")
+	fs.IntVar(&opts.criticalSample, "critical-sample", 0,
+		"with --epoch-days, pushes per epoch whose jobs are read for the critical path; 0 skips")
 	fs.StringVar(&opts.authors, "author", "", "comma-separated GitHub logins to compare; only their runs are read")
 	fs.IntVar(&opts.samplePRs, "sample-prs", 0, "with --author, largest pull requests to spot-check per author")
 	fs.StringVar(&opts.prs, "pr", "", "comma-separated pull request numbers to spot-check")
@@ -177,6 +183,12 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 		}
 	}
 
+	if opts.criticalSample > 0 {
+		if err := addCriticalPath(client, &stats, windows, opts.criticalSample, now, stderr); err != nil {
+			return err
+		}
+	}
+
 	if opts.workflow != "" {
 		err := attachJobs(client, stats.Windows, stats.Commits, windows, opts.workflow, opts.sample, stderr)
 		if err != nil {
@@ -191,6 +203,28 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 	return writeJSON(stdout, stats)
 }
 
+// addCriticalPath rolls the sampled pushes' jobs up by epoch, or by compared
+// window when no epochs were asked for.
+func addCriticalPath(
+	client *github.Client, stats *ciTimingStats, windows [2]timeWindow, sample int, now time.Time, stderr io.Writer,
+) error {
+	spans := epochSpans(stats.Epochs, now)
+	if len(spans) == 0 {
+		spans = windows[:]
+	}
+
+	pushes := sampledPushes(stats.Commits, spans, sample)
+
+	jobs, err := loadJobs(client, pushRunIDs(pushes), stderr)
+	if err != nil {
+		return err
+	}
+
+	stats.Critical = summarizeCritical(pushes, spans, stats.Commits, jobs)
+
+	return nil
+}
+
 // addHistory fills the epoch, per-author, and per-workflow cuts, which need the
 // repository's git history.
 func addHistory(
@@ -202,13 +236,17 @@ func addHistory(
 	if opts.epochDays > 0 {
 		ctx := context.Background()
 
-		if stats.Epochs, err = epochsSince(ctx, branch, since, stats.Commits); err != nil {
+		if stats.Epochs, err = epochsSince(ctx, branch, since, stats.Commits, opts.epochMin); err != nil {
 			return err
 		}
 
 		if stats.Workflows, err = workflowEpochs(ctx, branch, since, runs); err != nil {
 			return err
 		}
+
+		spans := epochSpans(stats.Epochs, windows[1].to)
+		stats.Outcomes = summarizeOutcomes(stats.Commits, spans)
+		stats.Trends = summarizeTrends(stats.Commits, spans)
 	}
 
 	if len(logins) > 0 {
@@ -531,6 +569,9 @@ func writeCITimingMarkdown(w io.Writer, filter github.RunFilter, workflow string
 	}
 
 	writeEpochTable(&b, stats.Epochs)
+	writeOutcomeTable(&b, stats.Outcomes)
+	writeTrendTable(&b, stats.Trends)
+	writeCriticalTables(&b, stats.Critical)
 	writeAuthorTables(&b, stats.Authors)
 	writeWorkflowEpochTable(&b, stats.Workflows)
 	writePRTable(&b, stats.PRSamples)

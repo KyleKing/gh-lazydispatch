@@ -59,6 +59,10 @@ Flags (ci-timing):
   --sample <n>        With --workflow, runs per window to read jobs for. Default 150, 0 for all
   --epoch-days <n>    Split the last n days at each workflow change (and .github/ci-epochs dates); 0 skips
   --author <a,b>      Compare these GitHub logins (reads only their runs); use with --event pull_request
+  --epoch-min <n>     Fewest counted commits an epoch needs before it stands alone. Default 30
+  --critical-sample <n>
+                      With --epoch-days, read the jobs of n pushes per epoch and report where
+                      the wall clock goes, which jobs end the push, runner queue, and cache steps
   --sample-prs <n>    Spot-check each author's n largest pull requests; --pr <n,...> names them
 
 Flags (watch):

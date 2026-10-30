@@ -19,7 +19,7 @@ import (
 // runner swap made in the GitHub UI. Each line is "YYYY-MM-DD label".
 const epochsFile = ".github/ci-epochs"
 
-// minEpochCommits is the fewest counted commits an epoch needs for its P90 to mean anything.
+// minEpochCommits is the default fewest counted commits an epoch needs for its P90 to mean anything.
 const minEpochCommits = 30
 
 // ciEpoch is a span of commits that ran the same pipeline.
@@ -79,13 +79,15 @@ func pathBoundaries(ctx context.Context, branch string, since time.Time, paths .
 	return bounds, nil
 }
 
-func epochsSince(ctx context.Context, branch string, since time.Time, commits []ciTiming) ([]ciEpoch, error) {
+func epochsSince(
+	ctx context.Context, branch string, since time.Time, commits []ciTiming, minCommits int,
+) ([]ciEpoch, error) {
 	bounds, err := epochBoundaries(ctx, branch, since)
 	if err != nil {
 		return nil, err
 	}
 
-	return summarizeEpochs(commits, bounds, minEpochCommits), nil
+	return summarizeEpochs(commits, bounds, minCommits), nil
 }
 
 // boundsOf turns summarized epochs back into boundaries, so another set of
@@ -237,7 +239,7 @@ func epochLabel(e *ciEpoch) string {
 
 func epochCount(e *ciEpoch) string {
 	if e.Few {
-		return fmt.Sprintf("%d (under %d)", e.Commits, minEpochCommits)
+		return fmt.Sprintf("%d (few)", e.Commits)
 	}
 
 	return strconv.Itoa(e.Commits)
