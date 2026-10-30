@@ -292,10 +292,12 @@ Found this phase, not fixed:
 - **A local edit to `.typos.toml`.** Cassettes are excluded there because a
   UUID inside one reads as a misspelling. The file is template-managed, so the
   edit returns as a `.rej` on the next `copier update` and has to be re-applied
-- **Coverage is uneven under the line.** `internal/ui/panes` and
-  `internal/ui/modal` still hold the largest untested blocks, mostly in the
-  render paths that the contract tests exercise without asserting on. The
-  module clears 85% overall; no package floor is enforced
+- **Coverage is uneven under the line.** `internal/ui/panes` (65%) and
+  `internal/citiming` (55%) hold the largest untested blocks, mostly render
+  paths the contract tests exercise without asserting on. `mise run
+  test:coverage-packages` holds a floor per package so one cannot slide behind
+  the module-wide 85%; raise a floor when its package gains tests. CI does not
+  run it yet, because the CI workflow is template-managed
 - **`internal/runner` and the dispatch itself stay untested end to end.**
   Dispatching is a mutation, so no cassette can record it and the guard panics
   rather than let a test try. `mise run test:live` is the only thing that

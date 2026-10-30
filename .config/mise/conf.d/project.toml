@@ -13,6 +13,10 @@ run = "go test -bench=. -benchmem ./internal/logs/... | tee bench.txt"
 description = "Run integration tests only"
 run = "go test -v -run TestIntegration ./..."
 
+[tasks."test:coverage-packages"]
+description = "Verify the per-package coverage floors the module-wide floor can hide"
+run = "scripts/check-package-coverage.sh"
+
 [tasks."test:record"]
 description = "Re-record the gh cassettes against real workflow runs (reads only; needs gh auth)"
 run = """
