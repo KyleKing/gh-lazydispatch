@@ -31,6 +31,7 @@ Usage:
   gh-lazydispatch export logs <run-id>       One run's logs, parsed into steps
   gh-lazydispatch export diagnose <run-id>   Why a run failed, without its logs
   gh-lazydispatch export ci-timing [flags]   How long all of CI takes per commit
+  gh-lazydispatch export ci-report [flags]   One shareable report: pull requests, default branch, merge queue
   gh-lazydispatch watch <run-id> [flags]     Poll a run to completion and write its digest
 
 Flags (runs):
@@ -66,6 +67,15 @@ Flags (ci-timing):
   --ignore-job <a,b>  With --critical-sample, job names left out of the path, such as a gate job
                       that only waits on the others
   --sample-prs <n>    Spot-check each author's n largest pull requests; --pr <n,...> names them
+
+Flags (ci-report):
+  --days <n>          Days of history. Default 30
+  --author <a,b>      Limit pull request runs to these logins
+  --window-days <n>   Days in each compared window. Default 7
+  --sample <n>        Pushes per day whose jobs are read. Default 6
+  --epoch-min <n>     Fewest counted commits per epoch. Default 120
+  --ignore-job <a,b>  Job names left out of the path. Default: detect gate jobs
+  --out <path>        Write to a file instead of stdout
 
 Flags (watch):
   --interval <secs>   Seconds between polls. Default 15

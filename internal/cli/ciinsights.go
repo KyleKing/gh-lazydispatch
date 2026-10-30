@@ -3,10 +3,12 @@ package cli
 import (
 	"io"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/internal/runcache"
 )
 
 // ciInsights holds the job-level tables read from the sampled pushes' jobs.
@@ -41,6 +43,15 @@ func addCriticalPath(
 	if err != nil {
 		return err
 	}
+
+	if len(ignore) == 0 {
+		ignore = detectGateJobs(picked, jobs)
+		if len(ignore) > 0 {
+			notef(stderr, "leaving out gate jobs that only wait on others: %s\n", strings.Join(ignore, ", "))
+		}
+	}
+
+	stats.GateJobs = ignore
 
 	grouped := make([][]ciTiming, len(spans))
 	for i, span := range spans {
@@ -102,4 +113,54 @@ func writeInsights(b *strings.Builder, in *ciInsights) {
 
 func writeFlakyJobs(b *strings.Builder, failing []ciJobFailure) {
 	writeFlaky(b, nil, failing)
+}
+
+const (
+	gateLastShare    = 0.25
+	gateHeadroom     = 15
+	gateDetectRounds = 3
+)
+
+// detectGateJobs names the jobs that end a quarter or more of the sampled
+// pushes yet finish within gateHeadroom seconds of the job before them, which
+// is a job that only waits on others (a gate or an aggregator). Each round
+// leaves the names found out and looks again, because the job behind a gate
+// may be another aggregator.
+func detectGateJobs(pushes []ciTiming, jobs runcache.Jobs) []string {
+	var found []string
+
+	for range gateDetectRounds {
+		lasts := make(map[string][]float64)
+
+		for c := range pushes {
+			all := pushJobs(&pushes[c], jobs, found)
+			if len(all) == 0 {
+				continue
+			}
+
+			headroom := 0.0
+			if len(all) > 1 {
+				headroom = all[0].completed.Sub(all[1].completed).Seconds()
+			}
+
+			lasts[all[0].name] = append(lasts[all[0].name], headroom)
+		}
+
+		before := len(found)
+
+		for name, headrooms := range lasts {
+			if float64(len(headrooms)) >= gateLastShare*float64(len(pushes)) &&
+				percentile(headrooms, percentileMedian) <= gateHeadroom {
+				found = append(found, name)
+			}
+		}
+
+		if len(found) == before {
+			break
+		}
+	}
+
+	sort.Strings(found)
+
+	return found
 }

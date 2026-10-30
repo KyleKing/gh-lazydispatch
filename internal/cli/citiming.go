@@ -92,6 +92,7 @@ type ciTimingStats struct {
 	Trends      []ciTrend          `json:"workflow_trends,omitempty"`
 	Critical    []ciCriticalSpan   `json:"critical_path,omitempty"`
 	Insights    *ciInsights        `json:"insights,omitempty"`
+	GateJobs    []string           `json:"gate_jobs,omitempty"`
 	Flaky       []ciFlaky          `json:"flaky_workflows,omitempty"`
 	Queue       []ciQueue          `json:"merge_queue,omitempty"`
 	MinSeconds  float64            `json:"min_seconds"`
@@ -143,14 +144,29 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 }
 
 func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
-	prs, err := parseNumbers(opts.prs)
+	stats, filter, err := collectCITiming(opts, stderr)
 	if err != nil {
 		return err
 	}
 
+	if opts.format == formatMarkdown {
+		return writeCITimingMarkdown(stdout, filter, opts.workflow, stats)
+	}
+
+	return writeJSON(stdout, stats)
+}
+
+// collectCITiming reads the runs, and whatever else opts asks for, and
+// summarizes them.
+func collectCITiming(opts ciTimingOptions, stderr io.Writer) (ciTimingStats, github.RunFilter, error) {
+	prs, err := parseNumbers(opts.prs)
+	if err != nil {
+		return ciTimingStats{}, github.RunFilter{}, err
+	}
+
 	gitBranch, err := resolveBranch(opts.branch)
 	if err != nil {
-		return err
+		return ciTimingStats{}, github.RunFilter{}, err
 	}
 
 	filter := github.RunFilter{Branch: opts.branch, Event: opts.event}
@@ -160,7 +176,7 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 
 	client, err := newClient()
 	if err != nil {
-		return err
+		return ciTimingStats{}, filter, err
 	}
 
 	now := time.Now().UTC()
@@ -172,7 +188,7 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 
 	runs, err := loadAuthorRuns(client, filter, logins, from, now, stderr)
 	if err != nil {
-		return err
+		return ciTimingStats{}, filter, err
 	}
 
 	stats := summarizeCITimings(runs)
@@ -181,31 +197,27 @@ func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
 	notef(stderr, "%d commits from %d runs\n", len(stats.Commits), len(runs))
 
 	if err := addHistory(&stats, opts, gitBranch, epochFrom, windows, logins, runs); err != nil {
-		return err
+		return ciTimingStats{}, filter, err
 	}
 
 	if opts.samplePRs > 0 || len(prs) > 0 {
 		if stats.PRSamples, err = samplePRs(client, stats.Commits, logins, prs, opts.samplePRs); err != nil {
-			return err
+			return ciTimingStats{}, filter, err
 		}
 	}
 
 	if err := addJobData(client, &stats, opts, windows, now, stderr); err != nil {
-		return err
+		return ciTimingStats{}, filter, err
 	}
 
 	if opts.workflow != "" {
 		err := attachJobs(client, stats.Windows, stats.Commits, windows, opts.workflow, opts.sample, stderr)
 		if err != nil {
-			return err
+			return ciTimingStats{}, filter, err
 		}
 	}
 
-	if opts.format == formatMarkdown {
-		return writeCITimingMarkdown(stdout, filter, opts.workflow, stats)
-	}
-
-	return writeJSON(stdout, stats)
+	return stats, filter, nil
 }
 
 // addJobData fills the tables that read each run's jobs or the merge queue.

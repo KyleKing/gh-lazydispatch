@@ -96,3 +96,29 @@ func TestSummarizeQueue_CountsEvictionsAndWaitsPerSpan(t *testing.T) {
 		t.Errorf("queue = %+v, want 2 entries, 1 evicted, a 2m wait", got)
 	}
 }
+
+// Findings fire only past their thresholds, and gate jobs are detected as the
+// jobs that end pushes with almost no headroom.
+func TestReportFindings_FlagLargeChangesAndDetectGateJobs(t *testing.T) {
+	t.Parallel()
+
+	stats := ciTimingStats{
+		Windows: []ciTimingWindow{
+			{Commits: 30, P90Seconds: 100},
+			{Commits: 30, P90Seconds: 130, Excluded: map[string]int{excludedCanceled: 20}},
+		},
+		Flaky: []ciFlaky{{Workflow: "Dashboard", Runs: 100, Failed: 10, RerunGreen: 12, FailedShare: 0.1}},
+	}
+
+	got := strings.Join(reportFindings([]reportEvent{{label: "Pull requests", stats: stats}}), "\n")
+	for _, want := range []string{"P90 wall clock rose 30%", "40% of pushes", "Dashboard had 12 re-runs"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("findings missing %q:\n%s", want, got)
+		}
+	}
+
+	quiet := ciTimingStats{Windows: []ciTimingWindow{{Commits: 30, P90Seconds: 100}, {Commits: 30, P90Seconds: 105}}}
+	if got := reportFindings([]reportEvent{{label: "Pull requests", stats: quiet}}); len(got) != 0 {
+		t.Errorf("findings = %v, want none under the thresholds", got)
+	}
+}

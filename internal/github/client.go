@@ -242,3 +242,14 @@ func (c *Client) CancelRun(runID int64) error {
 
 	return nil
 }
+
+// CoreBudget reads what is left of the hourly REST allowance for the
+// authenticated user. The read is free, so a caller can ask before a burst of calls.
+func CoreBudget(ctx context.Context) (ghforge.Allowance, error) {
+	budget, err := ghforge.Budgets(ctx, "")
+	if err != nil {
+		return ghforge.Allowance{}, fmt.Errorf("reading the rate limit: %w", err)
+	}
+
+	return budget.Core, nil
+}

@@ -33,6 +33,8 @@ func runExport(args []string, stdout, stderr io.Writer) error {
 		return exportLogs(args[1:], stdout, stderr)
 	case "diagnose":
 		return exportDiagnose(args[1:], stdout, stderr)
+	case "ci-report":
+		return exportCIReport(args[1:], stdout, stderr)
 	case "ci-timing":
 		return exportCITiming(args[1:], stdout, stderr)
 	default:

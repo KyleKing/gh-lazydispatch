@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -79,6 +81,8 @@ func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jo
 
 	notef(stderr, "%d runs need their jobs fetched, %d cached (%s)\n", len(missing), len(ids)-len(missing), path)
 
+	missing, shortfall := affordable(missing, stderr)
+
 	var (
 		mu    sync.Mutex
 		group errgroup.Group
@@ -125,6 +129,10 @@ func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jo
 		return nil, fmt.Errorf("listing jobs (rerun to resume, finished runs are cached): %w", fetchErr)
 	}
 
+	if shortfall != nil {
+		return nil, shortfall
+	}
+
 	return cached, nil
 }
 
@@ -146,6 +154,35 @@ func listJobsWithRetry(client *github.Client, id int64) ([]github.JobTiming, err
 
 	return nil, err //nolint:wrapcheck // the caller wraps it
 }
+
+// rateReserve is how many calls are left unspent for the caller's other work.
+const rateReserve = 200
+
+// affordable trims runs to what the REST allowance covers and returns an error
+// naming the reset time when it had to, so a report is never built on a partial
+// read. Fetching the affordable part first means the rerun after the reset
+// starts from where this one stopped.
+func affordable(missing []int64, stderr io.Writer) ([]int64, error) {
+	allowance, err := github.CoreBudget(context.Background())
+	if err != nil {
+		notef(stderr, "warning: %v; fetching without a budget check\n", err)
+
+		return missing, nil
+	}
+
+	resetIn := allowance.In(time.Now()).Round(time.Minute)
+	notef(stderr, "%d REST calls left this hour (reset in %s)\n", allowance.Remaining, resetIn)
+
+	room := max(allowance.Remaining-rateReserve, 0)
+	if len(missing) <= room {
+		return missing, nil
+	}
+
+	return missing[:room], fmt.Errorf("%w: %d runs need their jobs read and %d calls are left; the allowance "+
+		"resets in %s, and a rerun resumes from the cache", errRateBudget, len(missing), allowance.Remaining, resetIn)
+}
+
+var errRateBudget = errors.New("not enough API calls left")
 
 func runHash(id int64, multiplier uint64) uint64 {
 	return uint64(id) * multiplier //nolint:gosec // run IDs are positive
