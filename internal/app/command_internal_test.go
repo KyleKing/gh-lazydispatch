@@ -9,15 +9,6 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
 )
 
-func testRegistry() Registry {
-	return NewRegistry(
-		Command{Name: "reset", Description: "reset"},
-		Command{Name: "chain", Description: "chain"},
-		Command{Name: "check", Description: "check"},
-		Command{Name: "watch", Description: "watch"},
-	)
-}
-
 // typeCommand opens the bar and types line into it.
 func typeCommand(t *testing.T, m Model, line string) Model {
 	t.Helper()
