@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kyleking/aragonite/cache"
 	"github.com/kyleking/aragonite/forge"
 	ghforge "github.com/kyleking/aragonite/forge/github"
 
@@ -24,6 +25,7 @@ var ErrNoWorkflowRuns = errors.New("no workflow runs found")
 
 // Client wraps the GitHub API via gh CLI.
 type Client struct {
+	jobs     *cache.TTLCache[[]Job]
 	executor exec.CommandExecutor
 	owner    string
 	repo     string
@@ -47,6 +49,7 @@ func NewClientWithExecutor(repoFullName string, executor exec.CommandExecutor) (
 	}
 
 	return &Client{
+		jobs:     cache.NewTTLCache[[]Job](jobsReuse),
 		executor: executor,
 		owner:    parts[0],
 		repo:     parts[1],
@@ -63,12 +66,27 @@ func (c *Client) GetWorkflowRun(runID int64) (*WorkflowRun, error) {
 	return run, nil
 }
 
+// jobsReuse is how long a finished run's jobs are served from memory. Opening a
+// log from an open timeline reads the same run's jobs again, and a finished
+// run's jobs do not change. A run still in progress is never kept, because the
+// log poller reads it again to see the next step finish.
+const jobsReuse = 5 * time.Minute
+
 // GetWorkflowRunJobs fetches the jobs for a workflow run, with the per-step
 // timings the timeline lays out.
 func (c *Client) GetWorkflowRunJobs(runID int64) ([]Job, error) {
+	key := strconv.FormatInt(runID, 10)
+	if cached, ok := c.jobs.Get(key, cache.NoStamp); ok {
+		return cached, nil
+	}
+
 	jobs, err := ghforge.RunJobs(c.runnerContext(context.Background()), ".", c.fullName(), runID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching the run's jobs: %w", err)
+	}
+
+	if allJobsCompleted(jobs) {
+		c.jobs.Set(key, cache.NoStamp, jobs)
 	}
 
 	return jobs, nil
@@ -252,4 +270,14 @@ func CoreBudget(ctx context.Context) (ghforge.Allowance, error) {
 	}
 
 	return budget.Core, nil
+}
+
+func allJobsCompleted(jobs []Job) bool {
+	for i := range jobs {
+		if jobs[i].Status != StatusCompleted {
+			return false
+		}
+	}
+
+	return len(jobs) > 0
 }
