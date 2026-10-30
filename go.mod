@@ -1,6 +1,6 @@
 module github.com/kyleking/gh-lazydispatch
 
-go 1.26.0
+go 1.26.7
 
 require (
 	charm.land/bubbles/v2 v2.2.1
@@ -10,10 +10,10 @@ require (
 	github.com/charmbracelet/x/ansi v0.11.9
 	github.com/charmbracelet/x/exp/golden v0.0.0-20260830003929-9f48cc723c1c
 	github.com/charmbracelet/x/exp/teatest/v2 v2.0.0-20260830003929-9f48cc723c1c
-	github.com/cli/go-gh/v2 v2.13.0
+	github.com/cli/go-gh/v2 v2.17.0
 	github.com/kyleking/aragonite v1.9.0
 	github.com/sahilm/fuzzy v0.1.3
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -34,5 +34,5 @@ require (
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v1.0.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 )
