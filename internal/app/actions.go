@@ -158,6 +158,8 @@ func (m Model) handleActionResult(msg modal.ActionResultMsg) (tea.Model, tea.Cmd
 
 	for _, action := range actions {
 		if action.key == msg.Key {
+			m.telemetry.Track("action:" + action.name)
+
 			return action.run(m)
 		}
 	}

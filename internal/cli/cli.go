@@ -32,6 +32,7 @@ Usage:
   gh-lazydispatch export diagnose <run-id>   Why a run failed, without its logs
   gh-lazydispatch export ci-timing [flags]   How long all of CI takes per commit
   gh-lazydispatch export ci-report [flags]   One shareable report: pull requests, default branch, merge queue
+  gh-lazydispatch export telemetry [flags]   How often each command, verb, and dispatch was used
   gh-lazydispatch watch <run-id> [flags]     Poll a run to completion and write its digest
 
 Flags (runs):
@@ -76,6 +77,9 @@ Flags (ci-report):
   --epoch-min <n>     Fewest counted commits per epoch. Default 120
   --ignore-job <a,b>  Job names left out of the path. Default: detect gate jobs
   --out <path>        Write to a file instead of stdout
+
+Flags (telemetry):
+  --format json|md    Default json
 
 Flags (watch):
   --interval <secs>   Seconds between polls. Default 15

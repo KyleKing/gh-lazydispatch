@@ -350,7 +350,9 @@ behind them, `internal/ui/table.go` and `styles.go` hold `PaneBox` and
 `ScrollWindow` here with no aragonite counterpart, and
 `aragonite/tui/keyhint` already exists and is imported by neither.
 
-### Telemetry
+### Telemetry (shipped)
+
+`internal/telemetry` and `export telemetry` landed as designed below: three call sites, a local file, no transport, and a read-back command.
 
 The question is which features I stop using, and when, across every TUI I
 run, not just this one. `internal/frecency` is the wrong home: it exists to

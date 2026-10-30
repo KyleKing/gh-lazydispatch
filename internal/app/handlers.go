@@ -588,6 +588,7 @@ func (m Model) handleChainConfirmResult(msg modal.ChainConfirmResultMsg) (tea.Mo
 	m.executingChainBranch = branch
 	m.executingChainVariables = variables
 
+	m.telemetry.Track("chain")
 	m.history.RecordChain(m.repo, chainName, branch, variables, nil)
 	//nolint:errcheck,gosec // best-effort persistence; a failed history write does not block dispatching the chain
 	m.history.Save()
@@ -1064,6 +1065,7 @@ func (m Model) doExecuteWorkflow(cfg runner.RunConfig) (tea.Model, tea.Cmd) {
 // dispatchCmd records the dispatch and hands back the command that runs it, so
 // one workflow and a marked set travel exactly the same path.
 func (m Model) dispatchCmd(cfg runner.RunConfig) tea.Cmd {
+	m.telemetry.Track("dispatch")
 	m.history.Record(m.repo, cfg.Workflow, cfg.Branch, cfg.Inputs)
 	//nolint:errcheck,gosec // best-effort persistence; failed history write doesn't block dispatching the workflow
 	m.history.Save()
