@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	jobFetchAttempts    = 4
 	jobFetchConcurrency = 4
 	topSteps            = 15
 )
@@ -97,7 +98,7 @@ func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jo
 			default:
 			}
 
-			jobs, err := client.ListRunJobTimings(id)
+			jobs, err := listJobsWithRetry(client, id)
 			if err != nil {
 				once.Do(func() { close(failed) })
 
@@ -125,6 +126,25 @@ func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jo
 	}
 
 	return cached, nil
+}
+
+// listJobsWithRetry rides out the 5xx and TLS timeouts GitHub returns under a
+// long run of job reads, which would otherwise abort the whole fetch.
+func listJobsWithRetry(client *github.Client, id int64) ([]github.JobTiming, error) {
+	var (
+		jobs []github.JobTiming
+		err  error
+	)
+
+	for attempt := range jobFetchAttempts {
+		if jobs, err = client.ListRunJobTimings(id); err == nil {
+			return jobs, nil
+		}
+
+		time.Sleep(time.Duration(attempt+1) * time.Second)
+	}
+
+	return nil, err //nolint:wrapcheck // the caller wraps it
 }
 
 func runHash(id int64, multiplier uint64) uint64 {
