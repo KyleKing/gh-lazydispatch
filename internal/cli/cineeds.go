@@ -105,8 +105,24 @@ func nameMatches(api, display string) bool {
 		strings.HasSuffix(api, " / "+display)
 }
 
+// forRun finds the workflow a run belongs to. A run name can carry a suffix
+// ("Docker Build (push main)") when the workflow sets run-name.
+func (g needsGraph) forRun(name string) map[string][]string {
+	if jobs, ok := g[name]; ok {
+		return jobs
+	}
+
+	for workflow, jobs := range g {
+		if strings.HasPrefix(name, workflow+" (") {
+			return jobs
+		}
+	}
+
+	return nil
+}
+
 func (g needsGraph) needsOf(r *jobRec) []string {
-	for display, needs := range g[r.workflow] {
+	for display, needs := range g.forRun(r.workflow) {
 		if nameMatches(r.name, display) {
 			return needs
 		}
