@@ -75,6 +75,7 @@ type ciTimingWindow struct {
 type ciTimingStats struct {
 	Commits     []ciTiming       `json:"commits"`
 	Windows     []ciTimingWindow `json:"windows,omitempty"`
+	Epochs      []ciEpoch        `json:"epochs,omitempty"`
 	MinSeconds  float64          `json:"min_seconds"`
 	P50Seconds  float64          `json:"p50_seconds"`
 	MeanSeconds float64          `json:"mean_seconds"`
@@ -87,7 +88,7 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 
 	var branch, event, format, workflow string
 
-	var windowDays, baselineOffsetDays, sample int
+	var windowDays, baselineOffsetDays, sample, epochDays int
 
 	fs.StringVar(&branch, "branch", "", "branch to sample; default the repository's default branch")
 	fs.StringVar(&event, "event", "push", "event that triggered the runs")
@@ -95,6 +96,7 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs.IntVar(&baselineOffsetDays, "baseline-offset-days", defaultWindowDays, "days before now the baseline ends")
 	fs.StringVar(&workflow, "workflow", "", "workflow name to break down into jobs and steps")
 	fs.IntVar(&sample, "sample", defaultJobSample, "with --workflow, runs per window to read jobs for; 0 reads all")
+	fs.IntVar(&epochDays, "epoch-days", 0, "days of history to split into epochs; 0 skips")
 	fs.StringVar(&format, "format", formatJSON, "json (raw rows and summaries) or md (comparison table)")
 
 	if err := fs.Parse(args); err != nil {
@@ -109,12 +111,9 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("%w: --window-days must be positive and --baseline-offset-days not negative", ErrUsage)
 	}
 
-	if branch == "" {
-		branch = git.GetDefaultBranch(context.Background())
-	}
-
-	if branch == "" {
-		return fmt.Errorf("%w: --branch is required (could not detect a default branch)", ErrUsage)
+	branch, err := resolveBranch(branch)
+	if err != nil {
+		return err
 	}
 
 	client, err := newClient()
@@ -125,13 +124,22 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	now := time.Now().UTC()
 	windows := compareWindows(now, windowDays, baselineOffsetDays)
 
-	runs, err := loadRuns(client, branch, event, windows[0].from, now, stderr)
+	epochFrom := daysBefore(now, epochDays)
+	from := earliest(windows[0].from, epochDays > 0, epochFrom)
+
+	runs, err := loadRuns(client, branch, event, from, now, stderr)
 	if err != nil {
 		return err
 	}
 
 	stats := summarizeCITimings(runs)
 	stats.Windows = summarizeWindows(stats.Commits, windows)
+
+	if epochDays > 0 {
+		if stats.Epochs, err = epochsSince(context.Background(), branch, epochFrom, stats.Commits); err != nil {
+			return err
+		}
+	}
 
 	notef(stderr, "%d commits from %d runs\n", len(stats.Commits), len(runs))
 
@@ -142,10 +150,34 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	}
 
 	if format == formatMarkdown {
-		return writeCITimingMarkdown(stdout, branch, workflow, stats.Windows)
+		return writeCITimingMarkdown(stdout, branch, workflow, stats.Windows, stats.Epochs)
 	}
 
 	return writeJSON(stdout, stats)
+}
+
+func resolveBranch(branch string) (string, error) {
+	if branch == "" {
+		branch = git.GetDefaultBranch(context.Background())
+	}
+
+	if branch == "" {
+		return "", fmt.Errorf("%w: --branch is required (could not detect a default branch)", ErrUsage)
+	}
+
+	return branch, nil
+}
+
+func earliest(base time.Time, useOther bool, other time.Time) time.Time {
+	if useOther && other.Before(base) {
+		return other
+	}
+
+	return base
+}
+
+func daysBefore(now time.Time, days int) time.Time {
+	return now.Add(-time.Duration(days) * hoursPerDay * time.Hour)
 }
 
 // defaultJobSample is enough runs per window for a stable P90 of a job's time.
@@ -320,7 +352,7 @@ func summarizeWindows(commits []ciTiming, windows [2]timeWindow) []ciTimingWindo
 	return out
 }
 
-func writeCITimingMarkdown(w io.Writer, branch, workflow string, windows []ciTimingWindow) error {
+func writeCITimingMarkdown(w io.Writer, branch, workflow string, windows []ciTimingWindow, epochs []ciEpoch) error {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "CI wall clock per commit on `%s`, push to last run finished.\n", branch)
@@ -343,6 +375,8 @@ func writeCITimingMarkdown(w io.Writer, branch, workflow string, windows []ciTim
 			writeJobTables(&b, workflow, windows[0], windows[1])
 		}
 	}
+
+	writeEpochTable(&b, epochs)
 
 	if _, err := io.WriteString(w, b.String()); err != nil {
 		return fmt.Errorf("writing markdown: %w", err)

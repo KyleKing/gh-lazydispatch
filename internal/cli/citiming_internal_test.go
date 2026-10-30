@@ -147,7 +147,7 @@ func TestSummarizeWindows_BucketsByStartAndRendersTheComparison(t *testing.T) {
 	}
 
 	var out strings.Builder
-	if err := writeCITimingMarkdown(&out, "main", "", got); err != nil {
+	if err := writeCITimingMarkdown(&out, "main", "", got, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -256,5 +256,61 @@ func TestSampleRuns_StaysStableAsTheWindowSlides(t *testing.T) {
 
 	if shared < n*3/4 {
 		t.Errorf("only %d of %d sampled runs survived a 10%% slide", shared, n)
+	}
+}
+
+func TestSummarizeEpochs_FoldsSmallEpochsIntoTheNext(t *testing.T) {
+	t.Parallel()
+
+	day := func(d int) time.Time { return time.Date(2026, 10, d, 0, 0, 0, 0, time.UTC) }
+
+	var commits []ciTiming
+
+	for d := 1; d <= 9; d++ {
+		commits = append(commits, ciTiming{StartedAt: day(d).Format(timeFormat), Seconds: float64(d * 60)})
+	}
+
+	bounds := []epochBoundary{
+		{at: day(1), label: "start", changes: 1},
+		{at: day(3), label: "tweak", changes: 1},
+		{at: day(6), label: "runner swap", manual: true, changes: 1},
+		{at: day(9), label: "last", changes: 1},
+	}
+
+	got := summarizeEpochs(commits, bounds, 3)
+
+	want := []struct {
+		label   string
+		changes int
+		commits int
+		few     bool
+	}{
+		{"tweak", 2, 5, false},
+		{"runner swap", 1, 3, false},
+		{"last", 1, 1, true},
+	}
+
+	if len(got) != len(want) {
+		t.Fatalf("got %d epochs, want %d: %+v", len(got), len(want), got)
+	}
+
+	for i, w := range want {
+		e := got[i]
+		if e.Label != w.label || e.Changes != w.changes || e.Commits != w.commits || e.Few != w.few {
+			t.Errorf("epoch %d = %+v, want %+v", i, got[i], w)
+		}
+	}
+}
+
+func TestParseManualEpochs(t *testing.T) {
+	t.Parallel()
+
+	got, err := parseManualEpochs(strings.NewReader("# runners\n\n2026-10-20 swap to ubicloud\n"), "ci-epochs")
+	if err != nil || len(got) != 1 || got[0].label != "swap to ubicloud" || !got[0].manual {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+
+	if _, err := parseManualEpochs(strings.NewReader("last tuesday swap\n"), "ci-epochs"); err == nil {
+		t.Error("a line without a date should fail")
 	}
 }

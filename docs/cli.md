@@ -92,7 +92,7 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 ```sh
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
     [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
-    [--workflow <name>] [--sample <n>]
+    [--workflow <name>] [--sample <n>] [--epoch-days <n>]
 ```
 
 How long all of CI takes to finish, per commit: the span from the earliest
@@ -133,6 +133,15 @@ Jobs of canceled runs are not read. To spare the API's rate limit
 are read, picked by a hash of the run ID so the same runs are chosen as the
 window slides. A rate limit hit mid-way keeps what was fetched, and a rerun
 resumes.
+
+`--epoch-days <n>` splits the last n days at each commit that touched
+`.github/workflows` or `.github/actions` on `origin/<branch>` (run it from a
+checkout), plus the dates in an optional `.github/ci-epochs` file (one
+`YYYY-MM-DD label` per line, for changes git cannot show such as a runner
+swap). The table gives each epoch's commits, p50, p90, and max. An epoch
+with fewer than 30 counted commits folds into the next, because a P90 over
+fewer is noise. Only the newest epoch, or a manual one, can stay small, and
+it is marked "(under 30)".
 
 Finished runs are cached in
 `$XDG_CACHE_HOME/lazydispatch/<owner>/<repo>/ci-timing-<event>-<branch>.json`

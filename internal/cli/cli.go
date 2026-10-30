@@ -57,6 +57,7 @@ Flags (ci-timing):
   --format json|md    json: raw rows and summaries. md: P50/P90 comparison table
   --workflow <name>   Add job queue, runner, and step timings for one workflow
   --sample <n>        With --workflow, runs per window to read jobs for. Default 150, 0 for all
+  --epoch-days <n>    Split the last n days at each workflow change (and .github/ci-epochs dates); 0 skips
 
 Flags (watch):
   --interval <secs>   Seconds between polls. Default 15
