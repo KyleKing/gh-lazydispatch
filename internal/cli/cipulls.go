@@ -65,7 +65,10 @@ func samplePRs(reader prReader, commits []ciTiming, logins []string, explicit []
 			}
 
 			known[n] = stats
-			sized = append(sized, stats)
+
+			if stats.Author == login {
+				sized = append(sized, stats)
+			}
 		}
 
 		sort.SliceStable(sized, func(i, j int) bool { return sized[i].ChangedFiles > sized[j].ChangedFiles })
