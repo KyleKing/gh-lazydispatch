@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -23,10 +24,19 @@ type RunTiming struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	Name        string    `json:"name"`
+	Actor       string    `json:"actor,omitempty"`
+	Path        string    `json:"path,omitempty"`
 	Status      string    `json:"status"`
 	Conclusion  string    `json:"conclusion"`
 	HeadSHA     string    `json:"head_sha"`
+	PRs         []int     `json:"prs,omitempty"`
 	ID          int64     `json:"id"`
+	RunAttempt  int       `json:"run_attempt,omitempty"`
+}
+
+// RunFilter narrows a run listing. An empty field matches everything.
+type RunFilter struct {
+	Branch, Event, Actor string
 }
 
 // IsComplete reports whether the run has reached a conclusion.
@@ -40,13 +50,21 @@ type apiRunTiming struct {
 	HeadCommit struct {
 		Timestamp time.Time `json:"timestamp"`
 	} `json:"head_commit"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	Name       string    `json:"name"`
-	Status     string    `json:"status"`
-	Conclusion string    `json:"conclusion"`
-	HeadSHA    string    `json:"head_sha"`
-	ID         int64     `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Actor     struct {
+		Login string `json:"login"`
+	} `json:"actor"`
+	Name         string `json:"name"`
+	Path         string `json:"path"`
+	Status       string `json:"status"`
+	Conclusion   string `json:"conclusion"`
+	HeadSHA      string `json:"head_sha"`
+	PullRequests []struct {
+		Number int `json:"number"`
+	} `json:"pull_requests"`
+	ID         int64 `json:"id"`
+	RunAttempt int   `json:"run_attempt"`
 }
 
 // maxFilteredResults is how many results the Actions API returns for one
@@ -67,11 +85,11 @@ const (
 	dayLength           = 24 * time.Hour
 )
 
-// ListRunTimings fetches runs of event on branch created in [from, to), one
+// ListRunTimings fetches runs matching filter created in [from, to), one
 // day at a time because a filtered query returns at most 1000 results. A range
 // that hits the cap is split until it fits, and any range that still does is
 // listed in Capped. An empty event reads every event.
-func (c *Client) ListRunTimings(branch, event string, from, to time.Time) (RunTimingSample, error) {
+func (c *Client) ListRunTimings(filter RunFilter, from, to time.Time) (RunTimingSample, error) {
 	var days []time.Time
 
 	for day := from; day.Before(to); day = day.Add(dayLength) {
@@ -92,7 +110,7 @@ func (c *Client) ListRunTimings(branch, event string, from, to time.Time) (RunTi
 				end = to
 			}
 
-			runs, capped, err := c.fetchRange(branch, event, day, end)
+			runs, capped, err := c.fetchRange(filter, day, end)
 			perDay[i], cappedPerDay[i] = runs, capped
 
 			return err
@@ -131,11 +149,11 @@ const (
 // fetchRange reads every run created in [from, to), halving the range while a
 // query hits the result cap. It returns the runs and the ranges that still hit
 // the cap at minSplitSpan.
-func (c *Client) fetchRange(branch, event string, from, to time.Time) ([]RunTiming, []time.Time, error) {
+func (c *Client) fetchRange(filter RunFilter, from, to time.Time) ([]RunTiming, []time.Time, error) {
 	var runs []RunTiming
 
 	for page := 1; ; page++ {
-		batch, err := c.fetchRunTimingsPage(branch, event, from, to, page)
+		batch, err := c.fetchRunTimingsPage(filter, from, to, page)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -158,12 +176,12 @@ func (c *Client) fetchRange(branch, event string, from, to time.Time) ([]RunTimi
 
 	mid := from.Add(span / halves)
 
-	first, firstCapped, err := c.fetchRange(branch, event, from, mid)
+	first, firstCapped, err := c.fetchRange(filter, from, mid)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	second, secondCapped, err := c.fetchRange(branch, event, mid, to)
+	second, secondCapped, err := c.fetchRange(filter, mid, to)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -171,17 +189,15 @@ func (c *Client) fetchRange(branch, event string, from, to time.Time) ([]RunTimi
 	return append(first, second...), append(firstCapped, secondCapped...), nil
 }
 
-func (c *Client) fetchRunTimingsPage(branch, event string, from, to time.Time, page int) ([]RunTiming, error) {
+func (c *Client) fetchRunTimingsPage(filter RunFilter, from, to time.Time, page int) ([]RunTiming, error) {
 	params := url.Values{}
 	params.Set("per_page", strconv.Itoa(maxRunTimingsPerPage))
 	params.Set("page", strconv.Itoa(page))
 
-	if branch != "" {
-		params.Set("branch", branch)
-	}
-
-	if event != "" {
-		params.Set("event", event)
+	for key, value := range map[string]string{"branch": filter.Branch, "event": filter.Event, "actor": filter.Actor} {
+		if value != "" {
+			params.Set(key, value)
+		}
 	}
 
 	params.Set("created", from.UTC().Format(time.RFC3339)+".."+to.UTC().Format(time.RFC3339))
@@ -204,17 +220,33 @@ func (c *Client) fetchRunTimingsPage(branch, event string, from, to time.Time, p
 	timings := make([]RunTiming, 0, len(payload.WorkflowRuns))
 	for i := range payload.WorkflowRuns {
 		r := &payload.WorkflowRuns[i]
+		prs := make([]int, 0, len(r.PullRequests))
+		for _, pr := range r.PullRequests {
+			prs = append(prs, pr.Number)
+		}
+
 		timings = append(timings, RunTiming{
 			CommittedAt: r.HeadCommit.Timestamp,
 			CreatedAt:   r.CreatedAt,
 			UpdatedAt:   r.UpdatedAt,
 			Name:        r.Name,
+			Actor:       r.Actor.Login,
+			Path:        workflowPath(r.Path),
 			Status:      r.Status,
 			Conclusion:  r.Conclusion,
 			HeadSHA:     r.HeadSHA,
+			PRs:         prs,
 			ID:          r.ID,
+			RunAttempt:  r.RunAttempt,
 		})
 	}
 
 	return timings, nil
+}
+
+// workflowPath drops the "@ref" suffix the API appends to a run's workflow path.
+func workflowPath(path string) string {
+	file, _, _ := strings.Cut(path, "@")
+
+	return file
 }

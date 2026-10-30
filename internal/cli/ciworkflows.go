@@ -12,6 +12,7 @@ import (
 const (
 	excludedCanceled   = "canceled"
 	excludedIncomplete = "incomplete"
+	excludedRerun      = "rerun"
 	excludedTimedOut   = "timed_out"
 )
 
@@ -45,6 +46,10 @@ func exclusion(group []github.RunTiming) string {
 
 	for i := range group {
 		run := &group[i]
+
+		if run.RunAttempt > 1 {
+			return excludedRerun
+		}
 
 		switch run.Conclusion {
 		case "timed_out", "startup_failure":
@@ -108,6 +113,9 @@ func summarizeWorkflows(commits []ciTiming) []ciWorkflow {
 
 		for j := range commits[i].RunDetails {
 			run := &commits[i].RunDetails[j]
+			if run.Retrigger {
+				continue
+			}
 
 			s := byName[run.Name]
 			if s == nil {

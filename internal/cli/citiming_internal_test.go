@@ -147,7 +147,8 @@ func TestSummarizeWindows_BucketsByStartAndRendersTheComparison(t *testing.T) {
 	}
 
 	var out strings.Builder
-	if err := writeCITimingMarkdown(&out, "main", "", got, nil); err != nil {
+	filter := github.RunFilter{Branch: "main", Event: "push"}
+	if err := writeCITimingMarkdown(&out, filter, "", ciTimingStats{Windows: got}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -312,5 +313,73 @@ func TestParseManualEpochs(t *testing.T) {
 
 	if _, err := parseManualEpochs(strings.NewReader("last tuesday swap\n"), "ci-epochs"); err == nil {
 		t.Error("a line without a date should fail")
+	}
+}
+
+func TestSummarizeCITimings_LeavesRetriggersOutOfTheSpanAndExcludesReruns(t *testing.T) {
+	t.Parallel()
+
+	done := github.StatusCompleted
+	runs := []github.RunTiming{
+		{
+			HeadSHA: "pr", Status: done, Actor: "cchio", PRs: []int{7},
+			CreatedAt: mustParse(t, "2026-01-01T00:00:00Z"), UpdatedAt: mustParse(t, "2026-01-01T00:08:00Z"),
+		},
+		{
+			HeadSHA: "pr", Status: done,
+			CreatedAt: mustParse(t, "2026-01-01T05:00:00Z"), UpdatedAt: mustParse(t, "2026-01-01T05:00:10Z"),
+		},
+		{
+			HeadSHA: "rerun", Status: done, RunAttempt: 2,
+			CreatedAt: mustParse(t, "2026-01-02T00:00:00Z"), UpdatedAt: mustParse(t, "2026-01-02T00:08:00Z"),
+		},
+	}
+
+	stats := summarizeCITimings(runs)
+
+	pr := stats.Commits[0]
+	if pr.Seconds != 8*60 || pr.Excluded != "" || pr.Actor != "cchio" || pr.PRs[0] != 7 {
+		t.Errorf("a late title-edit run stretched or relabeled the push: %+v", pr)
+	}
+
+	if !pr.RunDetails[1].Retrigger {
+		t.Errorf("the run created five hours later is not marked as a retrigger: %+v", pr.RunDetails)
+	}
+
+	if got := stats.Commits[1].Excluded; got != excludedRerun {
+		t.Errorf("a rerun attempt is %q, want %q", got, excludedRerun)
+	}
+}
+
+func TestSummarizeAuthors_CutsEveryAuthorAtTheSameEpochDates(t *testing.T) {
+	t.Parallel()
+
+	day := func(d int) time.Time { return time.Date(2026, 10, d, 0, 0, 0, 0, time.UTC) }
+
+	var commits []ciTiming
+
+	for d := 1; d <= 6; d++ {
+		for _, who := range []string{"a", "b"} {
+			started := day(d).Format(timeFormat)
+			commits = append(commits, ciTiming{Actor: who, StartedAt: started, Seconds: float64(d * 60)})
+		}
+	}
+
+	epochs := summarizeEpochs(commits, []epochBoundary{
+		{at: day(1), label: "start of range"}, {at: day(4), label: "swap", changes: 1},
+	}, 0)
+
+	windows := compareWindows(day(7), 3, 3)
+
+	got := summarizeAuthors(commits, []string{"a", "b"}, windows, epochs, day(1))
+
+	for _, author := range got {
+		if len(author.Epochs) != 2 || author.Epochs[0].Commits != 3 || author.Epochs[1].Commits != 3 {
+			t.Errorf("%s epochs = %+v, want 3 commits either side of the swap", author.Login, author.Epochs)
+		}
+
+		if len(author.Daily) != 6 {
+			t.Errorf("%s has %d days, want 6", author.Login, len(author.Daily))
+		}
 	}
 }

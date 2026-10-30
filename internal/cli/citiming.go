@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,6 +34,9 @@ type ciRun struct {
 	// FinishedAfter is seconds from the push to this run's finish.
 	FinishedAfter float64 `json:"finished_after_seconds"`
 	ID            int64   `json:"id"`
+	// Retrigger marks a run created long after the push (a title edit, a label, a rerun),
+	// which the commit's span leaves out.
+	Retrigger bool `json:"retrigger,omitempty"`
 }
 
 // ciTiming is one push's CI wall-clock time: from the earliest triggered run's
@@ -41,6 +45,8 @@ type ciRun struct {
 // locally days before it was pushed would count the wait for the push.
 type ciTiming struct {
 	HeadSHA     string `json:"head_sha"`
+	Actor       string `json:"actor,omitempty"`
+	PRs         []int  `json:"prs,omitempty"`
 	CommittedAt string `json:"committed_at,omitempty"`
 	StartedAt   string `json:"started_at"`
 	FinishedAt  string `json:"finished_at"`
@@ -73,47 +79,70 @@ type ciTimingWindow struct {
 // ciTimingStats is a per-commit CI timing rollup with summary statistics
 // across every completed commit in the sample.
 type ciTimingStats struct {
-	Commits     []ciTiming       `json:"commits"`
-	Windows     []ciTimingWindow `json:"windows,omitempty"`
-	Epochs      []ciEpoch        `json:"epochs,omitempty"`
-	MinSeconds  float64          `json:"min_seconds"`
-	P50Seconds  float64          `json:"p50_seconds"`
-	MeanSeconds float64          `json:"mean_seconds"`
-	P90Seconds  float64          `json:"p90_seconds"`
-	MaxSeconds  float64          `json:"max_seconds"`
+	Commits     []ciTiming         `json:"commits"`
+	Windows     []ciTimingWindow   `json:"windows,omitempty"`
+	Epochs      []ciEpoch          `json:"epochs,omitempty"`
+	Authors     []ciAuthor         `json:"authors,omitempty"`
+	Workflows   []ciWorkflowEpochs `json:"workflow_epochs,omitempty"`
+	PRSamples   []ciPR             `json:"pull_requests,omitempty"`
+	MinSeconds  float64            `json:"min_seconds"`
+	P50Seconds  float64            `json:"p50_seconds"`
+	MeanSeconds float64            `json:"mean_seconds"`
+	P90Seconds  float64            `json:"p90_seconds"`
+	MaxSeconds  float64            `json:"max_seconds"`
+}
+
+type ciTimingOptions struct {
+	branch, event, format, workflow, authors, prs                string
+	windowDays, baselineOffsetDays, sample, epochDays, samplePRs int
 }
 
 func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs := newFlagSet("ci-timing")
 
-	var branch, event, format, workflow string
+	var opts ciTimingOptions
 
-	var windowDays, baselineOffsetDays, sample, epochDays int
-
-	fs.StringVar(&branch, "branch", "", "branch to sample; default the repository's default branch")
-	fs.StringVar(&event, "event", "push", "event that triggered the runs")
-	fs.IntVar(&windowDays, "window-days", defaultWindowDays, "days of commits in each compared window")
-	fs.IntVar(&baselineOffsetDays, "baseline-offset-days", defaultWindowDays, "days before now the baseline ends")
-	fs.StringVar(&workflow, "workflow", "", "workflow name to break down into jobs and steps")
-	fs.IntVar(&sample, "sample", defaultJobSample, "with --workflow, runs per window to read jobs for; 0 reads all")
-	fs.IntVar(&epochDays, "epoch-days", 0, "days of history to split into epochs; 0 skips")
-	fs.StringVar(&format, "format", formatJSON, "json (raw rows and summaries) or md (comparison table)")
+	fs.StringVar(&opts.branch, "branch", "", "branch to sample; default branch for push, any branch for other events")
+	fs.StringVar(&opts.event, "event", "push", "event that triggered the runs (push, pull_request, merge_group)")
+	fs.IntVar(&opts.windowDays, "window-days", defaultWindowDays, "days of commits in each compared window")
+	fs.IntVar(&opts.baselineOffsetDays, "baseline-offset-days", defaultWindowDays, "days before now the baseline ends")
+	fs.StringVar(&opts.workflow, "workflow", "", "workflow name to break down into jobs and steps")
+	fs.IntVar(&opts.sample, "sample", defaultJobSample, "with --workflow, runs per window to read jobs of; 0 reads all")
+	fs.IntVar(&opts.epochDays, "epoch-days", 0, "days of history to split into epochs; 0 skips")
+	fs.StringVar(&opts.authors, "author", "", "comma-separated GitHub logins to compare; only their runs are read")
+	fs.IntVar(&opts.samplePRs, "sample-prs", 0, "with --author, largest pull requests to spot-check per author")
+	fs.StringVar(&opts.prs, "pr", "", "comma-separated pull request numbers to spot-check")
+	fs.StringVar(&opts.format, "format", formatJSON, "json (raw rows and summaries) or md (comparison table)")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("%w: %w", ErrUsage, err)
 	}
 
-	if format != formatJSON && format != formatMarkdown {
-		return fmt.Errorf("%w: --format must be json or md, got %q", ErrUsage, format)
+	if opts.format != formatJSON && opts.format != formatMarkdown {
+		return fmt.Errorf("%w: --format must be json or md, got %q", ErrUsage, opts.format)
 	}
 
-	if windowDays <= 0 || baselineOffsetDays < 0 {
+	if opts.windowDays <= 0 || opts.baselineOffsetDays < 0 {
 		return fmt.Errorf("%w: --window-days must be positive and --baseline-offset-days not negative", ErrUsage)
 	}
 
-	branch, err := resolveBranch(branch)
+	return runCITiming(opts, stdout, stderr)
+}
+
+func runCITiming(opts ciTimingOptions, stdout, stderr io.Writer) error {
+	prs, err := parseNumbers(opts.prs)
 	if err != nil {
 		return err
+	}
+
+	gitBranch, err := resolveBranch(opts.branch)
+	if err != nil {
+		return err
+	}
+
+	filter := github.RunFilter{Branch: opts.branch, Event: opts.event}
+	if opts.event == "push" {
+		filter.Branch = gitBranch
 	}
 
 	client, err := newClient()
@@ -122,12 +151,13 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	}
 
 	now := time.Now().UTC()
-	windows := compareWindows(now, windowDays, baselineOffsetDays)
+	windows := compareWindows(now, opts.windowDays, opts.baselineOffsetDays)
+	epochFrom := daysBefore(now, opts.epochDays)
+	logins := splitList(opts.authors)
 
-	epochFrom := daysBefore(now, epochDays)
-	from := earliest(windows[0].from, epochDays > 0, epochFrom)
+	from := earliest(windows[0].from, opts.epochDays > 0, epochFrom)
 
-	runs, err := loadRuns(client, branch, event, from, now, stderr)
+	runs, err := loadAuthorRuns(client, filter, logins, from, now, stderr)
 	if err != nil {
 		return err
 	}
@@ -135,25 +165,107 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	stats := summarizeCITimings(runs)
 	stats.Windows = summarizeWindows(stats.Commits, windows)
 
-	if epochDays > 0 {
-		if stats.Epochs, err = epochsSince(context.Background(), branch, epochFrom, stats.Commits); err != nil {
-			return err
-		}
-	}
-
 	notef(stderr, "%d commits from %d runs\n", len(stats.Commits), len(runs))
 
-	if workflow != "" {
-		if err := attachJobs(client, stats.Windows, stats.Commits, windows, workflow, sample, stderr); err != nil {
+	if err := addHistory(&stats, opts, gitBranch, epochFrom, windows, logins, runs); err != nil {
+		return err
+	}
+
+	if opts.samplePRs > 0 || len(prs) > 0 {
+		if stats.PRSamples, err = samplePRs(client, stats.Commits, logins, prs, opts.samplePRs); err != nil {
 			return err
 		}
 	}
 
-	if format == formatMarkdown {
-		return writeCITimingMarkdown(stdout, branch, workflow, stats.Windows, stats.Epochs)
+	if opts.workflow != "" {
+		err := attachJobs(client, stats.Windows, stats.Commits, windows, opts.workflow, opts.sample, stderr)
+		if err != nil {
+			return err
+		}
+	}
+
+	if opts.format == formatMarkdown {
+		return writeCITimingMarkdown(stdout, filter, opts.workflow, stats)
 	}
 
 	return writeJSON(stdout, stats)
+}
+
+// addHistory fills the epoch, per-author, and per-workflow cuts, which need the
+// repository's git history.
+func addHistory(
+	stats *ciTimingStats, opts ciTimingOptions, branch string, since time.Time, windows [2]timeWindow,
+	logins []string, runs []github.RunTiming,
+) error {
+	var err error
+
+	if opts.epochDays > 0 {
+		ctx := context.Background()
+
+		if stats.Epochs, err = epochsSince(ctx, branch, since, stats.Commits); err != nil {
+			return err
+		}
+
+		if stats.Workflows, err = workflowEpochs(ctx, branch, since, runs); err != nil {
+			return err
+		}
+	}
+
+	if len(logins) > 0 {
+		stats.Authors = summarizeAuthors(stats.Commits, logins, windows, stats.Epochs, since)
+	}
+
+	return nil
+}
+
+func loadAuthorRuns(
+	client *github.Client, filter github.RunFilter, logins []string, from, to time.Time, stderr io.Writer,
+) ([]github.RunTiming, error) {
+	if len(logins) == 0 {
+		return loadRuns(client, filter, from, to, stderr)
+	}
+
+	var all []github.RunTiming
+
+	for _, login := range logins {
+		filter.Actor = login
+
+		runs, err := loadRuns(client, filter, from, to, stderr)
+		if err != nil {
+			return nil, err
+		}
+
+		all = append(all, runs...)
+	}
+
+	return all, nil
+}
+
+func splitList(list string) []string {
+	var out []string
+
+	for _, item := range strings.Split(list, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+
+	return out
+}
+
+func parseNumbers(list string) ([]int, error) {
+	var out []int
+
+	for _, item := range splitList(list) {
+		n, err := strconv.Atoi(strings.TrimPrefix(item, "#"))
+		if err != nil {
+			return nil, fmt.Errorf("%w: --pr wants numbers, got %q", ErrUsage, item)
+		}
+
+		out = append(out, n)
+	}
+
+	return out, nil
 }
 
 func resolveBranch(branch string) (string, error) {
@@ -242,17 +354,31 @@ func summarizeCITimings(runs []github.RunTiming) ciTimingStats {
 	}
 }
 
+// retriggerGap is how long after a push's first run a later run counts as a
+// retrigger (an edited title, a label, a rerun) and not part of the push.
+const retriggerGap = 10 * time.Minute
+
 func timeCommit(sha string, group []github.RunTiming) ciTiming {
-	start, end := commitSpan(group)
+	primary := pushRuns(group)
+	start, end := commitSpan(primary)
 
 	timing := ciTiming{
 		HeadSHA:    sha,
 		StartedAt:  start.Format(timeFormat),
 		FinishedAt: end.Format(timeFormat),
 		Seconds:    end.Sub(start).Seconds(),
-		Runs:       len(group),
+		Runs:       len(primary),
 		RunDetails: make([]ciRun, 0, len(group)),
-		Excluded:   exclusion(group),
+		Excluded:   exclusion(primary),
+		Actor:      primary[0].Actor,
+	}
+
+	for i := range primary {
+		if len(primary[i].PRs) > 0 {
+			timing.PRs = primary[i].PRs
+
+			break
+		}
 	}
 
 	if committed := earliestCommit(group); !committed.IsZero() {
@@ -268,12 +394,33 @@ func timeCommit(sha string, group []github.RunTiming) ciTiming {
 			FinishedAt: run.UpdatedAt.Format(timeFormat),
 			Seconds:    run.UpdatedAt.Sub(run.CreatedAt).Seconds(),
 			ID:         run.ID,
+			Retrigger:  run.CreatedAt.Sub(start) > retriggerGap,
 
 			FinishedAfter: run.UpdatedAt.Sub(start).Seconds(),
 		})
 	}
 
 	return timing
+}
+
+// pushRuns returns the runs created within retriggerGap of the group's first.
+func pushRuns(group []github.RunTiming) []github.RunTiming {
+	first := group[0].CreatedAt
+	for i := range group {
+		if group[i].CreatedAt.Before(first) {
+			first = group[i].CreatedAt
+		}
+	}
+
+	primary := make([]github.RunTiming, 0, len(group))
+
+	for i := range group {
+		if group[i].CreatedAt.Sub(first) <= retriggerGap {
+			primary = append(primary, group[i])
+		}
+	}
+
+	return primary
 }
 
 func earliestCommit(group []github.RunTiming) time.Time {
@@ -291,10 +438,10 @@ func earliestCommit(group []github.RunTiming) time.Time {
 func windowCommits(commits []ciTiming, w timeWindow) []ciTiming {
 	var in []ciTiming
 
-	for _, c := range commits {
-		started, err := time.Parse(timeFormat, c.StartedAt)
+	for i := range commits {
+		started, err := time.Parse(timeFormat, commits[i].StartedAt)
 		if err == nil && !started.Before(w.from) && started.Before(w.to) {
-			in = append(in, c)
+			in = append(in, commits[i])
 		}
 	}
 
@@ -352,10 +499,17 @@ func summarizeWindows(commits []ciTiming, windows [2]timeWindow) []ciTimingWindo
 	return out
 }
 
-func writeCITimingMarkdown(w io.Writer, branch, workflow string, windows []ciTimingWindow, epochs []ciEpoch) error {
+func writeCITimingMarkdown(w io.Writer, filter github.RunFilter, workflow string, stats ciTimingStats) error {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "CI wall clock per commit on `%s`, push to last run finished.\n", branch)
+	windows := stats.Windows
+
+	scope := filter.Branch
+	if scope == "" {
+		scope = "any branch"
+	}
+
+	fmt.Fprintf(&b, "CI wall clock per commit (%s on `%s`), first run to last run finished.\n", filter.Event, scope)
 	b.WriteString("Commits are left out (and counted) when a run timed out, was unfinished,\n")
 	b.WriteString("or was canceled after every completed run.\n\n")
 	b.WriteString("| Window | Commits | Left out | P50 | P90 | Max |\n| --- | ---: | --- | ---: | ---: | ---: |\n")
@@ -376,7 +530,10 @@ func writeCITimingMarkdown(w io.Writer, branch, workflow string, windows []ciTim
 		}
 	}
 
-	writeEpochTable(&b, epochs)
+	writeEpochTable(&b, stats.Epochs)
+	writeAuthorTables(&b, stats.Authors)
+	writeWorkflowEpochTable(&b, stats.Workflows)
+	writePRTable(&b, stats.PRSamples)
 
 	if _, err := io.WriteString(w, b.String()); err != nil {
 		return fmt.Errorf("writing markdown: %w", err)
@@ -478,8 +635,8 @@ func secondsMean(commits []ciTiming) float64 {
 	}
 
 	var sum float64
-	for _, c := range commits {
-		sum += c.Seconds
+	for i := range commits {
+		sum += commits[i].Seconds
 	}
 
 	return sum / float64(len(commits))
@@ -528,9 +685,9 @@ func percentile(seconds []float64, p float64) float64 {
 // that hit the API's result cap is reported and not cached, so a later run
 // retries it.
 func loadRuns(
-	client *github.Client, branch, event string, from, to time.Time, stderr io.Writer,
+	client *github.Client, filter github.RunFilter, from, to time.Time, stderr io.Writer,
 ) ([]github.RunTiming, error) {
-	path := runcache.Path(client.Owner()+"/"+client.Repo(), event, branch)
+	path := runcache.Path(client.Owner()+"/"+client.Repo(), filter)
 
 	entry, err := runcache.Load(path)
 	if err != nil {
@@ -543,7 +700,7 @@ func loadRuns(
 	)
 
 	for _, missing := range entry.Missing(from, to) {
-		sample, err := client.ListRunTimings(branch, event, missing.From, missing.To)
+		sample, err := client.ListRunTimings(filter, missing.From, missing.To)
 		if err != nil {
 			return nil, fmt.Errorf("listing runs: %w", err)
 		}

@@ -55,9 +55,23 @@ func Dir(repo string) string {
 	return filepath.Join(root, "lazydispatch", filepath.FromSlash(repo))
 }
 
-// Path returns the cache file for one repository, event, and branch.
-func Path(repo, event, branch string) string {
-	return filepath.Join(Dir(repo), "ci-timing-"+sanitize(event)+"-"+sanitize(branch)+".json")
+// Path returns the cache file for one repository and run filter. An empty
+// branch or actor reads as "all".
+func Path(repo string, filter github.RunFilter) string {
+	name := "ci-timing-" + sanitize(filter.Event) + "-" + sanitize(orAll(filter.Branch))
+	if filter.Actor != "" {
+		name += "-" + sanitize(filter.Actor)
+	}
+
+	return filepath.Join(Dir(repo), name+".json")
+}
+
+func orAll(s string) string {
+	if s == "" {
+		return "all"
+	}
+
+	return s
 }
 
 func sanitize(s string) string {

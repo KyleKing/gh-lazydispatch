@@ -45,14 +45,9 @@ type epochBoundary struct {
 
 // epochBoundaries merges the workflow-file history with the manual epochs file.
 func epochBoundaries(ctx context.Context, branch string, since time.Time) ([]epochBoundary, error) {
-	changes, err := git.PathChanges(ctx, "origin/"+branch, since, ".github/workflows", ".github/actions")
+	bounds, err := pathBoundaries(ctx, branch, since, ".github/workflows", ".github/actions")
 	if err != nil {
-		return nil, fmt.Errorf("reading the pipeline history (run from a checkout of the repository): %w", err)
-	}
-
-	bounds := make([]epochBoundary, 0, len(changes))
-	for _, c := range changes {
-		bounds = append(bounds, epochBoundary{at: c.At, label: c.Subject, changes: 1})
+		return nil, err
 	}
 
 	manual, err := readManualEpochs(epochsFile)
@@ -66,6 +61,24 @@ func epochBoundaries(ctx context.Context, branch string, since time.Time) ([]epo
 	return bounds, nil
 }
 
+// pathBoundaries lists each commit touching paths since the start, behind an
+// opening boundary at since so the span before the first change is an epoch too.
+func pathBoundaries(ctx context.Context, branch string, since time.Time, paths ...string) ([]epochBoundary, error) {
+	changes, err := git.PathChanges(ctx, "origin/"+branch, since, paths...)
+	if err != nil {
+		return nil, fmt.Errorf("reading the pipeline history (run from a checkout of the repository): %w", err)
+	}
+
+	bounds := make([]epochBoundary, 0, len(changes)+1)
+	bounds = append(bounds, epochBoundary{at: since, label: "start of range"})
+
+	for _, c := range changes {
+		bounds = append(bounds, epochBoundary{at: c.At, label: c.Subject, changes: 1})
+	}
+
+	return bounds, nil
+}
+
 func epochsSince(ctx context.Context, branch string, since time.Time, commits []ciTiming) ([]ciEpoch, error) {
 	bounds, err := epochBoundaries(ctx, branch, since)
 	if err != nil {
@@ -73,6 +86,24 @@ func epochsSince(ctx context.Context, branch string, since time.Time, commits []
 	}
 
 	return summarizeEpochs(commits, bounds, minEpochCommits), nil
+}
+
+// boundsOf turns summarized epochs back into boundaries, so another set of
+// commits can be cut at the same dates.
+func boundsOf(epochs []ciEpoch) []epochBoundary {
+	bounds := make([]epochBoundary, 0, len(epochs))
+
+	for i := range epochs {
+		at, err := time.Parse(timeFormat, epochs[i].Start)
+		if err != nil {
+			continue
+		}
+
+		e := &epochs[i]
+		bounds = append(bounds, epochBoundary{at: at, label: e.Label, manual: e.Manual, changes: e.Changes})
+	}
+
+	return bounds
 }
 
 func readManualEpochs(path string) ([]epochBoundary, error) {
@@ -124,10 +155,10 @@ func summarizeEpochs(commits []ciTiming, bounds []epochBoundary, minCommits int)
 
 	var epochs []ciEpoch
 
-	pending := epochBoundary{}
+	var pending *epochBoundary
 
 	for i, b := range bounds {
-		if pending.changes > 0 {
+		if pending != nil {
 			b.at = pending.at
 			b.changes += pending.changes
 			if !b.manual {
@@ -142,12 +173,12 @@ func summarizeEpochs(commits []ciTiming, bounds []epochBoundary, minCommits int)
 
 		in := commitsBetween(kept, b.at, end)
 		if len(in) < minCommits && !b.manual && i+1 < len(bounds) {
-			pending = b
+			pending = &b
 
 			continue
 		}
 
-		pending = epochBoundary{}
+		pending = nil
 
 		epochs = append(epochs, ciEpoch{
 			Start:      b.at.Format(timeFormat),
@@ -168,10 +199,10 @@ func summarizeEpochs(commits []ciTiming, bounds []epochBoundary, minCommits int)
 func commitsBetween(commits []ciTiming, from, to time.Time) []ciTiming {
 	var in []ciTiming
 
-	for _, c := range commits {
-		started, err := time.Parse(timeFormat, c.StartedAt)
+	for i := range commits {
+		started, err := time.Parse(timeFormat, commits[i].StartedAt)
 		if err == nil && !started.Before(from) && (to.IsZero() || started.Before(to)) {
-			in = append(in, c)
+			in = append(in, commits[i])
 		}
 	}
 
@@ -189,17 +220,25 @@ func writeEpochTable(b *strings.Builder, epochs []ciEpoch) {
 	for i := range epochs {
 		e := &epochs[i]
 
-		label := e.Label
-		if e.Changes > 1 {
-			label = fmt.Sprintf("%s (+%d earlier)", label, e.Changes-1)
-		}
-
-		commits := strconv.Itoa(e.Commits)
-		if e.Few {
-			commits += fmt.Sprintf(" (under %d)", minEpochCommits)
-		}
+		label, commits := epochLabel(e), epochCount(e)
 
 		fmt.Fprintf(b, "| %s | %s | %s | %s | %s | %s |\n", e.Start[:len("2006-01-02")], label, commits,
 			formatSeconds(e.P50Seconds), formatSeconds(e.P90Seconds), formatSeconds(e.MaxSeconds))
 	}
+}
+
+func epochLabel(e *ciEpoch) string {
+	if e.Changes > 1 {
+		return fmt.Sprintf("%s (+%d earlier)", e.Label, e.Changes-1)
+	}
+
+	return e.Label
+}
+
+func epochCount(e *ciEpoch) string {
+	if e.Few {
+		return fmt.Sprintf("%d (under %d)", e.Commits, minEpochCommits)
+	}
+
+	return strconv.Itoa(e.Commits)
 }

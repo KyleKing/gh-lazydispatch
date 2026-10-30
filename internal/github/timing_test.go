@@ -60,7 +60,7 @@ func TestListRunTimings_PagesEachDayAndDedupesTheBoundary(t *testing.T) {
 
 	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	got, err := client.ListRunTimings("main", "push", from, from.AddDate(0, 0, 2))
+	got, err := client.ListRunTimings(github.RunFilter{Branch: "main", Event: "push"}, from, from.AddDate(0, 0, 2))
 	if err != nil {
 		t.Fatalf("ListRunTimings: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestListRunTimings_SplitsARangeThatHitsTheResultCap(t *testing.T) {
 
 	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	got, err := client.ListRunTimings("main", "push", from, from.AddDate(0, 0, 1))
+	got, err := client.ListRunTimings(github.RunFilter{Branch: "main", Event: "push"}, from, from.AddDate(0, 0, 1))
 	if err != nil {
 		t.Fatalf("ListRunTimings: %v", err)
 	}
