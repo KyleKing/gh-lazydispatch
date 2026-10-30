@@ -27,6 +27,8 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&opts.IgnoreJobs, "ignore-job", "", "with --critical-sample, job names to leave out of the path")
 	fs.IntVar(&opts.CriticalSample, "critical-sample", 0,
 		"with --epoch-days, pushes per day whose jobs are read for job-level tables; 0 skips")
+	fs.IntVar(&opts.CacheLogs, "cache-logs", 0,
+		"with --critical-sample, job logs to read per job with a cache step; 0 skips")
 	fs.StringVar(&opts.Authors, "author", "", "comma-separated GitHub logins to compare; only their runs are read")
 	fs.IntVar(&opts.SamplePRs, "sample-prs", 0, "with --author, largest pull requests to spot-check per author")
 	fs.StringVar(&opts.PRs, "pr", "", "comma-separated pull request numbers to spot-check")
@@ -64,6 +66,8 @@ func exportCIReport(args []string, stdout, stderr io.Writer) error {
 	fs.IntVar(&opts.WindowDays, "window-days", citiming.DefaultWindowDays, "days in each compared window")
 	fs.IntVar(&opts.Sample, "sample", citiming.ReportSample, "pushes per day whose jobs are read")
 	fs.IntVar(&opts.EpochMinimum, "epoch-min", citiming.ReportEpochMin, "fewest counted commits per epoch")
+	fs.IntVar(&opts.CacheLogs, "cache-logs", citiming.ReportCacheLogs,
+		"job logs to read per job with a cache step, for cache hit rates; 0 skips")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("%w: %w", ErrUsage, err)

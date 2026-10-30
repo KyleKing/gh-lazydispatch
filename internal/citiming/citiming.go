@@ -106,8 +106,8 @@ type ciTimingStats struct {
 
 // Options selects what ci-timing reads and which tables it builds.
 type Options struct {
-	Branch, Event, Format, Workflow, Authors, PRs, IgnoreJobs                              string
-	WindowDays, BaselineOffsetDays, Sample, EpochDays, SamplePRs, CriticalSample, EpochMin int
+	Branch, Event, Format, Workflow, Authors, PRs, IgnoreJobs                                         string
+	WindowDays, BaselineOffsetDays, Sample, EpochDays, SamplePRs, CriticalSample, EpochMin, CacheLogs int
 }
 
 // Output formats.
@@ -208,7 +208,9 @@ func addJobData(
 	}
 
 	if opts.CriticalSample > 0 {
-		return addCriticalPath(client, stats, windows, opts.CriticalSample, splitList(opts.IgnoreJobs), now, stderr)
+		ignore := splitList(opts.IgnoreJobs)
+
+		return addCriticalPath(client, stats, windows, opts.CriticalSample, ignore, opts.CacheLogs, now, stderr)
 	}
 
 	return nil

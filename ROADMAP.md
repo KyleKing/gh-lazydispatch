@@ -438,18 +438,25 @@ The rename the absorption was meant to trigger has not happened.
 CI timing together, so the name still wants to change. Land the rename with its
 own release rather than inside a feature.
 
+Settled, with what each answer cost:
+
+- Cache hits are now read from job logs (`--cache-logs`), not inferred from
+  the post step. The classifier matches the lines `actions/cache` and
+  `setup-uv` print, so another cache tool needs its line added to `cicache.go`
+- GraphQL job batching was checked and rejected. `CheckRun` has `startedAt`,
+  `completedAt`, and steps, but no creation time and no runner labels, which
+  are what the queue and vendor tables read. REST stays at about 13 calls per
+  sampled push, guarded by the allowance check
+- `workflow_run` edges need the downstream runs, which carry
+  `event=workflow_run` and so never enter a `push` or `pull_request` sample.
+  Folding them in would stretch the wall clock to include deploys and
+  post-deploy checks, which is a different question. A repository that wants it
+  can run `ci-timing --event workflow_run`
+
 Open work on CI timing:
 
-- The runs and jobs fetch is the cost: about 13 REST calls per sampled push.
-  `ci-report` checks the allowance first and stops with the reset time rather
-  than building a partial report. A GraphQL read of jobs for several runs in one
-  call would cut that, and has not been measured
-- Cache hits are inferred from a cache post step that uploaded, not read from
-  logs. Reading step logs for `Cache hit` would settle it at one log download
-  per sampled job
-- `needs` edges come from the checkout's workflow files and stop at a workflow
-  boundary. A `workflow_run` trigger or a job that polls another workflow shows
-  up only as time waiting on earlier jobs
+- `needs` edges come from the checkout's workflow files, so a workflow
+  rewritten since the epoch being read may have different edges
 - Flake detection stops at re-runs that passed. Telling a flake from a real
   failure needs the failing test name from the logs
 - The generic parts moved to aragonite v1.8.0: `stats` (percentile, mean),

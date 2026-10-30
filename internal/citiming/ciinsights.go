@@ -20,6 +20,7 @@ type ciInsights struct {
 	Skipped  []ciSkipped         `json:"skipped_jobs,omitempty"`
 	Handoffs []ciHandoff         `json:"handoffs,omitempty"`
 	Failing  []ciJobFailure      `json:"failing_jobs,omitempty"`
+	Caches   []ciCacheOutcome    `json:"cache_logs,omitempty"`
 }
 
 // vendorTrial is the runner vendor whose trial the comparison looks for.
@@ -29,7 +30,7 @@ const vendorTrial = "blacksmith"
 // per-epoch (or per-window when there are no epochs) job-level tables.
 func addCriticalPath(
 	client *github.Client, stats *ciTimingStats, windows [2]timeWindow, sample int, ignore []string,
-	now time.Time, stderr io.Writer,
+	cacheLogs int, now time.Time, stderr io.Writer,
 ) error {
 	spans := epochSpans(stats.Epochs, now)
 	if len(spans) == 0 {
@@ -73,6 +74,25 @@ func addCriticalPath(
 		Failing:  failingJobs(recs),
 	}
 
+	if cacheLogs > 0 {
+		return addCacheLogs(client, stats.Insights, recs, cacheLogs, stderr)
+	}
+
+	return nil
+}
+
+// addCacheLogs reads a few job logs for each job that has a cache step.
+func addCacheLogs(client *github.Client, in *ciInsights, recs []jobRec, perJob int, stderr io.Writer) error {
+	ids := make(map[int64]*jobRec)
+	picked := cacheJobCandidates(recs, ids, perJob)
+
+	logs, err := readCacheLogs(client, picked, stderr)
+	if err != nil {
+		return err
+	}
+
+	in.Caches = summarizeCacheLogs(picked, ids, logs)
+
 	return nil
 }
 
@@ -108,6 +128,7 @@ func writeInsights(b *strings.Builder, in *ciInsights) {
 	writeHandoffs(b, in.Handoffs)
 	writeVariableJobs(b, in.Variable)
 	writeSpend(b, in.Spend, in.Skipped)
+	writeCacheLogs(b, in.Caches)
 	writeFlakyJobs(b, in.Failing)
 }
 

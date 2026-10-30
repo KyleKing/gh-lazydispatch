@@ -122,3 +122,32 @@ func TestReportFindings_FlagLargeChangesAndDetectGateJobs(t *testing.T) {
 		t.Errorf("findings = %v, want none under the thresholds", got)
 	}
 }
+
+// The cache lines of the common actions count as a hit or a miss, and a log
+// with neither counts as neither.
+func TestClassifyCacheLog_CountsRestoresAndMisses(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		log  string
+		hits int
+		miss int
+	}{
+		{"actions/cache hit", "Cache restored successfully\nCache restored from key: Linux-abc", 1, 0},
+		{"actions/cache miss", "Cache not found for input keys: Linux-abc", 0, 1},
+		{"uv miss", "No GitHub Actions cache found for key: uv-1", 0, 1},
+		{"hit and miss in one job", "Cache restored from key: a\nCache not found for input keys: b", 1, 1},
+		{"no cache", "Run tests\nall passed", 0, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := classifyCacheLog(tt.log); got.Hits != tt.hits || got.Misses != tt.miss {
+				t.Errorf("classifyCacheLog = %+v, want %d hits and %d misses", got, tt.hits, tt.miss)
+			}
+		})
+	}
+}

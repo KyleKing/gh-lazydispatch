@@ -12,9 +12,10 @@ import (
 
 // Defaults for Report.
 const (
-	ReportDays     = 30
-	ReportEpochMin = 120
-	ReportSample   = 6
+	ReportDays      = 30
+	ReportEpochMin  = 120
+	ReportSample    = 6
+	ReportCacheLogs = 8
 )
 
 const (
@@ -43,8 +44,8 @@ type reportEvent struct {
 
 // ReportOptions selects the span and sampling of a report.
 type ReportOptions struct {
-	Authors, IgnoreJobs, Out               string
-	Days, WindowDays, Sample, EpochMinimum int
+	Authors, IgnoreJobs, Out                          string
+	Days, WindowDays, Sample, EpochMinimum, CacheLogs int
 }
 
 // Report writes the combined report for pull requests, the default branch, and
@@ -94,7 +95,7 @@ func collectReportEvents(client *github.Client, opts ReportOptions, stderr io.Wr
 		stats, filter, err := collectCITiming(client, Options{
 			Event: t.event, Authors: t.authors, IgnoreJobs: opts.IgnoreJobs,
 			WindowDays: opts.WindowDays, BaselineOffsetDays: opts.WindowDays,
-			EpochDays: opts.Days, EpochMin: opts.EpochMinimum, CriticalSample: opts.Sample,
+			EpochDays: opts.Days, EpochMin: opts.EpochMinimum, CriticalSample: opts.Sample, CacheLogs: opts.CacheLogs,
 		}, stderr)
 		if err != nil {
 			return nil, err

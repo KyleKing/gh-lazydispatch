@@ -17,6 +17,7 @@ type jobRec struct {
 	conclusion                  string
 	steps                       []github.StepTiming
 	runID                       int64
+	jobID                       int64
 }
 
 func (j *jobRec) ran() bool {
@@ -67,6 +68,7 @@ func collectJobs(pushes []ciTiming, jobs runcache.Jobs) []jobRec {
 					completed:  job.CompletedAt,
 					steps:      job.Steps,
 					runID:      run.ID,
+					jobID:      job.ID,
 				})
 			}
 		}

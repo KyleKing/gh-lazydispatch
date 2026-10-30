@@ -189,6 +189,13 @@ tables count a workflow's failed runs and its re-runs that ended green, the
 closest the API gets to flakiness, since it cannot tell a flake from a fix
 pushed in between.
 
+`--cache-logs n` (8 by default in `ci-report`) reads up to n job logs for each
+of the eight busiest jobs that have a step named for a cache, and counts the
+restore and miss lines the common cache actions print. The table gives how
+often a run had a miss and the job's median run time with and without one, which
+is the measured form of the "cache saves" signal. Each log is one REST call and
+is remembered by job ID in `ci-cache-logs.json`.
+
 With `--event merge_group`, the entries of the merge queue come from each pull
 request's timeline (GraphQL): entries, merges, evictions (any removal other
 than a merge) with their reasons, and the wait from joining the queue to
