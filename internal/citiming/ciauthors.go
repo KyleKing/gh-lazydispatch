@@ -1,4 +1,4 @@
-package cli
+package citiming
 
 import (
 	"context"
@@ -67,7 +67,7 @@ func summarizeAuthors(
 		if len(bounds) > 0 {
 			author.Epochs = summarizeEpochs(theirs, bounds, 0)
 			for i := range author.Epochs {
-				author.Epochs[i].Few = author.Epochs[i].Commits < minEpochCommits
+				author.Epochs[i].Few = author.Epochs[i].Commits < MinEpochCommits
 			}
 		}
 
@@ -150,7 +150,7 @@ func workflowEpochs(
 		out = append(out, ciWorkflowEpochs{
 			Workflow: names[path],
 			Path:     path,
-			Epochs:   summarizeEpochs(samples, bounds, minEpochCommits),
+			Epochs:   summarizeEpochs(samples, bounds, MinEpochCommits),
 		})
 	}
 
@@ -219,7 +219,7 @@ func writeAuthorEpochs(b *strings.Builder, authors []ciAuthor) {
 	header, rule := authorColumns(authors)
 
 	fmt.Fprintf(b, "\nBy author and epoch (n under %d is noise).\n\n| Start | Change |%s\n| --- | --- |%s\n",
-		minEpochCommits, header, rule)
+		MinEpochCommits, header, rule)
 
 	for row := range authors[0].Epochs {
 		first := &authors[0].Epochs[row]

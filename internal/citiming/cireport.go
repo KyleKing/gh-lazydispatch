@@ -1,4 +1,4 @@
-package cli
+package citiming
 
 import (
 	"fmt"
@@ -10,11 +10,15 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 )
 
+// Defaults for Report.
+const (
+	ReportDays     = 30
+	ReportEpochMin = 120
+	ReportSample   = 6
+)
+
 const (
 	windowPair        = 2
-	reportEpochMin    = 120
-	reportSample      = 6
-	reportDays        = 30
 	reportFilePerm    = 0o644
 	changeThreshold   = 0.10
 	costThreshold     = 0.30
@@ -37,33 +41,16 @@ type reportEvent struct {
 	stats  ciTimingStats
 }
 
-type ciReportOptions struct {
-	authors, ignoreJobs, out               string
-	days, windowDays, sample, epochMinimum int
+// ReportOptions selects the span and sampling of a report.
+type ReportOptions struct {
+	Authors, IgnoreJobs, Out               string
+	Days, WindowDays, Sample, EpochMinimum int
 }
 
-func exportCIReport(args []string, stdout, stderr io.Writer) error {
-	fs := newFlagSet("ci-report")
-
-	var opts ciReportOptions
-
-	fs.StringVar(&opts.authors, "author", "", "limit pull request runs to these GitHub logins (comma-separated)")
-	fs.StringVar(&opts.ignoreJobs, "ignore-job", "", "job names to leave out of the path; default detects gate jobs")
-	fs.StringVar(&opts.out, "out", "", "write the report to this file instead of stdout")
-	fs.IntVar(&opts.days, "days", reportDays, "days of history to report on")
-	fs.IntVar(&opts.windowDays, "window-days", defaultWindowDays, "days in each compared window")
-	fs.IntVar(&opts.sample, "sample", reportSample, "pushes per day whose jobs are read")
-	fs.IntVar(&opts.epochMinimum, "epoch-min", reportEpochMin, "fewest counted commits per epoch")
-
-	if err := fs.Parse(args); err != nil {
-		return fmt.Errorf("%w: %w", ErrUsage, err)
-	}
-
-	if opts.days <= 0 || opts.windowDays <= 0 {
-		return fmt.Errorf("%w: --days and --window-days must be positive", ErrUsage)
-	}
-
-	events, err := collectReportEvents(opts, stderr)
+// Report writes the combined report for pull requests, the default branch, and
+// the merge queue, to opts.Out or stdout.
+func Report(client *github.Client, opts ReportOptions, stdout, stderr io.Writer) error {
+	events, err := collectReportEvents(client, opts, stderr)
 	if err != nil {
 		return err
 	}
@@ -73,7 +60,7 @@ func exportCIReport(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	if opts.out == "" {
+	if opts.Out == "" {
 		_, err := io.WriteString(stdout, report)
 		if err != nil {
 			return fmt.Errorf("writing the report: %w", err)
@@ -82,21 +69,21 @@ func exportCIReport(args []string, stdout, stderr io.Writer) error {
 		return nil
 	}
 
-	err = os.WriteFile(opts.out, []byte(report), reportFilePerm)
+	err = os.WriteFile(opts.Out, []byte(report), reportFilePerm)
 	if err != nil {
-		return fmt.Errorf("writing %s: %w", opts.out, err)
+		return fmt.Errorf("writing %s: %w", opts.Out, err)
 	}
 
-	notef(stderr, "wrote %s\n", opts.out)
+	notef(stderr, "wrote %s\n", opts.Out)
 
 	return nil
 }
 
 // collectReportEvents reads pull requests, the default branch, and the merge
 // queue. A trigger with no runs in the range is left out.
-func collectReportEvents(opts ciReportOptions, stderr io.Writer) ([]reportEvent, error) {
+func collectReportEvents(client *github.Client, opts ReportOptions, stderr io.Writer) ([]reportEvent, error) {
 	triggers := []struct{ label, event, authors string }{
-		{"Pull requests", "pull_request", opts.authors},
+		{"Pull requests", "pull_request", opts.Authors},
 		{"Pushes to the default branch", "push", ""},
 		{"Merge queue", "merge_group", ""},
 	}
@@ -104,10 +91,10 @@ func collectReportEvents(opts ciReportOptions, stderr io.Writer) ([]reportEvent,
 	var events []reportEvent
 
 	for _, t := range triggers {
-		stats, filter, err := collectCITiming(ciTimingOptions{
-			event: t.event, authors: t.authors, ignoreJobs: opts.ignoreJobs,
-			windowDays: opts.windowDays, baselineOffsetDays: opts.windowDays,
-			epochDays: opts.days, epochMin: opts.epochMinimum, criticalSample: opts.sample,
+		stats, filter, err := collectCITiming(client, Options{
+			Event: t.event, Authors: t.authors, IgnoreJobs: opts.IgnoreJobs,
+			WindowDays: opts.WindowDays, BaselineOffsetDays: opts.WindowDays,
+			EpochDays: opts.Days, EpochMin: opts.EpochMinimum, CriticalSample: opts.Sample,
 		}, stderr)
 		if err != nil {
 			return nil, err
@@ -121,12 +108,12 @@ func collectReportEvents(opts ciReportOptions, stderr io.Writer) ([]reportEvent,
 	return events, nil
 }
 
-func renderReport(events []reportEvent, opts ciReportOptions) (string, error) {
+func renderReport(events []reportEvent, opts ReportOptions) (string, error) {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "# CI performance report\n\nGenerated %s over the last %d days. Wall clock is the span from "+
 		"a push's first workflow run being created to its last run finishing. Job-level tables read a "+
-		"hash-chosen sample of %d pushes a day.\n", time.Now().UTC().Format(time.DateOnly), opts.days, opts.sample)
+		"hash-chosen sample of %d pushes a day.\n", time.Now().UTC().Format(time.DateOnly), opts.Days, opts.Sample)
 
 	b.WriteString("\n## Findings\n\nRule-based readings of the tables below. Each is a lead to check.\n\n")
 

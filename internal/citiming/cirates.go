@@ -1,4 +1,4 @@
-package cli
+package citiming
 
 import (
 	"fmt"
@@ -209,7 +209,7 @@ func writeTrendTable(b *strings.Builder, trends []ciTrend) {
 		t := &trends[i]
 
 		runs := strconv.Itoa(t.Runs)
-		if t.Runs < minEpochCommits {
+		if t.Runs < MinEpochCommits {
 			runs += " (few)"
 		}
 

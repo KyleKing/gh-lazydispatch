@@ -1,4 +1,4 @@
-package cli
+package citiming
 
 import (
 	"bufio"
@@ -19,8 +19,8 @@ import (
 // runner swap made in the GitHub UI. Each line is "YYYY-MM-DD label".
 const epochsFile = ".github/ci-epochs"
 
-// minEpochCommits is the default fewest counted commits an epoch needs for its P90 to mean anything.
-const minEpochCommits = 30
+// MinEpochCommits is the default fewest counted commits an epoch needs for its P90 to mean anything.
+const MinEpochCommits = 30
 
 // ciEpoch is a span of commits that ran the same pipeline.
 type ciEpoch struct {
@@ -28,7 +28,7 @@ type ciEpoch struct {
 	Label   string `json:"label"`
 	Changes int    `json:"changes"`
 	Manual  bool   `json:"manual,omitempty"`
-	// Few marks an epoch under minEpochCommits, whose percentiles are noise.
+	// Few marks an epoch under MinEpochCommits, whose percentiles are noise.
 	Few        bool    `json:"few_commits,omitempty"`
 	Commits    int     `json:"commits"`
 	P50Seconds float64 `json:"p50_seconds"`
