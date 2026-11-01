@@ -734,5 +734,39 @@ func loadRuns(
 		}
 	}
 
-	return runcache.Within(merged.Runs, fetched, from, to), nil
+	return nameByWorkflowFile(runcache.Within(merged.Runs, fetched, from, to)), nil
+}
+
+// nameByWorkflowFile replaces the name of every run of a workflow file whose
+// runs carry different names with the file's base name, because a `run-name`
+// expression ("Preview jobs (PR 2136)") would otherwise make each run its own
+// workflow in every per-workflow table.
+func nameByWorkflowFile(runs []github.RunTiming) []github.RunTiming {
+	names := make(map[string]map[string]bool)
+
+	for i := range runs {
+		if runs[i].Path == "" {
+			continue
+		}
+
+		if names[runs[i].Path] == nil {
+			names[runs[i].Path] = make(map[string]bool)
+		}
+
+		names[runs[i].Path][runs[i].Name] = true
+	}
+
+	for i := range runs {
+		if len(names[runs[i].Path]) > 1 {
+			runs[i].Name = workflowFileStem(runs[i].Path)
+		}
+	}
+
+	return runs
+}
+
+func workflowFileStem(workflowPath string) string {
+	base := workflowPath[strings.LastIndex(workflowPath, "/")+1:]
+
+	return strings.TrimSuffix(strings.TrimSuffix(base, ".yml"), ".yaml")
 }

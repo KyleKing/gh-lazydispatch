@@ -383,3 +383,23 @@ func TestSummarizeAuthors_CutsEveryAuthorAtTheSameEpochDates(t *testing.T) {
 		}
 	}
 }
+
+func TestNameByWorkflowFile_GroupsRunsWhoseRunNameVaries(t *testing.T) {
+	t.Parallel()
+
+	runs := []github.RunTiming{
+		{Name: "Preview jobs (PR 1)", Path: ".github/workflows/deploy-jobs.yml"},
+		{Name: "Deploy jobs", Path: ".github/workflows/deploy-jobs.yml"},
+		{Name: "CI", Path: ".github/workflows/ci.yml"},
+		{Name: "No path"},
+	}
+
+	got := nameByWorkflowFile(runs)
+
+	want := []string{"deploy-jobs", "deploy-jobs", "CI", "No path"}
+	for i := range got {
+		if got[i].Name != want[i] {
+			t.Errorf("run %d named %q, want %q", i, got[i].Name, want[i])
+		}
+	}
+}
