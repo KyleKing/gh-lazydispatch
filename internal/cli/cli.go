@@ -40,6 +40,7 @@ Flags (runs):
   --workflow <file>   Filename, e.g. ci.yml
   --branch <name>
   --status <status>   queued|in_progress|completed|success|failure
+  --event <event>     push|pull_request|merge_group|schedule
   --limit <n>         Default 20
   --current           One row per workflow: the branch's state rather than its
                       history. Needs --branch, and ignores --status and --limit

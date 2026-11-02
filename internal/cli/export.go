@@ -221,8 +221,11 @@ type runSummary struct {
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion,omitempty"`
 	Branch     string `json:"branch"`
+	Event      string `json:"event"`
 	URL        string `json:"url"`
-	ID         int64  `json:"id"`
+	// Seconds runs from creation to the last update, so it includes queue time.
+	Seconds float64 `json:"seconds"`
+	ID      int64   `json:"id"`
 }
 
 const defaultRunLimit = 20
@@ -236,6 +239,7 @@ func exportRuns(args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&query.Workflow, "workflow", "", "workflow filename")
 	fs.StringVar(&query.Branch, "branch", "", "branch name")
 	fs.StringVar(&query.Status, "status", "", "run status or conclusion")
+	fs.StringVar(&query.Event, "event", "", "triggering event (push, pull_request, merge_group)")
 	fs.IntVar(&query.Limit, "limit", defaultRunLimit, "maximum runs")
 	fs.BoolVar(&current, "current", false, "one row per workflow on the branch")
 
@@ -266,8 +270,10 @@ func exportRuns(args []string, stdout, stderr io.Writer) error {
 			Status:     run.Status,
 			Conclusion: run.Conclusion,
 			Branch:     run.HeadBranch,
+			Event:      run.Event,
 			URL:        run.URL,
 			CreatedAt:  run.CreatedAt.Format(timeFormat),
+			Seconds:    run.UpdatedAt.Sub(run.CreatedAt).Seconds(),
 		})
 	}
 
