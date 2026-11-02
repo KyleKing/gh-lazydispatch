@@ -8,6 +8,8 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/citiming"
 )
 
+const defaultJobFailureRuns = 100
+
 func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs := newFlagSet("ci-timing")
 
@@ -52,6 +54,28 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	}
 
 	return usageError(citiming.Run(client, opts, stdout, stderr))
+}
+
+func exportJobFailures(args []string, stdout, stderr io.Writer) error {
+	fs := newFlagSet("job-failures")
+
+	var opts citiming.JobFailureOptions
+
+	fs.StringVar(&opts.Workflow, "workflow", "", "workflow filename, e.g. post-deploy-smoke.yml")
+	fs.StringVar(&opts.Branch, "branch", "", "branch name")
+	fs.StringVar(&opts.Event, "event", "", "triggering event")
+	fs.IntVar(&opts.Runs, "runs", defaultJobFailureRuns, "newest finished runs to read")
+
+	if err := fs.Parse(args); err != nil {
+		return fmt.Errorf("%w: %w", ErrUsage, err)
+	}
+
+	client, err := newClient()
+	if err != nil {
+		return err
+	}
+
+	return usageError(citiming.JobFailures(client, opts, stdout, stderr))
 }
 
 func exportCIReport(args []string, stdout, stderr io.Writer) error {

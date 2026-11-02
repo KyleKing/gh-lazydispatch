@@ -55,6 +55,7 @@ out over a list.
 | `export runs --current` | Is this branch green right now? |
 | `export workflows` | What can I dispatch, and what inputs does it take? |
 | `export chains` | What multi-workflow sequences are defined here? |
+| `export job-failures --workflow <file>` | Which job of this workflow fails most, at which step, with what first error? |
 | `export ci-timing` | How long does all of CI take to finish, per commit? |
 | `export ci-report` | Where does CI time go, and what should be optimized first? |
 

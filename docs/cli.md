@@ -46,6 +46,11 @@ step, and its last lines are the runner's teardown rather than anything that
 went wrong. `errors` is capped at twenty and keeps the last of them for the same
 reason. `--tail 0` drops the context and keeps the errors and signatures.
 
+Each failed step also carries a one-line `summary`: the step name, its duration
+when GitHub timed it, and the first error-level line of its log (echoed script
+skipped). That line can be a progress line that only reads as an error, so
+check it against `errors` before acting on it.
+
 `signatures` are regular expressions over log text, so each one reports the
 line that matched alongside the label. The scan reads only a step that failed,
 and only its last `logs.SignatureWindow` lines, because anywhere else in a long
@@ -221,6 +226,23 @@ without another API call. The clock starts at the first run's creation and
 not at `committed_at`, because a commit made locally and pushed days later
 would otherwise count the wait for the push as CI time. Runs are Actions
 workflow runs; checks from other apps are not included.
+
+## job-failures
+
+```sh
+gh-lazydispatch export job-failures --workflow <file> [--runs <n>] [--branch <name>] [--event <event>]
+```
+
+The failure rate of each job across a workflow's newest finished runs, read in
+full rather than sampled. Each job row carries runs, failures, the step that
+failed most often, and the first error-level line that step logged in the
+newest such failure. Canceled runs and canceled or skipped jobs count as
+neither. Job lists are cached on disk, so a rerun only reads new runs.
+
+`export <command> --help` prints one command's flags.
+
+To compare one workflow's job P50 and P90 across two date ranges, use
+`ci-timing --workflow <name> --window-days <n> --baseline-offset-days <n>`.
 
 ## ci-report
 
