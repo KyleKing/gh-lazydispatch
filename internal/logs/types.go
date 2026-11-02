@@ -41,9 +41,11 @@ type StepLogs struct {
 	JobStatus     string     `json:"job_status"`
 	JobConclusion string     `json:"job_conclusion"`
 	Entries       []LogEntry `json:"entries"`
-	StepIndex     int        `json:"step_index"`
-	RunID         int64      `json:"run_id"`
-	JobID         int64      `json:"job_id"`
+	// Duration is zero when GitHub reported no start or end for the step.
+	Duration  time.Duration `json:"-"`
+	StepIndex int           `json:"step_index"`
+	RunID     int64         `json:"run_id"`
+	JobID     int64         `json:"job_id"`
 }
 
 // Unsuccessful reports whether the step ended as anything but a success or a

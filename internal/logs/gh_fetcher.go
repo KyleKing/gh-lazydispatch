@@ -152,6 +152,7 @@ func (*GHFetcher) parseJobLogsIntoSteps(
 			StepName:   stepName,
 			Status:     step.Status,
 			Conclusion: step.Conclusion,
+			Duration:   step.CompletedAt.Sub(step.StartedAt),
 			Entries:    ParseLogOutput(strings.Join(byStep[name], "\n"), stepName),
 			FetchedAt:  time.Now(),
 
@@ -170,6 +171,7 @@ func (*GHFetcher) parseJobLogsIntoSteps(
 			StepName:   step.Name,
 			Status:     step.Status,
 			Conclusion: step.Conclusion,
+			Duration:   step.CompletedAt.Sub(step.StartedAt),
 			FetchedAt:  time.Now(),
 
 			JobID:         job.ID,

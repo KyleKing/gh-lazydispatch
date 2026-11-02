@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
@@ -111,5 +112,32 @@ func TestBuildDiagnosisReportsTheFirstUnsuccessfulStepOfAFailedJob(t *testing.T)
 	empty := logNote(&logs.StepLogs{})
 	if !strings.Contains(empty, "no log") {
 		t.Errorf("an empty step's note = %q, want it to say there is no log", empty)
+	}
+}
+
+func TestTailOfSummarizesWithTheFirstErrorOutsideTheEchoedScript(t *testing.T) {
+	t.Parallel()
+
+	line := func(content string, level logs.LogLevel) logs.LogEntry {
+		return logs.LogEntry{Content: content, Level: level}
+	}
+
+	step := &logs.StepLogs{
+		StepName: "Run smoke playbook",
+		Duration: 6*time.Minute + 24*time.Second,
+		Entries: []logs.LogEntry{
+			line("##[group]Run set +e", logs.LogLevelInfo),
+			line(`echo "::warning::infra failure"`, logs.LogLevelError),
+			line("##[endgroup]", logs.LogLevelInfo),
+			line("step.fail: judge returned severity=error", logs.LogLevelError),
+			line("ELIFECYCLE Command failed", logs.LogLevelError),
+		},
+	}
+
+	got := tailOf(step, defaultTailLines).Summary
+	want := "Run smoke playbook (6m24s): step.fail: judge returned severity=error"
+
+	if got != want {
+		t.Errorf("summary = %q, want %q", got, want)
 	}
 }
