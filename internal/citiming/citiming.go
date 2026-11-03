@@ -106,10 +106,13 @@ type ciTimingStats struct {
 
 // Options selects what ci-timing reads and which tables it builds.
 type Options struct {
-	Split                                                                                             time.Time
+	Split, Until, BaselineUntil                                                                       time.Time
 	Branch, Event, Format, Workflow, Authors, PRs, IgnoreJobs                                         string
 	WindowDays, BaselineOffsetDays, Sample, EpochDays, SamplePRs, CriticalSample, EpochMin, CacheLogs int
 }
+
+// eventPush is the GitHub event name of a push to a branch.
+const eventPush = "push"
 
 // Output formats.
 const (
@@ -142,20 +145,23 @@ func collectCITiming(client *github.Client, opts Options, stderr io.Writer) (ciT
 		return ciTimingStats{}, github.RunFilter{}, err
 	}
 
-	gitBranch, err := resolveBranch(opts.Branch)
-	if err != nil {
-		return ciTimingStats{}, github.RunFilter{}, err
+	gitBranch := opts.Branch
+	if opts.Event == eventPush || opts.EpochDays > 0 {
+		gitBranch, err = resolveBranch(opts.Branch)
+		if err != nil {
+			return ciTimingStats{}, github.RunFilter{}, err
+		}
 	}
 
 	filter := github.RunFilter{Branch: opts.Branch, Event: opts.Event}
-	if opts.Event == "push" {
+	if opts.Event == eventPush {
 		filter.Branch = gitBranch
 	}
 
 	now := time.Now().UTC()
 	windows := compareWindows(now, opts.WindowDays, opts.BaselineOffsetDays)
 	if !opts.Split.IsZero() {
-		windows = splitWindows(now, opts.Split)
+		windows = splitWindows(now, opts.Split, opts.Until, opts.BaselineUntil)
 	}
 
 	epochFrom := daysBefore(now, opts.EpochDays)
@@ -350,11 +356,26 @@ func compareWindows(now time.Time, windowDays, offsetDays int) [2]timeWindow {
 }
 
 // splitWindows returns the baseline window ending at split and the current
-// window running from split to now, both as long as the time since split.
-func splitWindows(now, split time.Time) [2]timeWindow {
+// window running from split to until (or to now when until is zero or later),
+// both as long as the time from split to the end of the current window. A
+// nonzero baselineUntil moves the baseline to end there, leaving a gap before
+// split for the runs that straddle the change.
+func splitWindows(now, split, until, baselineUntil time.Time) [2]timeWindow {
+	end := now
+	if !until.IsZero() && until.Before(now) {
+		end = until
+	}
+
+	span := end.Sub(split)
+
+	baselineTo := split
+	if !baselineUntil.IsZero() {
+		baselineTo = baselineUntil
+	}
+
 	return [2]timeWindow{
-		{label: "baseline", from: split.Add(-now.Sub(split)), to: split},
-		{label: "current", from: split, to: now},
+		{label: "baseline", from: baselineTo.Add(-span), to: baselineTo},
+		{label: "current", from: split, to: end},
 	}
 }
 

@@ -28,6 +28,20 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 
 			return err
 		})
+	fs.Func("until", "RFC 3339 time or YYYY-MM-DD: with --split, end the current window here instead of now",
+		func(value string) error {
+			t, err := parseSplit(value)
+			opts.Until = t
+
+			return err
+		})
+	fs.Func("baseline-until", "RFC 3339 time or YYYY-MM-DD: with --split, end the baseline here, leaving a gap",
+		func(value string) error {
+			t, err := parseSplit(value)
+			opts.BaselineUntil = t
+
+			return err
+		})
 	fs.StringVar(&opts.Workflow, "workflow", "", "workflow name to break down into jobs and steps")
 	fs.IntVar(&opts.Sample, "sample", citiming.DefaultJobSample,
 		"with --workflow, runs per window to read jobs of; 0 reads all")
@@ -50,6 +64,14 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 
 	if opts.Format != citiming.FormatJSON && opts.Format != citiming.FormatMarkdown {
 		return fmt.Errorf("%w: --format must be json or md, got %q", ErrUsage, opts.Format)
+	}
+
+	if !opts.Until.IsZero() && (opts.Split.IsZero() || !opts.Until.After(opts.Split)) {
+		return fmt.Errorf("%w: --until needs --split and a later time", ErrUsage)
+	}
+
+	if !opts.BaselineUntil.IsZero() && (opts.Split.IsZero() || opts.BaselineUntil.After(opts.Split)) {
+		return fmt.Errorf("%w: --baseline-until needs --split and a time no later than it", ErrUsage)
 	}
 
 	if opts.WindowDays <= 0 || opts.BaselineOffsetDays < 0 {

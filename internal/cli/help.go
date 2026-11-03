@@ -69,6 +69,10 @@ and jobs that were canceled or skipped, are not counted. Reads one job list per 
                       Days before now the baseline window ends. Default 7
   --split <time>      RFC 3339 time or YYYY-MM-DD: compare the time since it with an equal span
                       before it, in place of the two windows above
+  --until <time>      With --split, end the current window here instead of now; the baseline
+                      is as long as split to until
+  --baseline-until <time>
+                      With --split, end the baseline here (before the split), leaving a gap
   --format json|md    json: raw rows and summaries. md: P50/P90 comparison table
   --workflow <name>   Add job queue, runner, and step timings for one workflow
   --sample <n>        With --workflow, runs per window to read jobs for. Default 150, 0 for all

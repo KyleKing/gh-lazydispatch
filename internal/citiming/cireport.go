@@ -85,7 +85,7 @@ func Report(client *github.Client, opts ReportOptions, stdout, stderr io.Writer)
 func collectReportEvents(client *github.Client, opts ReportOptions, stderr io.Writer) ([]reportEvent, error) {
 	triggers := []struct{ label, event, authors string }{
 		{"Pull requests", "pull_request", opts.Authors},
-		{"Pushes to the default branch", "push", ""},
+		{"Pushes to the default branch", eventPush, ""},
 		{"Merge queue", "merge_group", ""},
 	}
 

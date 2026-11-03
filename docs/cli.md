@@ -96,7 +96,7 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 
 ```sh
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
-    [--window-days <n>] [--baseline-offset-days <n>] [--split <time>] [--format json|md]
+    [--window-days <n>] [--baseline-offset-days <n>] [--split <time>] [--until <time>] [--baseline-until <time>] [--format json|md]
     [--workflow <name>] [--sample <n>] [--epoch-days <n>]
     [--author <login,...>] [--sample-prs <n>] [--pr <n,...>] [--critical-sample <n>] [--ignore-job <name,...>]
 ```
@@ -127,7 +127,7 @@ its CI began in. The markdown table gives commits, p50, p90, and max for each
 window plus the p90 change and a per-workflow table of when each workflow
 finishes after the push, with how often it finishes last. A warning prints for any range that still hit the 1000-result cap.
 
-`--split <time>` (RFC 3339 or `YYYY-MM-DD`) replaces both windows: the current one runs from the split to now and the baseline is the equal span before it, so a merge's effect can be read minutes after it lands. It overrides `--window-days` and `--baseline-offset-days`.
+`--split <time>` (RFC 3339 or `YYYY-MM-DD`) replaces both windows: the current one runs from the split to now and the baseline is the equal span before it, so a merge's effect can be read minutes after it lands. It overrides `--window-days` and `--baseline-offset-days`. `--until <time>` ends the current window there instead of now (and sizes the baseline to match), so a later merge does not leak into a merge's "after". `--baseline-until <time>` ends the baseline there (same span) so runs that straddle the merge fall in neither window.
 
 `--workflow <name>` drills into one workflow (the one that finishes last most
 often, from the per-workflow table). It reads that workflow's jobs, one API

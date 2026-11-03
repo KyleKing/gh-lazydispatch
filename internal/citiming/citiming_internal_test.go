@@ -390,7 +390,7 @@ func TestSplitWindows_AreEqualSpansEitherSideOfTheSplit(t *testing.T) {
 	now := mustParse(t, "2026-01-15T12:00:00Z")
 	split := mustParse(t, "2026-01-15T04:30:00Z")
 
-	got := splitWindows(now, split)
+	got := splitWindows(now, split, time.Time{}, time.Time{})
 
 	if !got[0].from.Equal(mustParse(t, "2026-01-14T21:00:00Z")) || !got[0].to.Equal(split) {
 		t.Errorf("baseline = %v to %v, want 21:00 the day before to the split", got[0].from, got[0].to)
@@ -398,6 +398,38 @@ func TestSplitWindows_AreEqualSpansEitherSideOfTheSplit(t *testing.T) {
 
 	if !got[1].from.Equal(split) || !got[1].to.Equal(now) {
 		t.Errorf("current = %v to %v, want the split to now", got[1].from, got[1].to)
+	}
+}
+
+func TestSplitWindows_UntilEndsTheCurrentWindowEarlyAndNeverPastNow(t *testing.T) {
+	t.Parallel()
+
+	now := mustParse(t, "2026-01-15T12:00:00Z")
+	split := mustParse(t, "2026-01-15T04:00:00Z")
+	until := mustParse(t, "2026-01-15T06:00:00Z")
+
+	got := splitWindows(now, split, until, time.Time{})
+
+	if !got[1].to.Equal(until) || !got[0].from.Equal(mustParse(t, "2026-01-15T02:00:00Z")) {
+		t.Errorf("windows = %v and %v, want the current to end at until, same-span baseline", got[0], got[1])
+	}
+
+	if late := splitWindows(now, split, mustParse(t, "2026-01-16T00:00:00Z"), time.Time{}); !late[1].to.Equal(now) {
+		t.Errorf("current ends %v, want now when until is later", late[1].to)
+	}
+}
+
+func TestSplitWindows_BaselineUntilMovesTheBaselineKeepingItsSpan(t *testing.T) {
+	t.Parallel()
+
+	now := mustParse(t, "2026-01-15T12:00:00Z")
+	split := mustParse(t, "2026-01-15T04:00:00Z")
+	baselineUntil := mustParse(t, "2026-01-14T20:00:00Z")
+
+	got := splitWindows(now, split, time.Time{}, baselineUntil)
+
+	if !got[0].to.Equal(baselineUntil) || !got[0].from.Equal(mustParse(t, "2026-01-14T12:00:00Z")) {
+		t.Errorf("baseline = %v to %v, want 12:00 to 20:00 the day before", got[0].from, got[0].to)
 	}
 }
 
