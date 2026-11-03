@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/kyleking/gh-lazydispatch/internal/citiming"
 )
@@ -20,6 +21,13 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs.IntVar(&opts.WindowDays, "window-days", citiming.DefaultWindowDays, "days of commits in each compared window")
 	fs.IntVar(&opts.BaselineOffsetDays, "baseline-offset-days", citiming.DefaultWindowDays,
 		"days before now the baseline ends")
+	fs.Func("split", "RFC 3339 time or YYYY-MM-DD: compare the time since it with an equal span before it",
+		func(value string) error {
+			t, err := parseSplit(value)
+			opts.Split = t
+
+			return err
+		})
 	fs.StringVar(&opts.Workflow, "workflow", "", "workflow name to break down into jobs and steps")
 	fs.IntVar(&opts.Sample, "sample", citiming.DefaultJobSample,
 		"with --workflow, runs per window to read jobs of; 0 reads all")
@@ -54,6 +62,16 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	}
 
 	return usageError(citiming.Run(client, opts, stdout, stderr))
+}
+
+func parseSplit(value string) (time.Time, error) {
+	for _, layout := range []string{time.RFC3339, time.DateOnly} {
+		if t, err := time.Parse(layout, value); err == nil {
+			return t.UTC(), nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("%w: --split %q is not RFC 3339 or YYYY-MM-DD", ErrUsage, value)
 }
 
 func exportJobFailures(args []string, stdout, stderr io.Writer) error {

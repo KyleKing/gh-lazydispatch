@@ -106,6 +106,7 @@ type ciTimingStats struct {
 
 // Options selects what ci-timing reads and which tables it builds.
 type Options struct {
+	Split                                                                                             time.Time
 	Branch, Event, Format, Workflow, Authors, PRs, IgnoreJobs                                         string
 	WindowDays, BaselineOffsetDays, Sample, EpochDays, SamplePRs, CriticalSample, EpochMin, CacheLogs int
 }
@@ -153,6 +154,10 @@ func collectCITiming(client *github.Client, opts Options, stderr io.Writer) (ciT
 
 	now := time.Now().UTC()
 	windows := compareWindows(now, opts.WindowDays, opts.BaselineOffsetDays)
+	if !opts.Split.IsZero() {
+		windows = splitWindows(now, opts.Split)
+	}
+
 	epochFrom := daysBefore(now, opts.EpochDays)
 	logins := splitList(opts.Authors)
 
@@ -341,6 +346,15 @@ func compareWindows(now time.Time, windowDays, offsetDays int) [2]timeWindow {
 	return [2]timeWindow{
 		{label: "baseline", from: baselineTo.Add(-time.Duration(windowDays) * day), to: baselineTo},
 		{label: "current", from: now.Add(-time.Duration(windowDays) * day), to: now},
+	}
+}
+
+// splitWindows returns the baseline window ending at split and the current
+// window running from split to now, both as long as the time since split.
+func splitWindows(now, split time.Time) [2]timeWindow {
+	return [2]timeWindow{
+		{label: "baseline", from: split.Add(-now.Sub(split)), to: split},
+		{label: "current", from: split, to: now},
 	}
 }
 

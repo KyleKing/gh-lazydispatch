@@ -384,6 +384,23 @@ func TestSummarizeAuthors_CutsEveryAuthorAtTheSameEpochDates(t *testing.T) {
 	}
 }
 
+func TestSplitWindows_AreEqualSpansEitherSideOfTheSplit(t *testing.T) {
+	t.Parallel()
+
+	now := mustParse(t, "2026-01-15T12:00:00Z")
+	split := mustParse(t, "2026-01-15T04:30:00Z")
+
+	got := splitWindows(now, split)
+
+	if !got[0].from.Equal(mustParse(t, "2026-01-14T21:00:00Z")) || !got[0].to.Equal(split) {
+		t.Errorf("baseline = %v to %v, want 21:00 the day before to the split", got[0].from, got[0].to)
+	}
+
+	if !got[1].from.Equal(split) || !got[1].to.Equal(now) {
+		t.Errorf("current = %v to %v, want the split to now", got[1].from, got[1].to)
+	}
+}
+
 func TestNameByWorkflowFile_GroupsRunsWhoseRunNameVaries(t *testing.T) {
 	t.Parallel()
 
