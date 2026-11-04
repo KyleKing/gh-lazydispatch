@@ -97,7 +97,8 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 ```sh
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
     [--window-days <n>] [--baseline-offset-days <n>] [--split <time>] [--until <time>] [--baseline-until <time>] [--format json|md]
-    [--workflow <name>] [--sample <n>] [--epoch-days <n>]
+    [--workflow <name>] [--sample <n>] [--epoch-days <n>] [--since <time>] [--split-at <ref,...>]
+    [--ignore-workflow <name,...>] [--flakes] [--flake-target <percent>]
     [--author <login,...>] [--sample-prs <n>] [--pr <n,...>] [--critical-sample <n>] [--ignore-job <name,...>]
 ```
 
@@ -150,7 +151,27 @@ checkout), plus the dates in an optional `.github/ci-epochs` file (one
 swap). The table gives each epoch's commits, p50, p90, and max. An epoch
 with fewer than `--epoch-min` (default 30) counted commits folds into the next,
 because a P90 over fewer is noise. Only the newest epoch, or a manual one, can
-stay small, and it is marked "(few)".
+stay small, and it prints no percentiles, only "(under minimum)".
+
+`--since <time>` starts the epoch range at a time instead of n days back, and
+`--until` ends it. `--split-at <ref,...>` replaces the automatic cuts with the
+given commits or dates, so `--split-at <merge-sha>` compares before and after
+one change. `--ignore-workflow <name,...>` (display name, file name, or file
+stem) drops workflows that never gate a push, such as bot and label workflows,
+from every push's wall clock and from the epoch cuts, and the output lists what
+it dropped.
+
+`--flakes` counts same-SHA flakes with `--epoch-days`: a job that failed in an
+earlier `run_attempt` and passed in a later one on the same head SHA. It reads
+each re-run's attempts and each failed run's last attempt through
+`runs/{id}/attempts/{n}/jobs` (cached in `ci-attempts.json`, budget-checked like
+job reads). The output gives flake rate and real-failure rate (last attempt
+failed) as a percentage of head SHAs per workflow and per job, against
+`--flake-target` (default 0.5). Jobs named by `--ignore-job` are left out, so a
+gate job that echoes another workflow's failure does not count. Failures are
+classed as timed out, runner lost (a failed job with no failed step), canceled,
+or step failed from conclusions alone. A re-run is a lower bound, because a
+rebase or fix pushed after a red run counts as real.
 
 A run created more than ten minutes after the push's first run (a title
 edit, a label, a manual dispatch) is a retrigger: it stays in `run_details`
@@ -249,9 +270,12 @@ To compare one workflow's job P50 and P90 across two date ranges, use
 ## ci-report
 
 ```sh
-gh-lazydispatch export ci-report [--days <n>] [--author <login,...>]
-    [--window-days <n>] [--sample <n>] [--epoch-min <n>] [--ignore-job <name,...>]
-    [--out <path>]
+gh-lazydispatch export ci-report [--days <n>] [--since <time>] [--until <time>] [--split-at <ref,...>]
+    [--author <login,...>] [--window-days <n>] [--sample <n>] [--epoch-min <n>]
+    [--ignore-job <name,...>] [--ignore-workflow <name,...>]
+    [--target-wall <duration>] [--target-flake <percent>] [--target-queue <duration>]
+    [--deploy-workflow <file,...>] [--smoke-workflow <file>] [--post-deploy-workflow <file,...>]
+    [--deploy-up <text>] [--out <path>]
 ```
 
 One markdown report for the repository's pull requests (every author, or
@@ -264,6 +288,23 @@ end a push, billed minutes per push that grew more than 30%, jobs skipped on
 every sampled push, re-runs that passed, jobs whose P90 is twice their median,
 a runner vendor trial, and merge queue evictions over 5%. Thresholds are
 constants in `internal/citiming/cireport.go`.
+
+A Targets block opens the report for pull requests: wall clock P50 and P90 per
+push against `--target-wall` (default 5m), the same-SHA flake rate against
+`--target-flake` (default 0.5% of head SHAs), and merge queue wait P50 and P90
+against `--target-queue` (default 2m). With `--split-at`, the block has one row
+set per side of each cut. A side with fewer counted pushes than `--epoch-min`
+shows no percentiles. The flake tables are read for pull requests only.
+
+`--deploy-workflow deploy-stage.yml,deploy-prod.yml` adds a Deploys section for
+each named workflow file: merge (commit time of the deployed SHA) to the start of
+the up, the up duration, the end of the up to the start of the smoke run, and
+the smoke duration, each as P50 and P90. `--deploy-up` names the job or step
+that does the deploy (case-insensitive, default the whole run),
+`--smoke-workflow` the workflow that verifies it (matched by deployed SHA, else
+the first run to start after the up and before the next deploy), and
+`--post-deploy-workflow` the workflows whose non-PR runs on the deployed SHA are
+counted per deploy, so a repeated run shows as more than one per deploy.
 
 Gate jobs (a job that ends a quarter of the pushes within 15 seconds of the job
 before it) are detected and left out of the path, because they only wait on

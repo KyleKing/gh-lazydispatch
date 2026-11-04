@@ -77,6 +77,13 @@ and jobs that were canceled or skipped, are not counted. Reads one job list per 
   --workflow <name>   Add job queue, runner, and step timings for one workflow
   --sample <n>        With --workflow, runs per window to read jobs for. Default 150, 0 for all
   --epoch-days <n>    Split the last n days at each workflow change (and .github/ci-epochs dates); 0 skips
+  --since <time>      With --epoch-days, start the range at a time instead of n days back
+  --split-at <a,b>    Cut epochs at these commits or dates only, to compare before and after a merge
+  --ignore-workflow <a,b>
+                      Workflows that never gate a push (bots, labels): out of wall clock and epoch cuts
+  --flakes            With --epoch-days, count same-SHA flakes (a job that failed in one attempt and
+                      passed in a later one on the same SHA); reads every re-run attempt's jobs
+  --flake-target <p>  With --flakes, the most head SHAs in percent with a flake. Default 0.5
   --author <a,b>      Compare these GitHub logins (reads only their runs); use with --event pull_request
   --epoch-min <n>     Fewest counted commits an epoch needs before it stands alone. Default 30
   --critical-sample <n>
@@ -89,12 +96,28 @@ and jobs that were canceled or skipped, are not counted. Reads one job list per 
 
 	flagsCiReport = `Flags (ci-report):
   --days <n>          Days of history. Default 30
+  --since <time>      Start of the range (RFC 3339 or YYYY-MM-DD), in place of --days
+  --until <time>      End of the range. Default now
+  --split-at <a,b>    Cut the range at these commits or dates in place of the automatic epochs,
+                      so the Targets block shows each side of a merge
+  --ignore-workflow <a,b>
+                      Workflows that never gate a push (bots, labels): out of wall clock and epoch cuts
+  --target-wall <d>   Wall clock per pull request push. Default 5m
+  --target-flake <p>  Head SHAs in percent with a same-SHA flake. Default 0.5
+  --target-queue <d>  Merge queue wait. Default 2m
+  --deploy-workflow <a,b>
+                      Deploy workflow files: merge-to-up, up, up-to-smoke, and smoke timings
+  --smoke-workflow <f>
+                      With --deploy-workflow, the workflow file that verifies a deploy
+  --post-deploy-workflow <a,b>
+                      Workflow files counted per deployed SHA. Default the smoke workflow
+  --deploy-up <text>  Part of the job or step name that does the deploy. Default the whole run
   --author <a,b>      Limit pull request runs to these logins
   --window-days <n>   Days in each compared window. Default 7
   --sample <n>        Pushes per day whose jobs are read. Default 6
   --epoch-min <n>     Fewest counted commits per epoch. Default 120
   --cache-logs <n>    Job logs read per job with a cache step. Default 8, 0 skips
-  --ignore-job <a,b>  Job names left out of the path. Default: detect gate jobs
+  --ignore-job <a,b>  Job names left out of the path and the flake count. Default: detect gate jobs
   --out <path>        Write to a file instead of stdout`
 
 	flagsTelemetry = `Flags (telemetry):

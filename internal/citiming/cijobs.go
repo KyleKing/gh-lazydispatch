@@ -136,33 +136,44 @@ func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jo
 	return cached, nil
 }
 
-// listJobsWithRetry rides out the 5xx and TLS timeouts GitHub returns under a
-// long run of job reads, which would otherwise abort the whole fetch.
-func listJobsWithRetry(client *github.Client, id int64) ([]github.JobTiming, error) {
-	var (
-		jobs []github.JobTiming
-		err  error
-	)
+// withRetry rides out the 5xx and TLS timeouts GitHub returns under a long run
+// of reads, which would otherwise abort the whole fetch.
+func withRetry(read func() error) error {
+	var err error
 
 	for attempt := range jobFetchAttempts {
-		if jobs, err = client.ListRunJobTimings(id); err == nil {
-			return jobs, nil
+		if err = read(); err == nil {
+			return nil
 		}
 
 		time.Sleep(time.Duration(attempt+1) * time.Second)
 	}
 
-	return nil, err //nolint:wrapcheck // the caller wraps it
+	return err
+}
+
+func listJobsWithRetry(client *github.Client, id int64) ([]github.JobTiming, error) {
+	var jobs []github.JobTiming
+
+	err := withRetry(func() error {
+		var readErr error
+
+		jobs, readErr = client.ListRunJobTimings(id)
+
+		return readErr //nolint:wrapcheck // withRetry returns it to the caller, which wraps it
+	})
+
+	return jobs, err
 }
 
 // rateReserve is how many calls are left unspent for the caller's other work.
 const rateReserve = 200
 
-// affordable trims runs to what the REST allowance covers and returns an error
+// affordable trims reads to what the REST allowance covers and returns an error
 // naming the reset time when it had to, so a report is never built on a partial
 // read. Fetching the affordable part first means the rerun after the reset
 // starts from where this one stopped.
-func affordable(missing []int64, stderr io.Writer) ([]int64, error) {
+func affordable[T any](missing []T, stderr io.Writer) ([]T, error) {
 	allowance, err := github.CoreBudget(context.Background())
 	if err != nil {
 		notef(stderr, "warning: %v; fetching without a budget check\n", err)
@@ -178,7 +189,7 @@ func affordable(missing []int64, stderr io.Writer) ([]int64, error) {
 		return missing, nil
 	}
 
-	return missing[:room], fmt.Errorf("%w: %d runs need their jobs read and %d calls are left; the allowance "+
+	return missing[:room], fmt.Errorf("%w: %d reads are needed and %d calls are left; the allowance "+
 		"resets in %s, and a rerun resumes from the cache", errRateBudget, len(missing), allowance.Remaining, resetIn)
 }
 

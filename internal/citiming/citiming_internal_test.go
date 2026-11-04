@@ -452,3 +452,47 @@ func TestNameByWorkflowFile_GroupsRunsWhoseRunNameVaries(t *testing.T) {
 		}
 	}
 }
+
+// Workflows named in the ignore list leave the pushes' wall clock and cut no
+// epoch, and an epoch under the minimum prints no percentiles.
+func TestDropIgnoredAndEpochTable_LeaveBotWorkflowsOutAndHideThinEpochs(t *testing.T) {
+	t.Parallel()
+
+	runs := []github.RunTiming{
+		{Name: "CI", Path: ".github/workflows/ci.yml"},
+		{Name: "Label sync", Path: ".github/workflows/pr-label-sync.yml@refs/heads/main"},
+		{Name: "Nudge", Path: ".github/workflows/pr-nudges.yml"},
+	}
+
+	kept, dropped := dropIgnored(runs, []string{"pr-label-sync", "pr-nudges.yml"})
+
+	if len(kept) != 1 || kept[0].Name != "CI" || len(dropped.counts) != 2 {
+		t.Fatalf("kept %+v, dropped %+v", kept, dropped)
+	}
+
+	want := []string{".github/workflows/pr-label-sync.yml", ".github/workflows/pr-nudges.yml"}
+	if strings.Join(dropped.paths, ",") != strings.Join(want, ",") {
+		t.Errorf("ignored paths = %v, want %v", dropped.paths, want)
+	}
+
+	bounds, err := explicitBoundaries(t.Context(), mustParse(t, "2026-10-01T00:00:00Z"), []string{"2026-10-05"})
+	if err != nil || len(bounds) != 2 || !bounds[1].manual {
+		t.Fatalf("explicit boundaries = %+v, %v", bounds, err)
+	}
+
+	var md strings.Builder
+
+	writeEpochTable(&md, []ciEpoch{
+		{Start: "2026-10-01T00:00:00Z", Label: "a", Commits: 40, P50Seconds: 60, P90Seconds: 90, MaxSeconds: 99},
+		{Start: "2026-10-01T09:30:00Z", Label: "b", Commits: 3, Few: true, P90Seconds: 1000},
+	})
+
+	for _, want := range []string{
+		"| 2026-10-01 00:00 | a | 40 | 1m0s | 1m30s | 1m39s |",
+		"| 2026-10-01 09:30 | b | 3 (under minimum) | - | - | - |",
+	} {
+		if !strings.Contains(md.String(), want) {
+			t.Errorf("epoch table missing %q:\n%s", want, md.String())
+		}
+	}
+}

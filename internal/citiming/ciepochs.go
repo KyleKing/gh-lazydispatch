@@ -43,9 +43,27 @@ type epochBoundary struct {
 	changes int
 }
 
-// epochBoundaries merges the workflow-file history with the manual epochs file.
-func epochBoundaries(ctx context.Context, branch string, since time.Time) ([]epochBoundary, error) {
-	bounds, err := pathBoundaries(ctx, branch, since, ".github/workflows", ".github/actions")
+// epochCuts says where epochs begin. SplitAt replaces the automatic cuts with
+// the given commits or dates. Without it, a commit to a workflow file starts an
+// epoch unless the file is in IgnoredPaths.
+type epochCuts struct {
+	SplitAt      []string
+	IgnoredPaths []string
+}
+
+// epochBoundaries merges the workflow-file history with the manual epochs file,
+// or returns only the explicit cuts when there are any.
+func epochBoundaries(ctx context.Context, branch string, since time.Time, cuts epochCuts) ([]epochBoundary, error) {
+	if len(cuts.SplitAt) > 0 {
+		return explicitBoundaries(ctx, since, cuts.SplitAt)
+	}
+
+	paths := []string{".github/workflows", ".github/actions"}
+	for _, ignored := range cuts.IgnoredPaths {
+		paths = append(paths, ":(exclude)"+ignored)
+	}
+
+	bounds, err := pathBoundaries(ctx, branch, since, paths...)
 	if err != nil {
 		return nil, err
 	}
@@ -79,10 +97,45 @@ func pathBoundaries(ctx context.Context, branch string, since time.Time, paths .
 	return bounds, nil
 }
 
+// explicitBoundaries opens the range at since and cuts it at each date or
+// commit-ish in splitAt. Every cut is manual, so none folds into the next.
+func explicitBoundaries(ctx context.Context, since time.Time, splitAt []string) ([]epochBoundary, error) {
+	bounds := []epochBoundary{{at: since, label: "start of range", manual: true}}
+
+	for _, spec := range splitAt {
+		at, label, err := resolveCut(ctx, spec)
+		if err != nil {
+			return nil, err
+		}
+
+		bounds = append(bounds, epochBoundary{at: at, label: label, manual: true, changes: 1})
+	}
+
+	sort.SliceStable(bounds, func(i, j int) bool { return bounds[i].at.Before(bounds[j].at) })
+
+	return bounds, nil
+}
+
+// resolveCut reads an RFC 3339 time, a YYYY-MM-DD date, or a commit-ish.
+func resolveCut(ctx context.Context, spec string) (time.Time, string, error) {
+	for _, layout := range []string{time.RFC3339, time.DateOnly} {
+		if at, err := time.Parse(layout, spec); err == nil {
+			return at.UTC(), "split at " + spec, nil
+		}
+	}
+
+	change, err := git.CommitChange(ctx, spec)
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("%w: --split-at %q is not a time or a commit: %w", ErrBadOptions, spec, err)
+	}
+
+	return change.At, change.Subject, nil
+}
+
 func epochsSince(
-	ctx context.Context, branch string, since time.Time, commits []ciTiming, minCommits int,
+	ctx context.Context, branch string, since time.Time, commits []ciTiming, minCommits int, cuts epochCuts,
 ) ([]ciEpoch, error) {
-	bounds, err := epochBoundaries(ctx, branch, since)
+	bounds, err := epochBoundaries(ctx, branch, since, cuts)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +269,8 @@ func writeEpochTable(b *strings.Builder, epochs []ciEpoch) {
 		return
 	}
 
-	b.WriteString("\nEpochs (a pipeline change starts one, small epochs fold into the next).\n\n")
+	b.WriteString("\nEpochs (a pipeline change starts one, small epochs fold into the next). An epoch with fewer " +
+		"counted pushes than the minimum shows no percentiles.\n\n")
 	b.WriteString("| Start | Change | Commits | P50 | P90 | Max |\n| --- | --- | ---: | ---: | ---: | ---: |\n")
 
 	for i := range epochs {
@@ -224,8 +278,12 @@ func writeEpochTable(b *strings.Builder, epochs []ciEpoch) {
 
 		label, commits := epochLabel(e), epochCount(e)
 
-		fmt.Fprintf(b, "| %s | %s | %s | %s | %s | %s |\n", e.Start[:len("2006-01-02")], label, commits,
-			formatSeconds(e.P50Seconds), formatSeconds(e.P90Seconds), formatSeconds(e.MaxSeconds))
+		p50, p90, peak := "-", "-", "-"
+		if !e.Few {
+			p50, p90, peak = formatSeconds(e.P50Seconds), formatSeconds(e.P90Seconds), formatSeconds(e.MaxSeconds)
+		}
+
+		fmt.Fprintf(b, "| %s | %s | %s | %s | %s | %s |\n", epochStamp(e.Start), label, commits, p50, p90, peak)
 	}
 }
 
@@ -239,8 +297,19 @@ func epochLabel(e *ciEpoch) string {
 
 func epochCount(e *ciEpoch) string {
 	if e.Few {
-		return fmt.Sprintf("%d (few)", e.Commits)
+		return fmt.Sprintf("%d (under minimum)", e.Commits)
 	}
 
 	return strconv.Itoa(e.Commits)
+}
+
+// epochStamp shortens an RFC 3339 time to minutes, because two epochs can start on one day.
+func epochStamp(start string) string {
+	const minutes = len("2006-01-02T15:04")
+
+	if len(start) < minutes {
+		return start
+	}
+
+	return strings.Replace(start[:minutes], "T", " ", 1)
 }

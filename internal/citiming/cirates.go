@@ -51,7 +51,7 @@ func epochSpans(epochs []ciEpoch, now time.Time) []timeWindow {
 			}
 		}
 
-		spans = append(spans, timeWindow{from: from, to: to, label: epochs[i].Start[:len("2006-01-02")]})
+		spans = append(spans, timeWindow{from: from, to: to, label: epochStamp(epochs[i].Start)})
 	}
 
 	return spans
@@ -99,7 +99,7 @@ func trendsIn(commits []ciTiming) map[string]*trendSamples {
 			switch run.Conclusion {
 			case conclusionCanceled:
 				s.abort++
-			case github.ConclusionFailure, "timed_out", "startup_failure":
+			case github.ConclusionFailure, "timed_out", conclusionStartup:
 				s.failed++
 			}
 

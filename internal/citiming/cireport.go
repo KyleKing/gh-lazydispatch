@@ -44,7 +44,12 @@ type reportEvent struct {
 
 // ReportOptions selects the span and sampling of a report.
 type ReportOptions struct {
-	Authors, IgnoreJobs, Out                          string
+	// SplitAt cuts the range at these commits or dates (comma-separated) in place of the automatic epochs.
+	SplitAt, Authors, IgnoreJobs, IgnoreWorkflows, Out string
+	// Since and Until bound the range, in place of Days back from now.
+	Since, Until                                      time.Time
+	Deploy                                            DeployConfig
+	Targets                                           Targets
 	Days, WindowDays, Sample, EpochMinimum, CacheLogs int
 }
 
@@ -56,7 +61,17 @@ func Report(client *github.Client, opts ReportOptions, stdout, stderr io.Writer)
 		return err
 	}
 
-	report, err := renderReport(events, opts)
+	var deploys []ciDeploy
+
+	if opts.Deploy.Enabled() {
+		from, to := reportRange(opts, time.Now().UTC())
+
+		if deploys, err = collectDeploys(client, opts.Deploy, from, to, stderr); err != nil {
+			return err
+		}
+	}
+
+	report, err := renderReport(events, deploys, opts)
 	if err != nil {
 		return err
 	}
@@ -80,13 +95,27 @@ func Report(client *github.Client, opts ReportOptions, stdout, stderr io.Writer)
 	return nil
 }
 
+// reportRange is the span the report covers.
+func reportRange(opts ReportOptions, now time.Time) (time.Time, time.Time) {
+	to := now
+	if !opts.Until.IsZero() && opts.Until.Before(now) {
+		to = opts.Until
+	}
+
+	if !opts.Since.IsZero() {
+		return opts.Since, to
+	}
+
+	return daysBefore(to, opts.Days), to
+}
+
 // collectReportEvents reads pull requests, the default branch, and the merge
 // queue. A trigger with no runs in the range is left out.
 func collectReportEvents(client *github.Client, opts ReportOptions, stderr io.Writer) ([]reportEvent, error) {
 	triggers := []struct{ label, event, authors string }{
-		{"Pull requests", "pull_request", opts.Authors},
+		{"Pull requests", eventPullRequest, opts.Authors},
 		{"Pushes to the default branch", eventPush, ""},
-		{"Merge queue", "merge_group", ""},
+		{"Merge queue", eventMergeGroup, ""},
 	}
 
 	var events []reportEvent
@@ -96,6 +125,8 @@ func collectReportEvents(client *github.Client, opts ReportOptions, stderr io.Wr
 			Event: t.event, Authors: t.authors, IgnoreJobs: opts.IgnoreJobs,
 			WindowDays: opts.WindowDays, BaselineOffsetDays: opts.WindowDays,
 			EpochDays: opts.Days, EpochMin: opts.EpochMinimum, CriticalSample: opts.Sample, CacheLogs: opts.CacheLogs,
+			Since: opts.Since, Until: opts.Until, SplitAt: opts.SplitAt, IgnoreWorkflows: opts.IgnoreWorkflows,
+			Flakes: t.event == eventPullRequest, FlakeTarget: opts.Targets.Flake,
 		}, stderr)
 		if err != nil {
 			return nil, err
@@ -109,12 +140,19 @@ func collectReportEvents(client *github.Client, opts ReportOptions, stderr io.Wr
 	return events, nil
 }
 
-func renderReport(events []reportEvent, opts ReportOptions) (string, error) {
+func renderReport(events []reportEvent, deploys []ciDeploy, opts ReportOptions) (string, error) {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "# CI performance report\n\nGenerated %s over the last %d days. Wall clock is the span from "+
+	now := time.Now().UTC()
+	from, to := reportRange(opts, now)
+
+	fmt.Fprintf(&b, "# CI performance report\n\nGenerated %s over %s to %s. Wall clock is the span from "+
 		"a push's first workflow run being created to its last run finishing. Job-level tables read a "+
-		"hash-chosen sample of %d pushes a day.\n", time.Now().UTC().Format(time.DateOnly), opts.Days, opts.Sample)
+		"hash-chosen sample of %d pushes a day.\n", now.Format(time.DateOnly), epochStamp(from.Format(timeFormat)),
+		epochStamp(to.Format(timeFormat)), opts.Sample)
+
+	writeTargets(&b, events, opts.Targets, opts.SplitAt != "", opts.EpochMinimum)
+	writeDeploys(&b, deploys)
 
 	b.WriteString("\n## Findings\n\nRule-based readings of the tables below. Each is a lead to check.\n\n")
 
@@ -291,6 +329,10 @@ func skippedFinding(e *reportEvent) []string {
 
 func flakyFinding(e *reportEvent) []string {
 	var out []string
+
+	if e.stats.Flakes != nil {
+		return nil
+	}
 
 	for i := range e.stats.Flaky {
 		f := &e.stats.Flaky[i]
