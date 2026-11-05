@@ -451,6 +451,18 @@ func TestNameByWorkflowFile_GroupsRunsWhoseRunNameVaries(t *testing.T) {
 			t.Errorf("run %d named %q, want %q", i, got[i].Name, want[i])
 		}
 	}
+
+	for flag, wantName := range map[string]string{"ci.yml": "CI", "CI": "CI", "deploy-jobs": "deploy-jobs"} {
+		var warned strings.Builder
+		if name := workflowRunName(got, flag, &warned); name != wantName || warned.Len() > 0 {
+			t.Errorf("--workflow %q = %q (warned %q), want %q", flag, name, warned.String(), wantName)
+		}
+	}
+
+	var warned strings.Builder
+	if name := workflowRunName(got, "gone.yml", &warned); name != "gone.yml" || warned.Len() == 0 {
+		t.Errorf("unknown workflow = %q, warned %q; want it kept and a warning", name, warned.String())
+	}
 }
 
 // Workflows named in the ignore list leave the pushes' wall clock and cut no

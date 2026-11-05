@@ -232,7 +232,9 @@ func collectCITiming(client *github.Client, opts Options, stderr io.Writer) (ciT
 	}
 
 	if opts.Workflow != "" {
-		err := attachJobs(client, stats.Windows, stats.Commits, windows, opts.Workflow, opts.Sample, stderr)
+		workflow := workflowRunName(runs, opts.Workflow, stderr)
+
+		err := attachJobs(client, stats.Windows, stats.Commits, windows, workflow, opts.Sample, stderr)
 		if err != nil {
 			return ciTimingStats{}, filter, err
 		}
@@ -846,10 +848,33 @@ func nameByWorkflowFile(runs []github.RunTiming) []github.RunTiming {
 	return runs
 }
 
-func workflowFileStem(workflowPath string) string {
-	base := workflowPath[strings.LastIndex(workflowPath, "/")+1:]
+// workflowRunName maps a --workflow value to the name its runs carry, because
+// the per-job tables match on run name while the rest of the export takes a
+// file name. A value matching neither is returned as is, with a warning.
+func workflowRunName(runs []github.RunTiming, workflow string, stderr io.Writer) string {
+	for i := range runs {
+		if runs[i].Name == workflow {
+			return workflow
+		}
+	}
 
-	return strings.TrimSuffix(strings.TrimSuffix(base, ".yml"), ".yaml")
+	for i := range runs {
+		if runs[i].Path != "" && workflowFileBase(runs[i].Path) == workflow {
+			return runs[i].Name
+		}
+	}
+
+	notef(stderr, "warning: no run in range is named or filed as %q; the per-job tables will be empty\n", workflow)
+
+	return workflow
+}
+
+func workflowFileBase(workflowPath string) string {
+	return workflowPath[strings.LastIndex(workflowPath, "/")+1:]
+}
+
+func workflowFileStem(workflowPath string) string {
+	return strings.TrimSuffix(strings.TrimSuffix(workflowFileBase(workflowPath), ".yml"), ".yaml")
 }
 
 func flakeTargetOr(target float64) float64 {
