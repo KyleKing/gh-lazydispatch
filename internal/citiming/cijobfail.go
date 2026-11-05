@@ -36,6 +36,7 @@ type jobFailureRow struct {
 type failedInstance struct {
 	step  github.StepTiming
 	jobID int64
+	runID int64
 }
 
 type jobFailureReport struct {
@@ -97,7 +98,14 @@ func JobFailures(client *github.Client, opts JobFailureOptions, stdout, stderr i
 			continue
 		}
 
-		row.FirstError = firstErrorInStep(raw, row.instance.step)
+		line, named := firstErrorInStep(raw, row.instance.step)
+		if !named {
+			if siblings := failedSiblings(row.Job, jobs[row.instance.runID]); siblings != "" {
+				line = siblings
+			}
+		}
+
+		row.FirstError = line
 	}
 
 	return writeJSON(stdout, report)
@@ -125,7 +133,7 @@ func (t *jobTally) add(runID int64, job *github.JobTiming) {
 
 	if step := failingStep(job); step != nil {
 		t.steps[step.Name]++
-		t.failures = append(t.failures, failedInstance{step: *step, jobID: job.ID})
+		t.failures = append(t.failures, failedInstance{step: *step, jobID: job.ID, runID: runID})
 	}
 }
 
@@ -210,15 +218,21 @@ func topStep(counts map[string]int) (string, int) {
 	return best, most
 }
 
-// firstErrorInStep returns the first error-level line the job log wrote while step
-// ran, skipping the echoed script. Log lines carry finer timestamps than the
-// step's whole seconds, so the step's end gets a second of slack.
-func firstErrorInStep(rawLog string, step github.StepTiming) string {
+// firstErrorInStep returns the line that names why the step failed, from the
+// lines the job log wrote while step ran, skipping the echoed script. Log lines
+// carry finer timestamps than the step's whole seconds, so the step's end gets
+// a second of slack. The bool reports whether the line names a failed test
+// rather than being the first error-level line, which can be console noise.
+func firstErrorInStep(rawLog string, step github.StepTiming) (string, bool) {
 	if step.StartedAt.IsZero() || step.CompletedAt.IsZero() {
-		return ""
+		return "", false
 	}
 
-	var echo logs.CommandEcho
+	var (
+		echo     logs.CommandEcho
+		contents []string
+		fallback string
+	)
 
 	end := step.CompletedAt.Add(time.Second)
 
@@ -227,17 +241,114 @@ func firstErrorInStep(rawLog string, step github.StepTiming) string {
 			continue
 		}
 
-		if entry.Level == logs.LogLevelError {
-			return truncateRunes(strings.TrimSpace(entry.Content), maxFirstErrorRunes)
+		content := strings.TrimSpace(entry.Content)
+		contents = append(contents, content)
+
+		if fallback == "" && entry.Level == logs.LogLevelError {
+			fallback = content
+		}
+	}
+
+	if id := pytestFailureID(contents); id != "" {
+		return truncateRunes(id), true
+	}
+
+	if line := vitestFailureLine(contents); line != "" {
+		return truncateRunes(line), true
+	}
+
+	return truncateRunes(fallback), false
+}
+
+const pytestSummaryHeader = "short test summary info"
+
+var pytestFailurePrefixes = []string{"FAILED ", "SUBFAILED", "ERROR "} //nolint:gochecknoglobals // read-only
+
+// pytestFailureID returns the first FAILED, SUBFAILED, or ERROR entry of
+// pytest's short test summary, cut to the test id.
+func pytestFailureID(contents []string) string {
+	inSummary := false
+
+	for _, line := range contents {
+		if strings.Contains(line, pytestSummaryHeader) {
+			inSummary = true
+
+			continue
+		}
+
+		if !inSummary {
+			continue
+		}
+
+		for _, prefix := range pytestFailurePrefixes {
+			if strings.HasPrefix(line, prefix) {
+				return cutMessage(line)
+			}
 		}
 	}
 
 	return ""
 }
 
-func truncateRunes(s string, limit int) string {
-	if runes := []rune(s); len(runes) > limit {
-		return string(runes[:limit]) + "..."
+// cutMessage drops the " - message" pytest appends to a summary entry, ignoring
+// separators inside brackets or parentheses of a parametrized id.
+func cutMessage(line string) string {
+	depth := 0
+
+	for i, r := range line {
+		switch r {
+		case '[', '(':
+			depth++
+		case ']', ')':
+			depth--
+		}
+
+		if depth <= 0 && strings.HasPrefix(line[i:], " - ") {
+			return line[:i]
+		}
+	}
+
+	return line
+}
+
+// vitestFailureLine returns the first FAIL line, which names the file and the
+// test or story, else the first line marking a failed test.
+func vitestFailureLine(contents []string) string {
+	marked := ""
+
+	for _, line := range contents {
+		switch {
+		case strings.HasPrefix(line, "FAIL "):
+			return strings.Join(strings.Fields(line), " ")
+		case marked == "" && (strings.HasPrefix(line, "× ") || strings.HasPrefix(line, "✗")):
+			marked = line
+		}
+	}
+
+	return marked
+}
+
+// failedSiblings names the jobs of the same run that failed under this job's
+// name as a prefix, which is how a gate job over a matrix of shards fails.
+func failedSiblings(job string, runJobs []github.JobTiming) string {
+	var names []string
+
+	for i := range runJobs {
+		if runJobs[i].Conclusion == github.ConclusionFailure && strings.HasPrefix(runJobs[i].Name, job+" ") {
+			names = append(names, runJobs[i].Name)
+		}
+	}
+
+	if len(names) == 0 {
+		return ""
+	}
+
+	return truncateRunes("failed jobs: " + strings.Join(names, ", "))
+}
+
+func truncateRunes(s string) string {
+	if runes := []rune(s); len(runes) > maxFirstErrorRunes {
+		return string(runes[:maxFirstErrorRunes]) + "..."
 	}
 
 	return s
