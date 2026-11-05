@@ -14,6 +14,12 @@ import (
 // implements. Callers print usage and exit non-zero.
 var ErrUsage = errors.New("usage")
 
+// The two top-level commands.
+const (
+	cmdExport = "export"
+	cmdWatch  = "watch"
+)
+
 // Process exit codes.
 const (
 	exitOK    = 0
@@ -21,102 +27,33 @@ const (
 	exitUsage = 2
 )
 
-const usage = `gh-lazydispatch export - read GitHub Actions without reading its logs
-gh-lazydispatch watch   - wait out a run and keep its failure digest local
-
-Usage:
-  gh-lazydispatch export workflows           Dispatchable workflows and their inputs
-  gh-lazydispatch export chains              Chains defined in .github/lazydispatch.yml
-  gh-lazydispatch export runs [flags]        Recent workflow runs, newest first
-  gh-lazydispatch export logs <run-id>       One run's logs, parsed into steps
-  gh-lazydispatch export diagnose <run-id>   Why a run failed, without its logs
-  gh-lazydispatch export ci-timing [flags]   How long all of CI takes per commit
-  gh-lazydispatch export ci-report [flags]   One shareable report: pull requests, default branch, merge queue
-  gh-lazydispatch export telemetry [flags]   How often each command, verb, and dispatch was used
-  gh-lazydispatch watch <run-id> [flags]     Poll a run to completion and write its digest
-  gh-lazydispatch watch --pr <n> [flags]     Wait for a pull request's checks to settle, digest the failing runs
-
-Flags (runs):
-  --workflow <file>   Filename, e.g. ci.yml
-  --branch <name>
-  --status <status>   queued|in_progress|completed|success|failure
-  --limit <n>         Default 20
-  --current           One row per workflow: the branch's state rather than its
-                      history. Needs --branch, and ignores --status and --limit
-
-Flags (logs):
-  --errors-only       Keep only lines that read as errors
-  --step <n>          One step, by index
-  --grep <pattern>    Keep lines matching a regular expression
-  --limit <n>         Cap lines per step
-  --format json|md    Default json
-
-Flags (ci-timing):
-  --branch <name>     Default: the repository's default branch
-  --event <event>     Default push
-  --window-days <n>   Days of commits per compared window. Default 7
-  --baseline-offset-days <n>
-                      Days before now the baseline window ends. Default 7
-  --format json|md    json: raw rows and summaries. md: P50/P90 comparison table
-  --workflow <name>   Add job queue, runner, and step timings for one workflow
-  --sample <n>        With --workflow, runs per window to read jobs for. Default 150, 0 for all
-  --epoch-days <n>    Split the last n days at each workflow change (and .github/ci-epochs dates); 0 skips
-  --author <a,b>      Compare these GitHub logins (reads only their runs); use with --event pull_request
-  --epoch-min <n>     Fewest counted commits an epoch needs before it stands alone. Default 30
-  --critical-sample <n>
-                      With --epoch-days, read the jobs of n pushes per epoch and report where
-                      the wall clock goes, which jobs end the push, runner queue, and cache steps
-  --cache-logs <n>    With --critical-sample, job logs to read per job with a cache step
-  --ignore-job <a,b>  With --critical-sample, job names left out of the path, such as a gate job
-                      that only waits on the others
-  --sample-prs <n>    Spot-check each author's n largest pull requests; --pr <n,...> names them
-
-Flags (ci-report):
-  --days <n>          Days of history. Default 30
-  --author <a,b>      Limit pull request runs to these logins
-  --window-days <n>   Days in each compared window. Default 7
-  --sample <n>        Pushes per day whose jobs are read. Default 6
-  --epoch-min <n>     Fewest counted commits per epoch. Default 120
-  --cache-logs <n>    Job logs read per job with a cache step. Default 8, 0 skips
-  --ignore-job <a,b>  Job names left out of the path. Default: detect gate jobs
-  --out <path>        Write to a file instead of stdout
-
-Flags (telemetry):
-  --format json|md    Default json
-
-Flags (watch):
-  --pr <n>            Watch a pull request's checks instead of one run
-  --notify-cmd <cmd>  Run cmd with the outcome as its argument, after the terminal bell
-  --interval <secs>   Seconds between polls. Default 15
-  --out <path>        Where to write the digest. Default ./lazydispatch-run-<id>.md
-  --fix               On failure, hand the digest to an interactive Claude Code
-                      session to investigate. It may commit locally; it never pushes
-  --fix-cmd <cmd>      The command --fix spawns. Default "claude"
-
-export writes JSON to stdout and counts to stderr; nothing it does dispatches.
-watch writes a markdown digest to disk and blocks until the run finishes.`
-
 // IsCommand reports whether args name a CLI command rather than the TUI, so
 // main can keep launching the TUI when it is given no command.
 func IsCommand(args []string) bool {
-	return len(args) > 0 && (args[0] == "export" || args[0] == "watch")
+	return len(args) > 0 && (args[0] == cmdExport || args[0] == cmdWatch)
 }
 
 // Run executes the command named by args (without the program name) and
 // returns a process exit code.
 func Run(args []string, stdout, stderr io.Writer) int {
 	if !IsCommand(args) {
-		notef(stderr, usage+"\n")
+		notef(stderr, "%s\n", usageText())
 
 		return exitUsage
+	}
+
+	if name, asked := helpTarget(args); asked {
+		notef(stdout, "%s\n", commandHelpText(name))
+
+		return exitOK
 	}
 
 	var err error
 
 	switch args[0] {
-	case "export":
+	case cmdExport:
 		err = runExport(args[1:], stdout, stderr)
-	case "watch":
+	case cmdWatch:
 		err = runWatch(args[1:], stdout, stderr)
 	}
 
@@ -124,7 +61,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	case err == nil:
 		return exitOK
 	case errors.Is(err, ErrUsage):
-		notef(stderr, "gh-lazydispatch: %v\n\n%s\n", err, usage)
+		notef(stderr, "gh-lazydispatch: %v\n\n%s\n", err, usageText())
 
 		return exitUsage
 	default:

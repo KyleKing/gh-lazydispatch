@@ -84,6 +84,11 @@ type ciTimingWindow struct {
 // ciTimingStats is a per-commit CI timing rollup with summary statistics
 // across every completed commit in the sample.
 type ciTimingStats struct {
+	Insights    *ciInsights        `json:"insights,omitempty"`
+	Flakes      *ciFlakes          `json:"same_sha_flakes,omitempty"`
+	Ignored     map[string]int     `json:"ignored_workflows,omitempty"`
+	RangeFrom   string             `json:"range_from,omitempty"`
+	RangeTo     string             `json:"range_to,omitempty"`
 	Commits     []ciTiming         `json:"commits"`
 	Windows     []ciTimingWindow   `json:"windows,omitempty"`
 	Epochs      []ciEpoch          `json:"epochs,omitempty"`
@@ -93,10 +98,10 @@ type ciTimingStats struct {
 	Outcomes    []ciOutcome        `json:"outcomes,omitempty"`
 	Trends      []ciTrend          `json:"workflow_trends,omitempty"`
 	Critical    []ciCriticalSpan   `json:"critical_path,omitempty"`
-	Insights    *ciInsights        `json:"insights,omitempty"`
 	GateJobs    []string           `json:"gate_jobs,omitempty"`
 	Flaky       []ciFlaky          `json:"flaky_workflows,omitempty"`
 	Queue       []ciQueue          `json:"merge_queue,omitempty"`
+	FlakeTarget float64            `json:"flake_target_percent,omitempty"`
 	MinSeconds  float64            `json:"min_seconds"`
 	P50Seconds  float64            `json:"p50_seconds"`
 	MeanSeconds float64            `json:"mean_seconds"`
@@ -106,9 +111,23 @@ type ciTimingStats struct {
 
 // Options selects what ci-timing reads and which tables it builds.
 type Options struct {
-	Branch, Event, Format, Workflow, Authors, PRs, IgnoreJobs                                         string
+	Split, Until, BaselineUntil, Since                                                                time.Time
+	Branch, Event, Format, Workflow, Authors, PRs, IgnoreJobs, SplitAt, IgnoreWorkflows               string
 	WindowDays, BaselineOffsetDays, Sample, EpochDays, SamplePRs, CriticalSample, EpochMin, CacheLogs int
+	// Flakes reads every re-run attempt's jobs to count same-SHA flakes against FlakeTarget (percent of SHAs).
+	Flakes      bool
+	FlakeTarget float64
 }
+
+// eventPush is the GitHub event name of a push to a branch.
+const eventPush = "push"
+
+// Events and conclusions the GitHub API spells out.
+const (
+	eventMergeGroup   = "merge_group"
+	eventPullRequest  = "pull_request"
+	conclusionStartup = "startup_failure"
+)
 
 // Output formats.
 const (
@@ -133,6 +152,28 @@ func Run(client *github.Client, opts Options, stdout, stderr io.Writer) error {
 	return writeJSON(stdout, stats)
 }
 
+// resolveRange fixes the end of the range at --until or now, the start of the epochs, and the two compared
+// windows. A --since turns epochs on, so opts.EpochDays is raised to cover it.
+func resolveRange(opts *Options) (time.Time, time.Time, [2]timeWindow) {
+	now := time.Now().UTC()
+	if !opts.Until.IsZero() && opts.Until.Before(now) {
+		now = opts.Until
+	}
+
+	windows := compareWindows(now, opts.WindowDays, opts.BaselineOffsetDays)
+	if !opts.Split.IsZero() {
+		windows = splitWindows(now, opts.Split, opts.Until, opts.BaselineUntil)
+	}
+
+	epochFrom := daysBefore(now, opts.EpochDays)
+	if !opts.Since.IsZero() {
+		epochFrom = opts.Since
+		opts.EpochDays = max(int(now.Sub(opts.Since)/(hoursPerDay*time.Hour))+1, 1)
+	}
+
+	return now, epochFrom, windows
+}
+
 // collectCITiming reads the runs, and whatever else opts asks for, and
 // summarizes them.
 func collectCITiming(client *github.Client, opts Options, stderr io.Writer) (ciTimingStats, github.RunFilter, error) {
@@ -141,34 +182,42 @@ func collectCITiming(client *github.Client, opts Options, stderr io.Writer) (ciT
 		return ciTimingStats{}, github.RunFilter{}, err
 	}
 
-	gitBranch, err := resolveBranch(opts.Branch)
-	if err != nil {
-		return ciTimingStats{}, github.RunFilter{}, err
+	gitBranch := opts.Branch
+	if opts.Event == eventPush || opts.EpochDays > 0 {
+		gitBranch, err = resolveBranch(opts.Branch)
+		if err != nil {
+			return ciTimingStats{}, github.RunFilter{}, err
+		}
 	}
 
 	filter := github.RunFilter{Branch: opts.Branch, Event: opts.Event}
-	if opts.Event == "push" {
+	if opts.Event == eventPush {
 		filter.Branch = gitBranch
 	}
 
-	now := time.Now().UTC()
-	windows := compareWindows(now, opts.WindowDays, opts.BaselineOffsetDays)
-	epochFrom := daysBefore(now, opts.EpochDays)
+	now, epochFrom, windows := resolveRange(&opts)
+
 	logins := splitList(opts.Authors)
 
 	from := earliest(windows[0].from, opts.EpochDays > 0, epochFrom)
 
-	runs, err := loadAuthorRuns(client, filter, logins, from, now, stderr)
+	loaded, err := loadAuthorRuns(client, filter, logins, from, now, stderr)
 	if err != nil {
 		return ciTimingStats{}, filter, err
 	}
 
+	runs, ignored := dropIgnored(loaded, splitList(opts.IgnoreWorkflows))
+
 	stats := summarizeCITimings(runs)
+	stats.Ignored = ignored.counts
+	stats.FlakeTarget = opts.FlakeTarget
 	stats.Windows = summarizeWindows(stats.Commits, windows)
+	stats.RangeFrom, stats.RangeTo = epochFrom.Format(timeFormat), now.Format(timeFormat)
 
 	notef(stderr, "%d commits from %d runs\n", len(stats.Commits), len(runs))
 
-	if err := addHistory(&stats, opts, gitBranch, epochFrom, windows, logins, runs); err != nil {
+	cuts := epochCuts{SplitAt: splitList(opts.SplitAt), IgnoredPaths: ignored.paths}
+	if err := addHistory(&stats, opts, gitBranch, epochFrom, cuts, windows, logins, runs); err != nil {
 		return ciTimingStats{}, filter, err
 	}
 
@@ -201,7 +250,13 @@ func addJobData(
 		stats.Flaky = summarizeFlaky(stats.Commits)
 	}
 
-	if opts.Event == "merge_group" {
+	if opts.Flakes {
+		if err := addFlakes(client, stats, opts, splitList(opts.IgnoreJobs), stderr); err != nil {
+			return err
+		}
+	}
+
+	if opts.Event == eventMergeGroup {
 		if err := addMergeQueue(client, stats, windows, now, stderr); err != nil {
 			return err
 		}
@@ -219,7 +274,7 @@ func addJobData(
 // addHistory fills the epoch, per-author, and per-workflow cuts, which need the
 // repository's git history.
 func addHistory(
-	stats *ciTimingStats, opts Options, branch string, since time.Time, windows [2]timeWindow,
+	stats *ciTimingStats, opts Options, branch string, since time.Time, cuts epochCuts, windows [2]timeWindow,
 	logins []string, runs []github.RunTiming,
 ) error {
 	var err error
@@ -227,7 +282,7 @@ func addHistory(
 	if opts.EpochDays > 0 {
 		ctx := context.Background()
 
-		if stats.Epochs, err = epochsSince(ctx, branch, since, stats.Commits, opts.EpochMin); err != nil {
+		if stats.Epochs, err = epochsSince(ctx, branch, since, stats.Commits, opts.EpochMin, cuts); err != nil {
 			return err
 		}
 
@@ -341,6 +396,30 @@ func compareWindows(now time.Time, windowDays, offsetDays int) [2]timeWindow {
 	return [2]timeWindow{
 		{label: "baseline", from: baselineTo.Add(-time.Duration(windowDays) * day), to: baselineTo},
 		{label: "current", from: now.Add(-time.Duration(windowDays) * day), to: now},
+	}
+}
+
+// splitWindows returns the baseline window ending at split and the current
+// window running from split to until (or to now when until is zero or later),
+// both as long as the time from split to the end of the current window. A
+// nonzero baselineUntil moves the baseline to end there, leaving a gap before
+// split for the runs that straddle the change.
+func splitWindows(now, split, until, baselineUntil time.Time) [2]timeWindow {
+	end := now
+	if !until.IsZero() && until.Before(now) {
+		end = until
+	}
+
+	span := end.Sub(split)
+
+	baselineTo := split
+	if !baselineUntil.IsZero() {
+		baselineTo = baselineUntil
+	}
+
+	return [2]timeWindow{
+		{label: "baseline", from: baselineTo.Add(-span), to: baselineTo},
+		{label: "current", from: split, to: end},
 	}
 }
 
@@ -556,11 +635,13 @@ func writeCITimingMarkdown(w io.Writer, filter github.RunFilter, workflow string
 		}
 	}
 
+	writeIgnored(&b, stats.Ignored)
 	writeEpochTable(&b, stats.Epochs)
 	writeOutcomeTable(&b, stats.Outcomes)
 	writeTrendTable(&b, stats.Trends)
 	writeCriticalTables(&b, stats.Critical)
 	writeFlaky(&b, stats.Flaky, nil)
+	writeFlakes(&b, stats.Flakes, flakeTargetOr(stats.FlakeTarget))
 	writeInsights(&b, stats.Insights)
 	writeQueue(&b, stats.Queue)
 	writeAuthorTables(&b, stats.Authors)
@@ -734,5 +815,62 @@ func loadRuns(
 		}
 	}
 
-	return runcache.Within(merged.Runs, fetched, from, to), nil
+	return nameByWorkflowFile(runcache.Within(merged.Runs, fetched, from, to)), nil
+}
+
+// nameByWorkflowFile replaces the name of every run of a workflow file whose
+// runs carry different names with the file's base name, because a `run-name`
+// expression ("Preview jobs (PR 2136)") would otherwise make each run its own
+// workflow in every per-workflow table.
+func nameByWorkflowFile(runs []github.RunTiming) []github.RunTiming {
+	names := make(map[string]map[string]bool)
+
+	for i := range runs {
+		if runs[i].Path == "" {
+			continue
+		}
+
+		if names[runs[i].Path] == nil {
+			names[runs[i].Path] = make(map[string]bool)
+		}
+
+		names[runs[i].Path][runs[i].Name] = true
+	}
+
+	for i := range runs {
+		if len(names[runs[i].Path]) > 1 {
+			runs[i].Name = workflowFileStem(runs[i].Path)
+		}
+	}
+
+	return runs
+}
+
+func workflowFileStem(workflowPath string) string {
+	base := workflowPath[strings.LastIndex(workflowPath, "/")+1:]
+
+	return strings.TrimSuffix(strings.TrimSuffix(base, ".yml"), ".yaml")
+}
+
+func flakeTargetOr(target float64) float64 {
+	if target > 0 {
+		return target
+	}
+
+	return DefaultFlakeTarget
+}
+
+// span is the range the stats cover, or zero times when none was recorded.
+func (s *ciTimingStats) span() (time.Time, time.Time) {
+	from, err := time.Parse(timeFormat, s.RangeFrom)
+	if err != nil {
+		return time.Time{}, time.Time{}
+	}
+
+	to, err := time.Parse(timeFormat, s.RangeTo)
+	if err != nil {
+		return time.Time{}, time.Time{}
+	}
+
+	return from, to
 }

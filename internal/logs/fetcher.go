@@ -2,6 +2,7 @@ package logs
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -180,6 +181,10 @@ func splitTimestamp(line string) (time.Time, string) {
 
 // detectLogLevel determines the log level based on content.
 func detectLogLevel(line string, errorPatterns, warningPatterns []*regexp.Regexp) LogLevel {
+	if level, ok := structuredLevel(line); ok {
+		return level
+	}
+
 	for _, pattern := range errorPatterns {
 		if pattern.MatchString(line) {
 			return LogLevelError
@@ -198,6 +203,36 @@ func detectLogLevel(line string, errorPatterns, warningPatterns []*regexp.Regexp
 	}
 
 	return LogLevelInfo
+}
+
+// structuredLevel reads the level a JSON log line declares about itself. A
+// structured logger that says "info" is not an error because its message
+// mentions one ("failure-triage.start"), and pattern matching cannot tell.
+func structuredLevel(line string) (LogLevel, bool) {
+	if !strings.HasPrefix(line, "{") {
+		return "", false
+	}
+
+	var entry struct {
+		Level string `json:"level"`
+	}
+
+	if json.Unmarshal([]byte(line), &entry) != nil {
+		return "", false
+	}
+
+	switch strings.ToLower(entry.Level) {
+	case "error", "fatal", "err":
+		return LogLevelError, true
+	case "warn", "warning":
+		return LogLevelWarning, true
+	case "info":
+		return LogLevelInfo, true
+	case "debug", "trace":
+		return LogLevelDebug, true
+	default:
+		return "", false
+	}
 }
 
 // FetchRunSummary creates a summary of failed steps without full logs.

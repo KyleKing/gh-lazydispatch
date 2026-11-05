@@ -21,12 +21,13 @@ var queueBranch = regexp.MustCompile(`/pr-(\d+)-`)
 type ciQueue struct {
 	Reasons      map[string]int `json:"removed_reasons,omitempty"`
 	Start        string         `json:"start"`
-	Entries      int            `json:"entries"`
-	Merged       int            `json:"merged"`
-	Evicted      int            `json:"evicted"`
-	EvictionRate float64        `json:"eviction_rate"`
-	P50Wait      float64        `json:"p50_wait_seconds"`
-	P90Wait      float64        `json:"p90_wait_seconds"`
+	waits        []float64
+	Entries      int     `json:"entries"`
+	Merged       int     `json:"merged"`
+	Evicted      int     `json:"evicted"`
+	EvictionRate float64 `json:"eviction_rate"`
+	P50Wait      float64 `json:"p50_wait_seconds"`
+	P90Wait      float64 `json:"p90_wait_seconds"`
 }
 
 // queuePRs lists the pull requests behind the merge groups, from their
@@ -102,6 +103,7 @@ func summarizeQueue(events map[int][]github.QueueEvent, spans []timeWindow) []ci
 		s := &samples[i]
 		out = append(out, ciQueue{
 			Start: span.label, Entries: s.entries, Merged: s.merged, Evicted: s.evicted, Reasons: s.reasons,
+			waits:        s.waits,
 			EvictionRate: float64(s.evicted) / float64(max(s.entries, 1)),
 			P50Wait:      percentile(s.waits, percentileMedian), P90Wait: percentile(s.waits, percentileP90),
 		})

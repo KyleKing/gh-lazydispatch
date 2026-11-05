@@ -46,6 +46,11 @@ step, and its last lines are the runner's teardown rather than anything that
 went wrong. `errors` is capped at twenty and keeps the last of them for the same
 reason. `--tail 0` drops the context and keeps the errors and signatures.
 
+Each failed step also carries a one-line `summary`: the step name, its duration
+when GitHub timed it, and the first error-level line of its log (echoed script
+skipped). That line can be a progress line that only reads as an error, so
+check it against `errors` before acting on it.
+
 `signatures` are regular expressions over log text, so each one reports the
 line that matched alongside the label. The scan reads only a step that failed,
 and only its last `logs.SignatureWindow` lines, because anywhere else in a long
@@ -91,8 +96,9 @@ mode in its title keeps one state per mode, and it needs `--branch`.
 
 ```sh
 gh-lazydispatch export ci-timing [--branch <name>] [--event <event>]
-    [--window-days <n>] [--baseline-offset-days <n>] [--format json|md]
-    [--workflow <name>] [--sample <n>] [--epoch-days <n>]
+    [--window-days <n>] [--baseline-offset-days <n>] [--split <time>] [--until <time>] [--baseline-until <time>] [--format json|md]
+    [--workflow <name>] [--sample <n>] [--epoch-days <n>] [--since <time>] [--split-at <ref,...>]
+    [--ignore-workflow <name,...>] [--flakes] [--flake-target <percent>]
     [--author <login,...>] [--sample-prs <n>] [--pr <n,...>] [--critical-sample <n>] [--ignore-job <name,...>]
 ```
 
@@ -122,6 +128,8 @@ its CI began in. The markdown table gives commits, p50, p90, and max for each
 window plus the p90 change and a per-workflow table of when each workflow
 finishes after the push, with how often it finishes last. A warning prints for any range that still hit the 1000-result cap.
 
+`--split <time>` (RFC 3339 or `YYYY-MM-DD`) replaces both windows: the current one runs from the split to now and the baseline is the equal span before it, so a merge's effect can be read minutes after it lands. It overrides `--window-days` and `--baseline-offset-days`. `--until <time>` ends the current window there instead of now (and sizes the baseline to match), so a later merge does not leak into a merge's "after". `--baseline-until <time>` ends the baseline there (same span) so runs that straddle the merge fall in neither window.
+
 `--workflow <name>` drills into one workflow (the one that finishes last most
 often, from the per-workflow table). It reads that workflow's jobs, one API
 call per run, and adds a job table (runner labels, queue wait, run time) and a
@@ -143,7 +151,27 @@ checkout), plus the dates in an optional `.github/ci-epochs` file (one
 swap). The table gives each epoch's commits, p50, p90, and max. An epoch
 with fewer than `--epoch-min` (default 30) counted commits folds into the next,
 because a P90 over fewer is noise. Only the newest epoch, or a manual one, can
-stay small, and it is marked "(few)".
+stay small, and it prints no percentiles, only "(under minimum)".
+
+`--since <time>` starts the epoch range at a time instead of n days back, and
+`--until` ends it. `--split-at <ref,...>` replaces the automatic cuts with the
+given commits or dates, so `--split-at <merge-sha>` compares before and after
+one change. `--ignore-workflow <name,...>` (display name, file name, or file
+stem) drops workflows that never gate a push, such as bot and label workflows,
+from every push's wall clock and from the epoch cuts, and the output lists what
+it dropped.
+
+`--flakes` counts same-SHA flakes with `--epoch-days`: a job that failed in an
+earlier `run_attempt` and passed in a later one on the same head SHA. It reads
+each re-run's attempts and each failed run's last attempt through
+`runs/{id}/attempts/{n}/jobs` (cached in `ci-attempts.json`, budget-checked like
+job reads). The output gives flake rate and real-failure rate (last attempt
+failed) as a percentage of head SHAs per workflow and per job, against
+`--flake-target` (default 0.5). Jobs named by `--ignore-job` are left out, so a
+gate job that echoes another workflow's failure does not count. Failures are
+classed as timed out, runner lost (a failed job with no failed step), canceled,
+or step failed from conclusions alone. A re-run is a lower bound, because a
+rebase or fix pushed after a red run counts as real.
 
 A run created more than ten minutes after the push's first run (a title
 edit, a label, a manual dispatch) is a retrigger: it stays in `run_details`
@@ -222,12 +250,32 @@ not at `committed_at`, because a commit made locally and pushed days later
 would otherwise count the wait for the push as CI time. Runs are Actions
 workflow runs; checks from other apps are not included.
 
+## job-failures
+
+```sh
+gh-lazydispatch export job-failures --workflow <file> [--runs <n>] [--branch <name>] [--event <event>]
+```
+
+The failure rate of each job across a workflow's newest finished runs, read in
+full rather than sampled. Each job row carries runs, failures, the step that
+failed most often, and the first error-level line that step logged in the
+newest such failure. Canceled runs and canceled or skipped jobs count as
+neither. Job lists are cached on disk, so a rerun only reads new runs.
+
+`export <command> --help` prints one command's flags.
+
+To compare one workflow's job P50 and P90 across two date ranges, use
+`ci-timing --workflow <name> --window-days <n> --baseline-offset-days <n>`.
+
 ## ci-report
 
 ```sh
-gh-lazydispatch export ci-report [--days <n>] [--author <login,...>]
-    [--window-days <n>] [--sample <n>] [--epoch-min <n>] [--ignore-job <name,...>]
-    [--out <path>]
+gh-lazydispatch export ci-report [--days <n>] [--since <time>] [--until <time>] [--split-at <ref,...>]
+    [--author <login,...>] [--window-days <n>] [--sample <n>] [--epoch-min <n>]
+    [--ignore-job <name,...>] [--ignore-workflow <name,...>]
+    [--target-wall <duration>] [--target-flake <percent>] [--target-queue <duration>]
+    [--deploy-workflow <file,...>] [--smoke-workflow <file>] [--post-deploy-workflow <file,...>]
+    [--deploy-up <text>] [--out <path>]
 ```
 
 One markdown report for the repository's pull requests (every author, or
@@ -240,6 +288,23 @@ end a push, billed minutes per push that grew more than 30%, jobs skipped on
 every sampled push, re-runs that passed, jobs whose P90 is twice their median,
 a runner vendor trial, and merge queue evictions over 5%. Thresholds are
 constants in `internal/citiming/cireport.go`.
+
+A Targets block opens the report for pull requests: wall clock P50 and P90 per
+push against `--target-wall` (default 5m), the same-SHA flake rate against
+`--target-flake` (default 0.5% of head SHAs), and merge queue wait P50 and P90
+against `--target-queue` (default 2m). With `--split-at`, the block has one row
+set per side of each cut. A side with fewer counted pushes than `--epoch-min`
+shows no percentiles. The flake tables are read for pull requests only.
+
+`--deploy-workflow deploy-stage.yml,deploy-prod.yml` adds a Deploys section for
+each named workflow file: merge (commit time of the deployed SHA) to the start of
+the up, the up duration, the end of the up to the start of the smoke run, and
+the smoke duration, each as P50 and P90. `--deploy-up` names the job or step
+that does the deploy (case-insensitive, default the whole run),
+`--smoke-workflow` the workflow that verifies it (matched by deployed SHA, else
+the first run to start after the up and before the next deploy), and
+`--post-deploy-workflow` the workflows whose non-PR runs on the deployed SHA are
+counted per deploy, so a repeated run shows as more than one per deploy.
 
 Gate jobs (a job that ends a quarter of the pushes within 15 seconds of the job
 before it) are detected and left out of the path, because they only wait on

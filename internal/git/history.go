@@ -56,3 +56,25 @@ func PathChanges(ctx context.Context, ref string, since time.Time, paths ...stri
 
 	return changes, nil
 }
+
+// CommitChange resolves a commit-ish to its commit time and subject.
+func CommitChange(ctx context.Context, ref string) (Change, error) {
+	ctx, cancel := context.WithTimeout(ctx, historyTimeout)
+	defer cancel()
+
+	args := []string{"show", "-s", "--format=%cI\t%s", ref, "--"}
+
+	out, err := exec.CommandContext(ctx, "git", args...).Output() //nolint:gosec // fixed subcommand
+	if err != nil {
+		return Change{}, fmt.Errorf("git show %s: %w", ref, err)
+	}
+
+	stamp, subject, _ := strings.Cut(strings.TrimSpace(string(out)), "\t")
+
+	at, err := time.Parse(time.RFC3339, stamp)
+	if err != nil {
+		return Change{}, fmt.Errorf("parsing commit time %q: %w", stamp, err)
+	}
+
+	return Change{At: at.UTC(), Subject: subject}, nil
+}

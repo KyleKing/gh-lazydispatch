@@ -52,7 +52,7 @@ func exclusion(group []github.RunTiming) string {
 		}
 
 		switch run.Conclusion {
-		case "timed_out", "startup_failure":
+		case "timed_out", conclusionStartup:
 			return excludedTimedOut
 		case conclusionCanceled:
 			if run.UpdatedAt.After(lastCanceled) {

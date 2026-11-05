@@ -122,3 +122,25 @@ func TestParseLogOutput_StripsBothEscapeSpellings(t *testing.T) {
 		t.Errorf("level is %q, want error", entries[0].Level)
 	}
 }
+
+func TestParseLogOutput_StructuredLinesDeclareTheirOwnLevel(t *testing.T) {
+	t.Parallel()
+
+	raw := "2026-09-01T03:18:13.0000000Z {\"level\":\"info\",\"msg\":\"failure-triage.start\"}\n" +
+		"2026-09-01T03:18:14.0000000Z {\"level\":\"error\",\"msg\":\"step finished\"}\n" +
+		"2026-09-01T03:18:15.0000000Z {\"level\":\"warn\",\"msg\":\"retrying\"}\n" +
+		"2026-09-01T03:18:16.0000000Z {not json: failure}"
+
+	want := []LogLevel{LogLevelInfo, LogLevelError, LogLevelWarning, LogLevelError}
+
+	entries := ParseLogOutput(raw, "step")
+	if len(entries) != len(want) {
+		t.Fatalf("parsed %d entries, want %d", len(entries), len(want))
+	}
+
+	for i, level := range want {
+		if entries[i].Level != level {
+			t.Errorf("line %d level is %q, want %q", i, entries[i].Level, level)
+		}
+	}
+}

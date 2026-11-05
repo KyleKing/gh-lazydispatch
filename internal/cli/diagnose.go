@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"cmp"
 	"fmt"
 	"io"
+	"strings"
+	"time"
 
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
@@ -41,6 +44,9 @@ type jobAnnotation struct {
 type failedStep struct {
 	StepName string `json:"step_name"`
 	Job      string `json:"job,omitempty"`
+	// Summary reads "step (duration): first error-level line", so one line per
+	// failed step says what broke before anyone reads a tail.
+	Summary string `json:"summary"`
 	// LogNote says why the step has no log to read, so an empty tail is never
 	// mistaken for a step that logged nothing wrong.
 	LogNote    string `json:"log_note,omitempty"`
@@ -201,16 +207,24 @@ func tailOf(step *logs.StepLogs, tailLines int) failedStep {
 	errorLines := make([]string, 0, maxErrorLines)
 	end := len(step.Entries)
 
-	var echo logs.CommandEcho
+	var (
+		echo       logs.CommandEcho
+		firstError string
+	)
 
 	for i, entry := range step.Entries {
 		lines = append(lines, entry.Content)
 
-		if entry.Level != logs.LogLevelError || echo.Echoed(entry.Content) {
+		echoed := echo.Echoed(entry.Content)
+		if entry.Level != logs.LogLevelError || echoed {
 			continue
 		}
 
 		end = i + 1
+
+		if firstError == "" {
+			firstError = entry.Content
+		}
 
 		// The cap keeps the last errors, not the first. A test runner narrating
 		// 13,000 passing tests logs error-shaped progress lines for minutes
@@ -229,6 +243,7 @@ func tailOf(step *logs.StepLogs, tailLines int) failedStep {
 		StepIndex:  step.StepIndex,
 		StepName:   step.StepName,
 		Job:        step.JobName,
+		Summary:    summarizeStep(step, firstError),
 		LogNote:    logNote(step),
 		Workflow:   step.Workflow,
 		Conclusion: step.Conclusion,
@@ -236,6 +251,27 @@ func tailOf(step *logs.StepLogs, tailLines int) failedStep {
 		Tail:       lines[start:end],
 		Omitted:    len(lines) - (end - start),
 	}
+}
+
+// maxSummaryRunes keeps a summary on one terminal line.
+const maxSummaryRunes = 160
+
+func summarizeStep(step *logs.StepLogs, firstError string) string {
+	label := step.StepName
+	if step.Duration > 0 {
+		label += " (" + step.Duration.Round(time.Second).String() + ")"
+	}
+
+	cause := strings.TrimSpace(firstError)
+	if cause == "" {
+		cause = cmp.Or(logNote(step), "no error-level line")
+	}
+
+	if runes := []rune(cause); len(runes) > maxSummaryRunes {
+		cause = string(runes[:maxSummaryRunes]) + "..."
+	}
+
+	return label + ": " + cause
 }
 
 func logNote(step *logs.StepLogs) string {

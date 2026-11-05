@@ -383,3 +383,116 @@ func TestSummarizeAuthors_CutsEveryAuthorAtTheSameEpochDates(t *testing.T) {
 		}
 	}
 }
+
+func TestSplitWindows_AreEqualSpansEitherSideOfTheSplit(t *testing.T) {
+	t.Parallel()
+
+	now := mustParse(t, "2026-01-15T12:00:00Z")
+	split := mustParse(t, "2026-01-15T04:30:00Z")
+
+	got := splitWindows(now, split, time.Time{}, time.Time{})
+
+	if !got[0].from.Equal(mustParse(t, "2026-01-14T21:00:00Z")) || !got[0].to.Equal(split) {
+		t.Errorf("baseline = %v to %v, want 21:00 the day before to the split", got[0].from, got[0].to)
+	}
+
+	if !got[1].from.Equal(split) || !got[1].to.Equal(now) {
+		t.Errorf("current = %v to %v, want the split to now", got[1].from, got[1].to)
+	}
+}
+
+func TestSplitWindows_UntilEndsTheCurrentWindowEarlyAndNeverPastNow(t *testing.T) {
+	t.Parallel()
+
+	now := mustParse(t, "2026-01-15T12:00:00Z")
+	split := mustParse(t, "2026-01-15T04:00:00Z")
+	until := mustParse(t, "2026-01-15T06:00:00Z")
+
+	got := splitWindows(now, split, until, time.Time{})
+
+	if !got[1].to.Equal(until) || !got[0].from.Equal(mustParse(t, "2026-01-15T02:00:00Z")) {
+		t.Errorf("windows = %v and %v, want the current to end at until, same-span baseline", got[0], got[1])
+	}
+
+	if late := splitWindows(now, split, mustParse(t, "2026-01-16T00:00:00Z"), time.Time{}); !late[1].to.Equal(now) {
+		t.Errorf("current ends %v, want now when until is later", late[1].to)
+	}
+}
+
+func TestSplitWindows_BaselineUntilMovesTheBaselineKeepingItsSpan(t *testing.T) {
+	t.Parallel()
+
+	now := mustParse(t, "2026-01-15T12:00:00Z")
+	split := mustParse(t, "2026-01-15T04:00:00Z")
+	baselineUntil := mustParse(t, "2026-01-14T20:00:00Z")
+
+	got := splitWindows(now, split, time.Time{}, baselineUntil)
+
+	if !got[0].to.Equal(baselineUntil) || !got[0].from.Equal(mustParse(t, "2026-01-14T12:00:00Z")) {
+		t.Errorf("baseline = %v to %v, want 12:00 to 20:00 the day before", got[0].from, got[0].to)
+	}
+}
+
+func TestNameByWorkflowFile_GroupsRunsWhoseRunNameVaries(t *testing.T) {
+	t.Parallel()
+
+	runs := []github.RunTiming{
+		{Name: "Preview jobs (PR 1)", Path: ".github/workflows/deploy-jobs.yml"},
+		{Name: "Deploy jobs", Path: ".github/workflows/deploy-jobs.yml"},
+		{Name: "CI", Path: ".github/workflows/ci.yml"},
+		{Name: "No path"},
+	}
+
+	got := nameByWorkflowFile(runs)
+
+	want := []string{"deploy-jobs", "deploy-jobs", "CI", "No path"}
+	for i := range got {
+		if got[i].Name != want[i] {
+			t.Errorf("run %d named %q, want %q", i, got[i].Name, want[i])
+		}
+	}
+}
+
+// Workflows named in the ignore list leave the pushes' wall clock and cut no
+// epoch, and an epoch under the minimum prints no percentiles.
+func TestDropIgnoredAndEpochTable_LeaveBotWorkflowsOutAndHideThinEpochs(t *testing.T) {
+	t.Parallel()
+
+	runs := []github.RunTiming{
+		{Name: "CI", Path: ".github/workflows/ci.yml"},
+		{Name: "Label sync", Path: ".github/workflows/pr-label-sync.yml@refs/heads/main"},
+		{Name: "Nudge", Path: ".github/workflows/pr-nudges.yml"},
+	}
+
+	kept, dropped := dropIgnored(runs, []string{"pr-label-sync", "pr-nudges.yml"})
+
+	if len(kept) != 1 || kept[0].Name != "CI" || len(dropped.counts) != 2 {
+		t.Fatalf("kept %+v, dropped %+v", kept, dropped)
+	}
+
+	want := []string{".github/workflows/pr-label-sync.yml", ".github/workflows/pr-nudges.yml"}
+	if strings.Join(dropped.paths, ",") != strings.Join(want, ",") {
+		t.Errorf("ignored paths = %v, want %v", dropped.paths, want)
+	}
+
+	bounds, err := explicitBoundaries(t.Context(), mustParse(t, "2026-10-01T00:00:00Z"), []string{"2026-10-05"})
+	if err != nil || len(bounds) != 2 || !bounds[1].manual {
+		t.Fatalf("explicit boundaries = %+v, %v", bounds, err)
+	}
+
+	var md strings.Builder
+
+	writeEpochTable(&md, []ciEpoch{
+		{Start: "2026-10-01T00:00:00Z", Label: "a", Commits: 40, P50Seconds: 60, P90Seconds: 90, MaxSeconds: 99},
+		{Start: "2026-10-01T09:30:00Z", Label: "b", Commits: 3, Few: true, P90Seconds: 1000},
+	})
+
+	for _, want := range []string{
+		"| 2026-10-01 00:00 | a | 40 | 1m0s | 1m30s | 1m39s |",
+		"| 2026-10-01 09:30 | b | 3 (under minimum) | - | - | - |",
+	} {
+		if !strings.Contains(md.String(), want) {
+			t.Errorf("epoch table missing %q:\n%s", want, md.String())
+		}
+	}
+}
