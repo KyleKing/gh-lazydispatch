@@ -1,3 +1,21 @@
+## v1.17.0 (2026-11-05)
+
+### Feat
+
+- **ci-report**: add epoch control, same-SHA flake rate, a targets block, and a deploy view
+- **ci-timing**: add --until and --baseline-until to bound the split windows, and skip branch detection for non-push events
+- **ci-timing**: add --split to compare the time since a time with an equal span before it
+- **diagnose**: add a one-line summary per failed step and skip the echoed script when finding errors
+- **cli**: add export job-failures for each job's failure rate across a workflow's last runs
+- **runs**: add --event filter and event and seconds columns
+
+### Fix
+
+- **ci-job-failures**: report the failed test id instead of the first console error
+- **cli**: print one command's flags for export <command> --help
+- **logs**: read the level a JSON log line declares instead of matching its words
+- **citiming**: Group runs by workflow file when a run-name expression varies the name
+
 ## v1.16.1 (2026-10-30)
 
 ### Fix
