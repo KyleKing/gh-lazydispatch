@@ -2,6 +2,8 @@ package citiming
 
 import (
 	"fmt"
+	"io"
+	"maps"
 	"regexp"
 	"sort"
 	"strconv"
@@ -28,6 +30,59 @@ type ciQueue struct {
 	EvictionRate float64 `json:"eviction_rate"`
 	P50Wait      float64 `json:"p50_wait_seconds"`
 	P90Wait      float64 `json:"p90_wait_seconds"`
+}
+
+const (
+	queueChunk = 25
+	// A run of this many failed chunks is an outage: the rest are left unread.
+	queueOutage = 2
+)
+
+// readQueueEvents reads the merge queue events of prs a chunk at a time, retrying
+// each chunk. It returns what it read and the pull requests it could not, so one
+// failing GraphQL query costs its chunk and not the whole export.
+func readQueueEvents(
+	client *github.Client, prs []int, pause func(attempt int), stderr io.Writer,
+) (map[int][]github.QueueEvent, []int) {
+	events := make(map[int][]github.QueueEvent, len(prs))
+
+	var unread []int
+
+	failedInARow := 0
+
+	for start := 0; start < len(prs); start += queueChunk {
+		chunk := prs[start:min(start+queueChunk, len(prs))]
+		if failedInARow >= queueOutage {
+			unread = append(unread, chunk...)
+
+			continue
+		}
+
+		var got map[int][]github.QueueEvent
+
+		err := retryReads(func() error {
+			var readErr error
+
+			got, readErr = client.ListMergeQueueEvents(chunk)
+
+			return readErr //nolint:wrapcheck // retryReads returns it to the caller below, which reports it
+		}, pause)
+		if err != nil {
+			notef(stderr, "warning: merge queue events of pull requests %d to %d unread: %v\n",
+				chunk[0], chunk[len(chunk)-1], err)
+
+			unread = append(unread, chunk...)
+			failedInARow++
+
+			continue
+		}
+
+		failedInARow = 0
+
+		maps.Copy(events, got)
+	}
+
+	return events, unread
 }
 
 // queuePRs lists the pull requests behind the merge groups, from their
@@ -126,9 +181,14 @@ func spanIndex(spans []timeWindow, at time.Time) int {
 	return -1
 }
 
-func writeQueue(b *strings.Builder, queue []ciQueue) {
+func writeQueue(b *strings.Builder, queue []ciQueue, unread int) {
 	if len(queue) == 0 {
 		return
+	}
+
+	if unread > 0 {
+		fmt.Fprintf(b, "\n%d pull requests' queue events could not be read and are left out of the table below.\n",
+			unread)
 	}
 
 	writeTableHead(b, "Merge queue entries (from each pull request's timeline). Wait is joining the queue to merging. "+

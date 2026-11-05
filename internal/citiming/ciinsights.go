@@ -100,7 +100,7 @@ func addCacheLogs(client *github.Client, in *ciInsights, recs []jobRec, perJob i
 // groups in stats.
 func addMergeQueue(
 	client *github.Client, stats *ciTimingStats, windows [2]timeWindow, now time.Time, stderr io.Writer,
-) error {
+) {
 	spans := epochSpans(stats.Epochs, now)
 	if len(spans) == 0 {
 		spans = windows[:]
@@ -109,14 +109,10 @@ func addMergeQueue(
 	prs := queuePRs(stats.Commits)
 	notef(stderr, "%d pull requests entered the merge queue; reading their events\n", len(prs))
 
-	events, err := client.ListMergeQueueEvents(prs)
-	if err != nil {
-		return err //nolint:wrapcheck // already names the failed read
-	}
+	events, unread := readQueueEvents(client, prs, backoff, stderr)
 
 	stats.Queue = summarizeQueue(events, spans)
-
-	return nil
+	stats.QueueUnread = unread
 }
 
 func writeInsights(b *strings.Builder, in *ciInsights) {

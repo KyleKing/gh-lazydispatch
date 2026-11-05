@@ -139,6 +139,16 @@ func loadJobs(client *github.Client, ids []int64, stderr io.Writer) (runcache.Jo
 // withRetry rides out the 5xx and TLS timeouts GitHub returns under a long run
 // of reads, which would otherwise abort the whole fetch.
 func withRetry(read func() error) error {
+	return retryReads(read, backoff)
+}
+
+func backoff(attempt int) {
+	time.Sleep(time.Duration(attempt+1) * time.Second)
+}
+
+// retryReads calls read up to jobFetchAttempts times, calling pause with the
+// zero-based attempt number between tries, and returns the last error.
+func retryReads(read func() error, pause func(attempt int)) error {
 	var err error
 
 	for attempt := range jobFetchAttempts {
@@ -146,7 +156,7 @@ func withRetry(read func() error) error {
 			return nil
 		}
 
-		time.Sleep(time.Duration(attempt+1) * time.Second)
+		pause(attempt)
 	}
 
 	return err

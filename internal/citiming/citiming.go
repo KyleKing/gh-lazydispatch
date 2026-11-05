@@ -101,6 +101,7 @@ type ciTimingStats struct {
 	GateJobs    []string           `json:"gate_jobs,omitempty"`
 	Flaky       []ciFlaky          `json:"flaky_workflows,omitempty"`
 	Queue       []ciQueue          `json:"merge_queue,omitempty"`
+	QueueUnread []int              `json:"merge_queue_unread_prs,omitempty"`
 	FlakeTarget float64            `json:"flake_target_percent,omitempty"`
 	MinSeconds  float64            `json:"min_seconds"`
 	P50Seconds  float64            `json:"p50_seconds"`
@@ -259,9 +260,7 @@ func addJobData(
 	}
 
 	if opts.Event == eventMergeGroup {
-		if err := addMergeQueue(client, stats, windows, now, stderr); err != nil {
-			return err
-		}
+		addMergeQueue(client, stats, windows, now, stderr)
 	}
 
 	if opts.CriticalSample > 0 {
@@ -645,7 +644,7 @@ func writeCITimingMarkdown(w io.Writer, filter github.RunFilter, workflow string
 	writeFlaky(&b, stats.Flaky, nil)
 	writeFlakes(&b, stats.Flakes, flakeTargetOr(stats.FlakeTarget))
 	writeInsights(&b, stats.Insights)
-	writeQueue(&b, stats.Queue)
+	writeQueue(&b, stats.Queue, len(stats.QueueUnread))
 	writeAuthorTables(&b, stats.Authors)
 	writeWorkflowEpochTable(&b, stats.Workflows)
 	writePRTable(&b, stats.PRSamples)

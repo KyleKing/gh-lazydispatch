@@ -1,7 +1,9 @@
 package citiming
 
 import (
+	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -94,6 +96,81 @@ func TestSummarizeQueue_CountsEvictionsAndWaitsPerSpan(t *testing.T) {
 	got := summarizeQueue(events, spans)[0]
 	if got.Entries != 2 || got.Evicted != 1 || got.EvictionRate != 0.5 || got.P50Wait != 120 {
 		t.Errorf("queue = %+v, want 2 entries, 1 evicted, a 2m wait", got)
+	}
+}
+
+// graphqlFlake fails the first chunk twice, then reads it, and never reads the chunks after it.
+type graphqlFlake struct {
+	mu       sync.Mutex
+	attempts map[string]int
+}
+
+var errGraphQL = errors.New("exit status 1")
+
+func (g *graphqlFlake) Execute(_ string, args ...string) (string, string, error) {
+	query := args[len(args)-1]
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	for _, first := range []string{"number:1)", "number:26)", "number:51)", "number:76)"} {
+		if strings.Contains(query, first) {
+			g.attempts[first]++
+
+			if first != "number:1)" || g.attempts[first] <= 2 {
+				return "", "gh: Something went wrong while executing your query. Please include `X` in any " +
+					"support request.", errGraphQL
+			}
+		}
+	}
+
+	return `{"data":{"repository":{"p1":{"timelineItems":{"nodes":[` +
+		`{"__typename":"AddedToMergeQueueEvent","createdAt":"2026-01-01T01:00:00Z"},` +
+		`{"__typename":"RemovedFromMergeQueueEvent","createdAt":"2026-01-01T01:02:00Z","reason":"MERGED"}` +
+		`]}}}}}`, "", nil
+}
+
+// A failing GraphQL chunk is retried, then left unread with a warning instead
+// of failing the export, and the markdown says the table is incomplete.
+func TestReadQueueEvents_RetriesAChunkAndReportsWhatItCouldNotRead(t *testing.T) {
+	t.Parallel()
+
+	executor := &graphqlFlake{attempts: map[string]int{}}
+
+	client, err := github.NewClientWithExecutor("o/r", executor)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prs := make([]int, 80)
+	for i := range prs {
+		prs[i] = i + 1
+	}
+
+	var warned strings.Builder
+
+	events, unread := readQueueEvents(client, prs, func(int) {}, &warned)
+
+	if len(events[1]) != 2 || executor.attempts["number:1)"] != jobFetchAttempts-1 {
+		t.Errorf("events[1] = %v after %d queries, want 2 events once the third query succeeds",
+			events[1], executor.attempts["number:1)"])
+	}
+
+	if len(unread) != 55 || unread[0] != 26 || executor.attempts["number:76)"] != 0 {
+		t.Errorf("unread = %v, %d queries for the last chunk; want 26 to 80 with the last chunk never queried",
+			unread, executor.attempts["number:76)"])
+	}
+
+	if strings.Count(warned.String(), "unread") != 2 {
+		t.Errorf("warnings = %q, want one per failed chunk", warned.String())
+	}
+
+	var md strings.Builder
+
+	writeQueue(&md, []ciQueue{{Start: "2026-01-01", Entries: 1, Merged: 1}}, len(unread))
+
+	if !strings.Contains(md.String(), "55 pull requests' queue events could not be read and") {
+		t.Errorf("markdown lacks the incomplete note:\n%s", md.String())
 	}
 }
 
