@@ -55,6 +55,49 @@ func TestRollUpJobFailuresCountsEveryRunAndPicksTheTopStep(t *testing.T) {
 	}
 }
 
+// A job that failed and later passed on the same SHA, in a re-run attempt or a
+// newer run, is flaked. One whose last outcome failed is persisted.
+func TestMarkShaVerdicts_SeparatesAFlakeFromAPersistedFailure(t *testing.T) {
+	t.Parallel()
+
+	day := time.Date(2026, 11, 2, 10, 0, 0, 0, time.UTC)
+	run := func(id int64, sha string, attempt, hour int, conclusion string) github.PagedRun {
+		return github.PagedRun{
+			HeadSHA: sha, RunAttempt: attempt,
+			WorkflowRun: github.WorkflowRun{
+				ID: id, Conclusion: conclusion, CreatedAt: day.Add(time.Duration(hour) * time.Hour),
+			},
+		}
+	}
+	jobOf := func(conclusion string) []github.JobTiming {
+		return []github.JobTiming{{Name: "tests", Conclusion: conclusion}}
+	}
+
+	runs := []github.PagedRun{
+		run(5, "rerun", 3, 4, "success"), run(4, "newer", 1, 3, "success"), run(3, "newer", 1, 2, "failure"),
+		run(2, "red", 1, 1, "failure"), run(1, "gone", 1, 0, conclusionCanceled),
+	}
+	jobs := runcache.Jobs{
+		5: jobOf("success"), 4: jobOf("success"), 3: jobOf("failure"), 2: jobOf("failure"), 1: jobOf("failure"),
+	}
+	attempts := runcache.Attempts{
+		runcache.AttemptKey(5, 1): {{Name: "tests", Conclusion: "failure"}},
+		runcache.AttemptKey(5, 2): {{Name: "tests", Conclusion: "failure"}},
+	}
+
+	if got := rerunAttemptKeys(runs); len(got) != 2 {
+		t.Errorf("attempt keys = %v, want attempts 1 and 2 of run 5", got)
+	}
+
+	report := rollUpJobFailures("ci.yml", []int64{5, 4, 3, 2}, jobs)
+	markShaVerdicts(&report, runs, jobs, attempts)
+
+	row := report.Jobs[0]
+	if strings.Join(row.FlakedSHAs, ",") != "newer,rerun" || strings.Join(row.PersistedSHAs, ",") != "red" {
+		t.Errorf("flaked %v, persisted %v; want newer, rerun and red", row.FlakedSHAs, row.PersistedSHAs)
+	}
+}
+
 func TestFirstErrorInStepStaysInsideTheStepAndSkipsTheEchoedScript(t *testing.T) {
 	t.Parallel()
 

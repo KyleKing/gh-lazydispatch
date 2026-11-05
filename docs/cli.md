@@ -130,7 +130,7 @@ finishes after the push, with how often it finishes last. A warning prints for a
 
 `--split <time>` (RFC 3339 or `YYYY-MM-DD`) replaces both windows: the current one runs from the split to now and the baseline is the equal span before it, so a merge's effect can be read minutes after it lands. It overrides `--window-days` and `--baseline-offset-days`. `--until <time>` ends the current window there instead of now (and sizes the baseline to match), so a later merge does not leak into a merge's "after". `--baseline-until <time>` ends the baseline there (same span) so runs that straddle the merge fall in neither window.
 
-`--workflow <name>` drills into one workflow (the one that finishes last most
+`--workflow <name>` (run name or file name) drills into one workflow (the one that finishes last most
 often, from the per-workflow table). It reads that workflow's jobs, one API
 call per run, and adds a job table (runner labels, queue wait, run time) and a
 slowest-steps table for each window. Queue wait is a job's start minus its
@@ -171,7 +171,9 @@ failed) as a percentage of head SHAs per workflow and per job, against
 gate job that echoes another workflow's failure does not count. Failures are
 classed as timed out, runner lost (a failed job with no failed step), canceled,
 or step failed from conclusions alone. A re-run is a lower bound, because a
-rebase or fix pushed after a red run counts as real.
+rebase or fix pushed after a red run counts as real. Every workflow and job row
+also lists the head SHAs behind its counts (`flaked_members`,
+`failed_members`), so the numerator can be re-checked against the `shas` denominator.
 
 A run created more than ten minutes after the push's first run (a title
 edit, a label, a manual dispatch) is a retrigger: it stays in `run_details`
@@ -228,6 +230,9 @@ With `--event merge_group`, the entries of the merge queue come from each pull
 request's timeline (GraphQL): entries, merges, evictions (any removal other
 than a merge) with their reasons, and the wait from joining the queue to
 merging. Merge group CI time uses the same windows and epochs as any event.
+Timelines are read 25 pull requests to a query. A failing query is retried, and
+one that still fails leaves its pull requests out with a warning, the
+`merge_queue_unread_prs` list in the JSON, and a note above the markdown table.
 
 `--sample-prs n` picks each author's n largest pull requests (by files
 changed) from their eight most-pushed, and `--pr 1,2` adds named ones. Each
@@ -261,6 +266,11 @@ full rather than sampled. Each job row carries runs, failures, the step that
 failed most often, and the first error-level line that step logged in the
 newest such failure. Canceled runs and canceled or skipped jobs count as
 neither. Job lists are cached on disk, so a rerun only reads new runs.
+
+Each row also gives `flaked_shas`, the head SHAs where the job failed and a
+later attempt or run of the workflow passed it, and `persisted_shas`, those
+where its last outcome failed. The earlier attempts of re-run runs are read
+through `runs/{id}/attempts/{n}/jobs` and cached in `ci-attempts.json`.
 
 `export <command> --help` prints one command's flags.
 

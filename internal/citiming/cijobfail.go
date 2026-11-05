@@ -20,17 +20,21 @@ type JobFailureOptions struct {
 }
 
 // jobFailureRow is one job's record across the examined runs. FirstError comes
-// from the log of the newest failed run in which TopStep failed.
+// from the log of the newest failed run in which TopStep failed. FlakedSHAs are
+// the head SHAs where the job failed and a later attempt or run passed it, and
+// PersistedSHAs those where its last outcome failed.
 type jobFailureRow struct {
 	instance        *failedInstance
-	Job             string  `json:"job"`
-	TopStep         string  `json:"top_failing_step,omitempty"`
-	FirstError      string  `json:"first_error,omitempty"`
-	Runs            int     `json:"runs"`
-	Failed          int     `json:"failed"`
-	FailedShare     float64 `json:"failed_share"`
-	TopStepFailed   int     `json:"top_failing_step_failures,omitempty"`
-	LatestFailedRun int64   `json:"latest_failed_run,omitempty"`
+	Job             string   `json:"job"`
+	TopStep         string   `json:"top_failing_step,omitempty"`
+	FirstError      string   `json:"first_error,omitempty"`
+	FlakedSHAs      []string `json:"flaked_shas,omitempty"`
+	PersistedSHAs   []string `json:"persisted_shas,omitempty"`
+	Runs            int      `json:"runs"`
+	Failed          int      `json:"failed"`
+	FailedShare     float64  `json:"failed_share"`
+	TopStepFailed   int      `json:"top_failing_step_failures,omitempty"`
+	LatestFailedRun int64    `json:"latest_failed_run,omitempty"`
 }
 
 type failedInstance struct {
@@ -79,7 +83,13 @@ func JobFailures(client *github.Client, opts JobFailureOptions, stdout, stderr i
 		return err
 	}
 
+	attempts, err := loadAttempts(client, rerunAttemptKeys(runs), stderr)
+	if err != nil {
+		return err
+	}
+
 	report := rollUpJobFailures(opts.Workflow, ids, jobs)
+	markShaVerdicts(&report, runs, jobs, attempts)
 	if len(runs) > 0 {
 		report.To = runs[0].CreatedAt.Format(timeFormat)
 		report.From = runs[len(runs)-1].CreatedAt.Format(timeFormat)

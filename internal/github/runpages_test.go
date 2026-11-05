@@ -12,7 +12,7 @@ import (
 func runsPayload(first, count int) string {
 	runs := make([]string, 0, count)
 	for id := first; id < first+count; id++ {
-		runs = append(runs, fmt.Sprintf(`{"id":%d,"conclusion":"success"}`, id))
+		runs = append(runs, fmt.Sprintf(`{"id":%d,"conclusion":"success","head_sha":"sha%d","run_attempt":2}`, id, id))
 	}
 
 	return `{"workflow_runs":[` + strings.Join(runs, ",") + `]}`
@@ -40,5 +40,9 @@ func TestListRunsPaged_ReadsPastOnePageAndStopsAtTheLimit(t *testing.T) {
 	limited, err := client.ListRunsPaged(github.RunQuery{Workflow: "smoke.yml", Limit: 150})
 	if err != nil || len(limited) != 150 || limited[149].ID != 949 {
 		t.Fatalf("limit 150 returned %d runs, err %v, want 150 ending at run 949", len(limited), err)
+	}
+
+	if limited[0].HeadSHA != "sha1000" || limited[0].RunAttempt != 2 {
+		t.Errorf("first run = %+v, want its head SHA and attempt read", limited[0])
 	}
 }

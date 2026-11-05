@@ -59,7 +59,11 @@ pattern ("signatures" already does that and needs maintaining), and a model summ
 Per job: runs finished, runs failed, failed share, the step that failed most often, and
 the first error-level line the newest such failure logged in that step. Canceled runs,
 and jobs that were canceled or skipped, are not counted. Reads one job list per run
-(cached on disk, so a rerun only reads new runs) and one log per failing job.`
+(cached on disk, so a rerun only reads new runs) and one log per failing job.
+
+flaked_shas lists the head SHAs where the job failed and a later attempt or run passed
+it. persisted_shas lists those where its last outcome failed. Earlier attempts of re-run
+runs are read too (cached).`
 
 	flagsCiTiming = `Flags (ci-timing):
   --branch <name>     Default: the repository's default branch

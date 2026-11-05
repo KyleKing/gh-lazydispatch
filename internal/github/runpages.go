@@ -11,10 +11,18 @@ import (
 // runsPageSize is the largest per_page the Actions API accepts.
 const runsPageSize = 100
 
+// PagedRun is a run from ListRunsPaged, with the commit it ran on and how many
+// times it was attempted.
+type PagedRun struct {
+	HeadSHA string
+	WorkflowRun
+	RunAttempt int
+}
+
 // ListRunsPaged fetches up to q.Limit runs matching q, newest first, reading as
 // many pages as it takes. ListRuns stops at one page of 100.
-func (c *Client) ListRunsPaged(q RunQuery) ([]WorkflowRun, error) {
-	var runs []WorkflowRun
+func (c *Client) ListRunsPaged(q RunQuery) ([]PagedRun, error) {
+	var runs []PagedRun
 
 	for page := 1; q.Limit <= 0 || len(runs) < q.Limit; page++ {
 		batch, err := c.runsPage(q, page)
@@ -36,7 +44,7 @@ func (c *Client) ListRunsPaged(q RunQuery) ([]WorkflowRun, error) {
 	return runs, nil
 }
 
-func (c *Client) runsPage(q RunQuery, page int) ([]WorkflowRun, error) {
+func (c *Client) runsPage(q RunQuery, page int) ([]PagedRun, error) {
 	params := url.Values{}
 	params.Set("per_page", strconv.Itoa(runsPageSize))
 	params.Set("page", strconv.Itoa(page))
@@ -66,7 +74,9 @@ func (c *Client) runsPage(q RunQuery, page int) ([]WorkflowRun, error) {
 			Conclusion string    `json:"conclusion"`
 			HeadBranch string    `json:"head_branch"`
 			Event      string    `json:"event"`
+			HeadSHA    string    `json:"head_sha"`
 			ID         int64     `json:"id"`
+			RunAttempt int       `json:"run_attempt"`
 		} `json:"workflow_runs"`
 	}
 
@@ -74,12 +84,15 @@ func (c *Client) runsPage(q RunQuery, page int) ([]WorkflowRun, error) {
 		return nil, fmt.Errorf("parsing run list page %d: %w", page, err)
 	}
 
-	runs := make([]WorkflowRun, 0, len(payload.WorkflowRuns))
+	runs := make([]PagedRun, 0, len(payload.WorkflowRuns))
 	for i := range payload.WorkflowRuns {
 		r := &payload.WorkflowRuns[i]
-		runs = append(runs, WorkflowRun{
-			ID: r.ID, Name: r.Name, Status: r.Status, Conclusion: r.Conclusion,
-			HeadBranch: r.HeadBranch, Event: r.Event, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+		runs = append(runs, PagedRun{
+			HeadSHA: r.HeadSHA, RunAttempt: r.RunAttempt,
+			WorkflowRun: WorkflowRun{
+				ID: r.ID, Name: r.Name, Status: r.Status, Conclusion: r.Conclusion,
+				HeadBranch: r.HeadBranch, Event: r.Event, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+			},
 		})
 	}
 
