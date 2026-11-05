@@ -61,7 +61,14 @@ func TestSummarizeFlakes_SeparatesSameSHAFlakesFromRealFailures(t *testing.T) {
 
 	writeFlakes(&md, got, DefaultFlakeTarget)
 
-	for _, want := range []string{"25.00% of SHAs against a target of 0.50%", "| Tests / unit | 1 | 33.33% |"} {
+	if tests := got.Workflows[0]; tests.Name != "Tests" || len(tests.FlakedMembers) != 1 ||
+		tests.FlakedMembers[0] != "flaky" || len(tests.FailedMembers) != 1 || tests.FailedMembers[0] != "red" {
+		t.Errorf("Tests row = %+v, want flaky and red as the member SHAs", tests)
+	}
+
+	for _, want := range []string{
+		"25.00% of SHAs against a target of 0.50%", "| Tests / unit | 1 | 33.33% |", "| Tests | flaky |",
+	} {
 		if !strings.Contains(md.String(), want) {
 			t.Errorf("markdown missing %q:\n%s", want, md.String())
 		}

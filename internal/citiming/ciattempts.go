@@ -32,11 +32,14 @@ const (
 
 // ciFlakeRow counts head SHAs for one workflow or job. SHAs is the number of
 // head SHAs the workflow reached a verdict on, which job rows divide by too.
+// FlakedMembers and FailedMembers name the SHAs behind Flaked and Failed.
 type ciFlakeRow struct {
-	Name   string `json:"name"`
-	SHAs   int    `json:"shas"`
-	Flaked int    `json:"flaked"`
-	Failed int    `json:"failed"`
+	Name          string   `json:"name"`
+	FlakedMembers []string `json:"flaked_members,omitempty"`
+	FailedMembers []string `json:"failed_members,omitempty"`
+	SHAs          int      `json:"shas"`
+	Flaked        int      `json:"flaked"`
+	Failed        int      `json:"failed"`
 }
 
 // ciFlakes is the same-SHA view of reliability: a flake is a job that failed in
@@ -327,11 +330,14 @@ func (t *flakeTally) addGroup(key flakeKey, runs []*ciRun, attempts runcache.Att
 	}
 
 	for name := range flakedJobs {
-		rowOf(t.jobs, key.workflow+" / "+name).Flaked++
+		row := rowOf(t.jobs, key.workflow+" / "+name)
+		row.Flaked++
+		row.FlakedMembers = append(row.FlakedMembers, key.sha)
 	}
 
 	if len(flakedJobs) > 0 {
 		wf.Flaked++
+		wf.FlakedMembers = append(wf.FlakedMembers, key.sha)
 		t.shaFlaked[key.sha] = true
 	}
 
@@ -364,7 +370,9 @@ func (t *flakeTally) addFailure(
 		switch {
 		case failing(jobs[i].Conclusion):
 			echo = false
-			rowOf(t.jobs, key.workflow+" / "+jobs[i].Name).Failed++
+			row := rowOf(t.jobs, key.workflow+" / "+jobs[i].Name)
+			row.Failed++
+			row.FailedMembers = append(row.FailedMembers, key.sha)
 			t.failed[classify(&jobs[i])]++
 		case jobs[i].Conclusion == conclusionCanceled:
 			t.failed[classCancelled]++
@@ -376,6 +384,7 @@ func (t *flakeTally) addFailure(
 	}
 
 	wf.Failed++
+	wf.FailedMembers = append(wf.FailedMembers, key.sha)
 	t.shaFailed[key.sha] = true
 }
 
@@ -422,6 +431,9 @@ func sortedRows(rows map[string]*ciFlakeRow) []ciFlakeRow {
 
 	for _, r := range rows {
 		if r.Flaked > 0 || r.Failed > 0 {
+			sort.Strings(r.FlakedMembers)
+			sort.Strings(r.FailedMembers)
+
 			out = append(out, *r)
 		}
 	}
@@ -449,6 +461,42 @@ func sharePercent(n, of int) float64 {
 	return float64(n) / float64(of) * percentScale
 }
 
+const (
+	shortSHA     = 10
+	maxListedSHA = 8
+)
+
+// writeFlakedSHAs lists the head SHAs behind each workflow's flakes. The JSON
+// carries every member.
+func writeFlakedSHAs(b *strings.Builder, rows []ciFlakeRow) {
+	header := false
+
+	for i := range rows {
+		members := rows[i].FlakedMembers
+		if len(members) == 0 {
+			continue
+		}
+
+		if !header {
+			writeTableHead(b, "Head SHAs that flaked, per workflow.", "<Workflow", "<SHAs")
+
+			header = true
+		}
+
+		listed := make([]string, 0, maxListedSHA)
+		for _, sha := range members[:min(len(members), maxListedSHA)] {
+			listed = append(listed, sha[:min(len(sha), shortSHA)])
+		}
+
+		more := ""
+		if len(members) > maxListedSHA {
+			more = fmt.Sprintf(" (+%d more)", len(members)-maxListedSHA)
+		}
+
+		fmt.Fprintf(b, "| %s | %s%s |\n", rows[i].Name, strings.Join(listed, ", "), more)
+	}
+}
+
 // writeFlakes prints the same-SHA tables for the workflows and jobs that flaked or failed.
 func writeFlakes(b *strings.Builder, f *ciFlakes, target float64) {
 	if f == nil {
@@ -474,6 +522,8 @@ func writeFlakes(b *strings.Builder, f *ciFlakes, target float64) {
 		fmt.Fprintf(b, "| %s | %d | %d | %.2f%% | %d | %.2f%% |\n", r.Name, r.SHAs, r.Flaked,
 			sharePercent(r.Flaked, r.SHAs), r.Failed, sharePercent(r.Failed, r.SHAs))
 	}
+
+	writeFlakedSHAs(b, f.Workflows)
 
 	writeTableHead(b, "Per job, as a share of the head SHAs its workflow reached a verdict on.",
 		"<Job", "Flaked", "Flake rate", "Real failed", "Real failure rate")
