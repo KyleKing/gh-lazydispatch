@@ -1,3 +1,19 @@
+## v1.18.0 (2026-11-05)
+
+### Feat
+
+- **ci-job-failures**: report which failing jobs later passed on the same SHA
+- **ci-timing**: list the head SHAs behind each same-SHA flake and failure count
+
+### Fix
+
+- **ci-timing**: retry merge queue reads per chunk and report the pull requests left unread
+- **ci-timing**: accept a workflow file name for the per-job tables
+
+### Perf
+
+- **ci-timing**: stop retrying reads that fail with 401, 403, 404, 410, or 422
+
 ## v1.17.0 (2026-11-05)
 
 ### Feat
