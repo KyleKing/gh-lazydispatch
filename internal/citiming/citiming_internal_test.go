@@ -1,6 +1,7 @@
 package citiming
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -506,5 +507,46 @@ func TestDropIgnoredAndEpochTable_LeaveBotWorkflowsOutAndHideThinEpochs(t *testi
 		if !strings.Contains(md.String(), want) {
 			t.Errorf("epoch table missing %q:\n%s", want, md.String())
 		}
+	}
+}
+
+// A read that GitHub fails transiently is retried with a pause between tries
+// and none after the last, while a missing run or a spent rate limit stops at
+// the first call so no further quota is spent.
+func TestRetryReads_RetriesOnlyWhatARetryCanFix(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                string
+		failWith            string
+		succeedOn           int
+		wantCalls, wantStop int
+	}{
+		{"server error exhausts the attempts", "gh: Bad Gateway (HTTP 502)", 0, jobFetchAttempts, jobFetchAttempts - 1},
+		{"recovers on the third try", "gh: Bad Gateway (HTTP 502)", 3, 3, 2},
+		{"missing run is not retried", "gh: Not Found (HTTP 404)", 0, 1, 0},
+		{"rate limit is not retried", "gh: API rate limit exceeded (HTTP 403)", 0, 1, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			calls, pauses := 0, 0
+			err := retryReads(func() error {
+				calls++
+
+				if calls == tt.succeedOn {
+					return nil
+				}
+
+				return errors.New(tt.failWith) //nolint:err113 // a gh failure as the client wraps it
+			}, func(int) { pauses++ })
+
+			if calls != tt.wantCalls || pauses != tt.wantStop || (tt.succeedOn == 0) != (err != nil) {
+				t.Errorf("calls %d, pauses %d, err %v; want %d calls and %d pauses",
+					calls, pauses, err, tt.wantCalls, tt.wantStop)
+			}
+		})
 	}
 }

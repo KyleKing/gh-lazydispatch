@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -147,19 +148,31 @@ func backoff(attempt int) {
 }
 
 // retryReads calls read up to jobFetchAttempts times, calling pause with the
-// zero-based attempt number between tries, and returns the last error.
+// zero-based attempt number between tries. It stops at once on an error a
+// retry cannot fix and returns the last error.
 func retryReads(read func() error, pause func(attempt int)) error {
 	var err error
 
 	for attempt := range jobFetchAttempts {
-		if err = read(); err == nil {
-			return nil
+		if err = read(); err == nil || !retryable(err) {
+			return err
 		}
 
-		pause(attempt)
+		if attempt < jobFetchAttempts-1 {
+			pause(attempt)
+		}
 	}
 
 	return err
+}
+
+// permanentStatus marks the statuses gh reports as "(HTTP nnn)" that a retry
+// seconds later cannot change: a missing run, an expired token, or a spent
+// rate limit, which each retry would only spend more calls against.
+var permanentStatus = regexp.MustCompile(`HTTP (401|403|404|410|422)\b`) //nolint:gochecknoglobals // read-only
+
+func retryable(err error) bool {
+	return !permanentStatus.MatchString(err.Error())
 }
 
 func listJobsWithRetry(client *github.Client, id int64) ([]github.JobTiming, error) {
