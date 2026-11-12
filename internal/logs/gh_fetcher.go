@@ -2,6 +2,7 @@ package logs
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -50,7 +51,7 @@ func (f *GHFetcher) FetchStepLogsReal(runID int64, workflow string) ([]*StepLogs
 		job := &jobs[i]
 
 		// Fetch logs for this job using gh CLI
-		jobLogs, err := f.fetchJobLogs(runID, job.ID)
+		jobLogs, err := f.fetchJobLogs(runID, job)
 		if err != nil {
 			// Store error but continue with other jobs
 			for _, step := range job.Steps {
@@ -84,19 +85,48 @@ func (f *GHFetcher) FetchStepLogsReal(runID int64, workflow string) ([]*StepLogs
 	return allStepLogs, nil
 }
 
-// fetchJobLogs uses gh CLI to download logs for a specific job.
-func (f *GHFetcher) fetchJobLogs(runID, jobID int64) (string, error) {
-	// Use gh CLI to view logs
-	// Command: gh run view <run-id> --log --job <job-id>
+// jobLogReader is implemented by clients that can read a completed job's log
+// directly, which `gh run view` refuses to do while the run is in progress.
+type jobLogReader interface {
+	GetJobLog(jobID int64) (string, error)
+}
+
+// fetchJobLogs downloads a job's log with `gh run view`. When that fails for a
+// completed job, it reads the job's log directly, so a finished job is readable
+// before its run completes.
+func (f *GHFetcher) fetchJobLogs(runID int64, job *github.Job) (string, error) {
 	stdout, stderr, err := f.executor.Execute("gh", "run", "view",
 		strconv.FormatInt(runID, 10),
 		"--log",
-		"--job", strconv.FormatInt(jobID, 10))
-	if err != nil {
-		return "", fmt.Errorf("gh command failed: %w (stderr: %s)", err, stderr)
+		"--job", strconv.FormatInt(job.ID, 10))
+	if err == nil {
+		return stdout, nil
 	}
 
-	return stdout, nil
+	err = fmt.Errorf("gh command failed: %w (stderr: %s)", err, stderr)
+
+	reader, ok := f.client.(jobLogReader)
+	if !ok || job.Status != github.StatusCompleted {
+		return "", err
+	}
+
+	raw, readErr := reader.GetJobLog(job.ID)
+	if readErr != nil {
+		return "", errors.Join(err, readErr)
+	}
+
+	return prefixUnresolved(job.Name, raw), nil
+}
+
+// prefixUnresolved gives each line of a raw job log the prefix `gh run view
+// --log` writes, with the step left unresolved because the raw log names none.
+func prefixUnresolved(jobName, raw string) string {
+	lines := strings.Split(strings.TrimRight(raw, "\n"), "\n")
+	for i, line := range lines {
+		lines[i] = jobName + "\t" + unresolvedStep + "\t" + line
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // logFieldCount is how many tab-separated fields a `gh run view --log` line

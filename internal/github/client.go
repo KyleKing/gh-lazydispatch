@@ -118,6 +118,18 @@ func (c *Client) GetJobAnnotations(jobID int64) ([]Annotation, error) {
 	return annotations, nil
 }
 
+// GetJobLog fetches a job's raw log, which GitHub serves once the job is
+// complete even while other jobs in the run are still running.
+func (c *Client) GetJobLog(jobID int64) (string, error) {
+	stdout, stderr, err := c.executor.Execute("gh", "api", "--allow-escape-sequences",
+		fmt.Sprintf("repos/%s/actions/jobs/%d/logs", c.fullName(), jobID))
+	if err != nil {
+		return "", fmt.Errorf("reading the job's log: %w (stderr: %s)", err, stderr)
+	}
+
+	return stdout, nil
+}
+
 // GetLatestRun fetches the most recent run of a workflow file, or the most
 // recent run in the repository when workflowFile is empty.
 func (c *Client) GetLatestRun(workflowFile string) (*WorkflowRun, error) {

@@ -166,6 +166,48 @@ func TestRecorded_FailureSignaturesAndExport(t *testing.T) {
 	}
 }
 
+// TestRecorded_FailedJobReadableWhileRunInProgress replays `gh run view`
+// refusing a job's log because its run is unfinished, and the job log API
+// serving it anyway. The refusal is the one gh printed for such a run, grafted
+// onto the failing run's recorded jobs, since a recording cannot catch a run
+// mid-flight.
+//
+//nolint:paralleltest // Apply sets the process environment
+func TestRecorded_FailedJobReadableWhileRunInProgress(t *testing.T) {
+	fetcher, s := recordedFetcher(t, "failed-job-in-progress-run")
+
+	steps, err := fetcher.FetchStepLogsReal(recordedFailingRun, "demo-chain-check.yml")
+	if err != nil {
+		t.Fatalf("fetching step logs: %v", err)
+	}
+
+	s.RequireAllPlayed(t)
+
+	runLogs := NewRunLogs("demo-pipeline", "main")
+
+	var failed *StepLogs
+
+	for _, step := range steps {
+		runLogs.AddStep(step)
+
+		if step.Error != nil {
+			t.Fatalf("step %q has error %v, want the job's log read", step.StepName, step.Error)
+		}
+
+		if step.JobFailed() && len(step.Entries) > 0 {
+			failed = step
+		}
+	}
+
+	if failed == nil {
+		t.Fatal("no failed job carried log entries")
+	}
+
+	if detections := Detect(runLogs); len(detections) != 1 || detections[0].Label != "Network failure" {
+		t.Errorf("Detect reported %v, want the signature the run emitted", detections)
+	}
+}
+
 // TestRecorded_FixturesMatchTheRecordedShape is the guard the hand-written
 // fixtures needed. Every log fixture under testdata/logs is a stand-in for
 // `gh run view --log` output, so each line must carry the same
