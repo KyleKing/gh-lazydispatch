@@ -26,47 +26,62 @@ var (
 )
 
 func main() {
-	if cli.IsCommand(os.Args[1:]) {
-		os.Exit(cli.Run(os.Args[1:], os.Stdout, os.Stderr))
+	os.Exit(run())
+}
+
+func run() int {
+	showVersion, showHelp := cli.RootFlags(flag.CommandLine)
+
+	rec := keyusage.Open(app.UsageApp)
+	rec.Invoke(cli.Root(), os.Args[1:])
+
+	code := dispatch(rec, showVersion, showHelp)
+
+	if err := rec.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: closing the usage log: %v\n", err)
 	}
 
-	var (
-		showVersion bool
-		showHelp    bool
-	)
+	return code
+}
 
-	flag.BoolVar(&showVersion, "version", false, "Show version")
-	flag.BoolVar(&showVersion, "v", false, "Show version (shorthand)")
-	flag.BoolVar(&showHelp, "help", false, "Show help")
-	flag.BoolVar(&showHelp, "h", false, "Show help (shorthand)")
+func dispatch(rec *keyusage.Recorder, showVersion, showHelp *bool) int {
+	if cli.IsCommand(os.Args[1:]) {
+		return cli.Run(os.Args[1:], os.Stdout, os.Stderr)
+	}
+
 	flag.Parse()
 
-	if showVersion {
+	if *showVersion {
 		fmt.Printf("gh-lazydispatch %s (commit: %s, built: %s)\n", version, commit, date)
-		os.Exit(0)
+
+		return 0
 	}
 
-	if showHelp {
+	if *showHelp {
 		printHelp()
-		os.Exit(0)
+
+		return 0
 	}
 
 	cwd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting current directory: %v\n", err)
-		os.Exit(1)
+
+		return 1
 	}
 
 	root, err := git.RepoRoot(cwd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+
+		return 1
 	}
 
 	workflows, failures, err := workflow.Discover(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error discovering workflows: %v\n", err)
-		os.Exit(1)
+
+		return 1
 	}
 
 	for _, failure := range failures {
@@ -81,7 +96,7 @@ func main() {
 			fmt.Printf("\n%d workflow file(s) failed to parse, listed above.\n", len(failures))
 		}
 
-		os.Exit(0)
+		return 0
 	}
 
 	repo, err := runner.DetectRepo()
@@ -100,21 +115,17 @@ func main() {
 
 	ui.InitTheme(theme.Detect())
 
-	rec := keyusage.Open(app.UsageApp)
-	runTUI(app.New(workflows, history, repo, app.WithRepoRoot(root), app.WithUsage(rec)), rec)
+	return runTUI(app.New(workflows, history, repo, app.WithRepoRoot(root), app.WithUsage(rec)))
 }
 
-func runTUI(model app.Model, rec *keyusage.Recorder) {
-	_, runErr := tea.NewProgram(model).Run()
+func runTUI(model app.Model) int {
+	if _, err := tea.NewProgram(model).Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
 
-	if err := rec.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: closing the usage log: %v\n", err)
+		return 1
 	}
 
-	if runErr != nil {
-		fmt.Fprintf(os.Stderr, "Error running program: %v\n", runErr)
-		os.Exit(1)
-	}
+	return 0
 }
 
 func printHelp() {

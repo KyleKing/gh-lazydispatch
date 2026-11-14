@@ -26,25 +26,33 @@ const defaultWatchInterval = 15 * time.Second
 // command, nothing else, matching a file that may end up quoted into a prompt.
 const digestFilePerm = 0o600
 
+type watchFlagValues struct {
+	interval  *int
+	pr        *int
+	out       *string
+	fixCmd    *string
+	notifyCmd *string
+	fix       *bool
+}
+
+func watchFlags(fs *flag.FlagSet) watchFlagValues {
+	return watchFlagValues{
+		interval:  fs.Int("interval", int(defaultWatchInterval/time.Second), "seconds between polls"),
+		out:       fs.String("out", "", "where to write the digest (default: ./lazydispatch-run-<id>.md)"),
+		pr:        fs.Int("pr", 0, "watch a pull request's checks instead of one run"),
+		notifyCmd: fs.String("notify-cmd", "", "a command run with the outcome as its argument"),
+		fix: fs.Bool("fix", false,
+			"on failure, hand the digest to an interactive Claude Code session to investigate"),
+		fixCmd: fs.String("fix-cmd", "claude", "the command --fix spawns"),
+	}
+}
+
 func runWatch(args []string, stdout, stderr io.Writer) error {
 	fs := newFlagSet("watch")
 
-	var (
-		intervalSecs, pr int
-		outPath, fixCmd  string
-		notifyCmd        string
-		fix              bool
-	)
+	f := watchFlags(fs)
 
-	fs.IntVar(&intervalSecs, "interval", int(defaultWatchInterval/time.Second), "seconds between polls")
-	fs.StringVar(&outPath, "out", "", "where to write the digest (default: ./lazydispatch-run-<id>.md)")
-	fs.IntVar(&pr, "pr", 0, "watch a pull request's checks instead of one run")
-	fs.StringVar(&notifyCmd, "notify-cmd", "", "a command run with the outcome as its argument")
-	fs.BoolVar(&fix, "fix", false,
-		"on failure, hand the digest to an interactive Claude Code session to investigate")
-	fs.StringVar(&fixCmd, "fix-cmd", "claude", "the command --fix spawns")
-
-	runID, err := parseWatchTarget(fs, args, &pr)
+	runID, err := parseWatchTarget(fs, args, f.pr)
 	if err != nil {
 		return err
 	}
@@ -55,14 +63,14 @@ func runWatch(args []string, stdout, stderr io.Writer) error {
 	}
 
 	cond := listener.RunDone(client, runID)
-	if pr > 0 {
-		cond = listener.ChecksSettled(client, pr)
+	if *f.pr > 0 {
+		cond = listener.ChecksSettled(client, *f.pr)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	outcome, err := listener.Wait(ctx, cond, time.Duration(intervalSecs)*time.Second,
+	outcome, err := listener.Wait(ctx, cond, time.Duration(*f.interval)*time.Second,
 		func(line string) { notef(stderr, "%s\n", line) })
 	if err != nil {
 		return fmt.Errorf("waiting: %w", err)
@@ -70,7 +78,7 @@ func runWatch(args []string, stdout, stderr io.Writer) error {
 
 	notef(stderr, "%s\n", outcome.Summary)
 
-	paths, err := writeDigests(client, digestRuns(runID, outcome), outPath, stderr)
+	paths, err := writeDigests(client, digestRuns(runID, outcome), *f.out, stderr)
 	if err != nil {
 		return err
 	}
@@ -81,11 +89,11 @@ func runWatch(args []string, stdout, stderr io.Writer) error {
 		}
 	}
 
-	if err := listener.Notify(ctx, stderr, notifyCmd, outcome); err != nil {
+	if err := listener.Notify(ctx, stderr, *f.notifyCmd, outcome); err != nil {
 		return fmt.Errorf("notifying: %w", err)
 	}
 
-	if !fix || !outcome.Failed || len(paths) == 0 || len(outcome.Runs) == 0 {
+	if !*f.fix || !outcome.Failed || len(paths) == 0 || len(outcome.Runs) == 0 {
 		return nil
 	}
 
@@ -94,7 +102,7 @@ func runWatch(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("fetching run %d: %w", outcome.Runs[0], err)
 	}
 
-	return investigate(fixCmd, paths[0], run)
+	return investigate(*f.fixCmd, paths[0], run)
 }
 
 // parseWatchTarget reads the run ID that watch waits on, or none when --pr

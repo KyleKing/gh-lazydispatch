@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -25,28 +26,40 @@ type logsExport struct {
 	RunID int64        `json:"run_id"`
 }
 
-func exportLogs(args []string, stdout, stderr io.Writer) error {
-	fs := newFlagSet("logs")
+type logsFlagValues struct {
+	cfg        *logs.FilterConfig
+	errorsOnly *bool
+	format     *string
+	limit      *int
+}
+
+func logsFlags(fs *flag.FlagSet) logsFlagValues {
 	cfg := logs.NewFilterConfig()
 
-	var (
-		errorsOnly bool
-		format     string
-		limit      int
-	)
+	f := logsFlagValues{
+		cfg:        cfg,
+		errorsOnly: fs.Bool("errors-only", false, "keep only error lines"),
+		limit:      fs.Int("limit", 0, "cap lines per step"),
+		format:     fs.String("format", "json", "json or md"),
+	}
 
-	fs.BoolVar(&errorsOnly, "errors-only", false, "keep only error lines")
 	fs.StringVar(&cfg.SearchTerm, "grep", "", "keep lines matching a regular expression")
 	fs.IntVar(&cfg.StepIndex, "step", -1, "one step, by index")
-	fs.IntVar(&limit, "limit", 0, "cap lines per step")
-	fs.StringVar(&format, "format", "json", "json or md")
+
+	return f
+}
+
+func exportLogs(args []string, stdout, stderr io.Writer) error {
+	fs := newFlagSet("logs")
+	f := logsFlags(fs)
+	cfg := f.cfg
 
 	runID, err := parseRunID(fs, args)
 	if err != nil {
 		return err
 	}
 
-	if errorsOnly {
+	if *f.errorsOnly {
 		cfg.Level = logs.FilterErrors
 	}
 
@@ -62,7 +75,7 @@ func exportLogs(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	return writeLogs(stdout, stderr, runLogs, cfg, format, runID, limit)
+	return writeLogs(stdout, stderr, runLogs, cfg, *f.format, runID, *f.limit)
 }
 
 func writeLogs(

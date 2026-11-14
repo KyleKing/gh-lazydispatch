@@ -23,28 +23,7 @@ func runExport(args []string, stdout, stderr io.Writer) error {
 		return ErrUsage
 	}
 
-	switch args[0] {
-	case "workflows":
-		return exportWorkflows(args[1:], stdout, stderr)
-	case "chains":
-		return exportChains(args[1:], stdout, stderr)
-	case "runs":
-		return exportRuns(args[1:], stdout, stderr)
-	case "logs":
-		return exportLogs(args[1:], stdout, stderr)
-	case "diagnose":
-		return exportDiagnose(args[1:], stdout, stderr)
-	case "job-failures":
-		return exportJobFailures(args[1:], stdout, stderr)
-	case "keys":
-		return exportKeys(args[1:], stdout, stderr)
-	case "ci-report":
-		return exportCIReport(args[1:], stdout, stderr)
-	case "ci-timing":
-		return exportCITiming(args[1:], stdout, stderr)
-	default:
-		return fmt.Errorf("%w: unknown export command %q", ErrUsage, args[0])
-	}
+	return runExportCommand(args[0], args[1:], stdout, stderr)
 }
 
 // newFlagSet builds a flag set that reports usage through ErrUsage rather than
@@ -232,24 +211,27 @@ type runSummary struct {
 
 const defaultRunLimit = 20
 
-func exportRuns(args []string, stdout, stderr io.Writer) error {
-	fs := newFlagSet("runs")
-	query := github.RunQuery{}
-
-	var current bool
+func runsFlags(fs *flag.FlagSet) (*github.RunQuery, *bool) {
+	query := &github.RunQuery{}
 
 	fs.StringVar(&query.Workflow, "workflow", "", "workflow filename")
 	fs.StringVar(&query.Branch, "branch", "", "branch name")
 	fs.StringVar(&query.Status, "status", "", "run status or conclusion")
 	fs.StringVar(&query.Event, "event", "", "triggering event (push, pull_request, merge_group)")
 	fs.IntVar(&query.Limit, "limit", defaultRunLimit, "maximum runs")
-	fs.BoolVar(&current, "current", false, "one row per workflow on the branch")
+
+	return query, fs.Bool("current", false, "one row per workflow on the branch")
+}
+
+func exportRuns(args []string, stdout, stderr io.Writer) error {
+	fs := newFlagSet("runs")
+	query, current := runsFlags(fs)
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("%w: %w", ErrUsage, err)
 	}
 
-	if current && query.Branch == "" {
+	if *current && query.Branch == "" {
 		return fmt.Errorf("%w: --current needs --branch", ErrUsage)
 	}
 
@@ -258,7 +240,7 @@ func exportRuns(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	runs, err := listRuns(client, query, current)
+	runs, err := listRuns(client, *query, *current)
 	if err != nil {
 		return err
 	}

@@ -47,6 +47,8 @@ It finds every workflow with a `workflow_dispatch` trigger and lists them. `tab`
 
 When you do not remember a key, `a` lists the actions that apply to whatever has focus and `:` opens a command bar that completes over this repository's own branches, chains, and workflows.
 
+The TUI logs the keys you press and every run logs the subcommand and flag names it used, never their values or arguments, to `$LAZYDISPATCH_USAGE_DIR` or `~/Sync/.lazydispatch/usage/` when that exists, and `gh lazydispatch export keys` lists the ones you never use.
+
 ## Reading a failed run
 
 `gh run view --log` returns the whole log, and `--log-failed` still returns every line of every failed job. `export diagnose` parses it once and returns the failure:

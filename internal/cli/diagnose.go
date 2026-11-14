@@ -2,6 +2,7 @@ package cli
 
 import (
 	"cmp"
+	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -73,12 +74,14 @@ type signature struct {
 	StepIndex int    `json:"step_index"`
 }
 
+func diagnoseFlags(fs *flag.FlagSet) *int {
+	return fs.Int("tail", defaultTailLines, "lines to keep from each failed step; 0 for signatures only")
+}
+
 func exportDiagnose(args []string, stdout, stderr io.Writer) error {
 	fs := newFlagSet("diagnose")
 
-	var tailLines int
-
-	fs.IntVar(&tailLines, "tail", defaultTailLines, "lines to keep from each failed step; 0 for signatures only")
+	tailLines := diagnoseFlags(fs)
 
 	runID, err := parseRunID(fs, args)
 	if err != nil {
@@ -100,7 +103,7 @@ func exportDiagnose(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	result := buildDiagnosis(run, runLogs, tailLines)
+	result := buildDiagnosis(run, runLogs, *tailLines)
 	result.Annotations = fetchAnnotations(client, runLogs, stderr)
 	reportKept(stderr, countLines(runLogs), countTail(result))
 

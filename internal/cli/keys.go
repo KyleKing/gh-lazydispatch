@@ -25,6 +25,7 @@ func exportKeys(args []string, stdout, _ io.Writer) error {
 	}
 
 	km := app.Keymap()
+	km[keyusage.CLI] = keyusage.Commands(Root())
 
 	u, err := keyusage.Load(dir, km)
 	if err != nil {

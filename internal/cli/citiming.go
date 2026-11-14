@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -12,10 +13,8 @@ import (
 
 const defaultJobFailureRuns = 100
 
-func exportCITiming(args []string, stdout, stderr io.Writer) error {
-	fs := newFlagSet("ci-timing")
-
-	var opts citiming.Options
+func ciTimingFlags(fs *flag.FlagSet) *citiming.Options {
+	opts := &citiming.Options{}
 
 	fs.StringVar(&opts.Branch, "branch", "", "branch to sample; default branch for push, any branch for other events")
 	fs.StringVar(&opts.Event, "event", "push", "event that triggered the runs (push, pull_request, merge_group)")
@@ -73,11 +72,19 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&opts.PRs, "pr", "", "comma-separated pull request numbers to spot-check")
 	fs.StringVar(&opts.Format, "format", citiming.FormatJSON, "json (raw rows and summaries) or md (comparison table)")
 
+	return opts
+}
+
+func exportCITiming(args []string, stdout, stderr io.Writer) error {
+	fs := newFlagSet("ci-timing")
+
+	opts := ciTimingFlags(fs)
+
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("%w: %w", ErrUsage, err)
 	}
 
-	if err := checkCITimingOptions(&opts); err != nil {
+	if err := checkCITimingOptions(opts); err != nil {
 		return err
 	}
 
@@ -86,7 +93,7 @@ func exportCITiming(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	return usageError(citiming.Run(client, opts, stdout, stderr))
+	return usageError(citiming.Run(client, *opts, stdout, stderr))
 }
 
 func checkCITimingOptions(opts *citiming.Options) error {
@@ -139,15 +146,21 @@ func parseSplit(value string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("%w: --split %q is not RFC 3339 or YYYY-MM-DD", ErrUsage, value)
 }
 
-func exportJobFailures(args []string, stdout, stderr io.Writer) error {
-	fs := newFlagSet("job-failures")
-
-	var opts citiming.JobFailureOptions
+func jobFailureFlags(fs *flag.FlagSet) *citiming.JobFailureOptions {
+	opts := &citiming.JobFailureOptions{}
 
 	fs.StringVar(&opts.Workflow, "workflow", "", "workflow filename, e.g. post-deploy-smoke.yml")
 	fs.StringVar(&opts.Branch, "branch", "", "branch name")
 	fs.StringVar(&opts.Event, "event", "", "triggering event")
 	fs.IntVar(&opts.Runs, "runs", defaultJobFailureRuns, "newest finished runs to read")
+
+	return opts
+}
+
+func exportJobFailures(args []string, stdout, stderr io.Writer) error {
+	fs := newFlagSet("job-failures")
+
+	opts := jobFailureFlags(fs)
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("%w: %w", ErrUsage, err)
@@ -158,14 +171,18 @@ func exportJobFailures(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	return usageError(citiming.JobFailures(client, opts, stdout, stderr))
+	return usageError(citiming.JobFailures(client, *opts, stdout, stderr))
 }
 
-func exportCIReport(args []string, stdout, stderr io.Writer) error {
-	fs := newFlagSet("ci-report")
+type ciReportFlagValues struct {
+	opts            *citiming.ReportOptions
+	deployWorkflows *string
+	postDeploy      *string
+}
 
-	var opts citiming.ReportOptions
-
+func ciReportFlags(fs *flag.FlagSet) ciReportFlagValues {
+	f := ciReportFlagValues{opts: &citiming.ReportOptions{}}
+	opts := f.opts
 	opts.Targets = citiming.DefaultTargets()
 
 	fs.Func("since", "RFC 3339 time or YYYY-MM-DD: start of the range, in place of --days",
@@ -190,10 +207,10 @@ func exportCIReport(args []string, stdout, stderr io.Writer) error {
 	fs.Float64Var(&opts.Targets.Flake, "target-flake", opts.Targets.Flake,
 		"target share of head SHAs, in percent, with a same-SHA flake")
 	fs.DurationVar(&opts.Targets.Queue, "target-queue", opts.Targets.Queue, "target merge queue wait")
-	deployWorkflows := fs.String("deploy-workflow", "", "comma-separated deploy workflow files to report")
+	f.deployWorkflows = fs.String("deploy-workflow", "", "comma-separated deploy workflow files to report")
 	fs.StringVar(&opts.Deploy.Smoke, "smoke-workflow", "",
 		"with --deploy-workflow, the workflow file that verifies a deploy")
-	postDeploy := fs.String("post-deploy-workflow", "", "with --deploy-workflow, workflow files counted per SHA")
+	f.postDeploy = fs.String("post-deploy-workflow", "", "with --deploy-workflow, workflow files counted per SHA")
 	fs.StringVar(&opts.Deploy.UpMarker, "deploy-up", "",
 		"with --deploy-workflow, part of the job or step name that does the deploy; empty uses the whole run")
 	fs.StringVar(&opts.Authors, "author", "", "limit pull request runs to these GitHub logins (comma-separated)")
@@ -207,6 +224,15 @@ func exportCIReport(args []string, stdout, stderr io.Writer) error {
 	fs.IntVar(&opts.CacheLogs, "cache-logs", citiming.ReportCacheLogs,
 		"job logs to read per job with a cache step, for cache hit rates; 0 skips")
 
+	return f
+}
+
+func exportCIReport(args []string, stdout, stderr io.Writer) error {
+	fs := newFlagSet("ci-report")
+
+	f := ciReportFlags(fs)
+	opts := f.opts
+
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("%w: %w", ErrUsage, err)
 	}
@@ -219,8 +245,8 @@ func exportCIReport(args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("%w: --until must be later than --since", ErrUsage)
 	}
 
-	opts.Deploy.Workflows = splitCSV(*deployWorkflows)
-	opts.Deploy.PostDeploy = splitCSV(*postDeploy)
+	opts.Deploy.Workflows = splitCSV(*f.deployWorkflows)
+	opts.Deploy.PostDeploy = splitCSV(*f.postDeploy)
 
 	if opts.Deploy.Smoke != "" && len(opts.Deploy.PostDeploy) == 0 {
 		opts.Deploy.PostDeploy = []string{opts.Deploy.Smoke}
@@ -231,7 +257,7 @@ func exportCIReport(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	return usageError(citiming.Report(client, opts, stdout, stderr))
+	return usageError(citiming.Report(client, *opts, stdout, stderr))
 }
 
 // usageError reports options the citiming package rejected as a usage error.
