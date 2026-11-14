@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
 )
 
 const testWorkflowDeploy = "deploy.yml"

@@ -7,7 +7,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 // errRefused stands in for a token that cannot read the environments.

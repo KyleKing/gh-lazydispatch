@@ -3,7 +3,7 @@ package workflow_test
 import (
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 func TestParse_WithInputs(t *testing.T) {

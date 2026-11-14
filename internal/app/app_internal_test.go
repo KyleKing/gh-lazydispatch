@@ -5,9 +5,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 const (

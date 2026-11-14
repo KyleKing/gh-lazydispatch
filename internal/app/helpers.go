@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 func (m Model) currentHistoryEntries() []frecency.HistoryEntry {

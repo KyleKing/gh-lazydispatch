@@ -7,7 +7,7 @@ import (
 
 	"github.com/kyleking/aragonite/keyusage"
 
-	"github.com/kyleking/gh-lazydispatch/internal/app"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/app"
 )
 
 // exportKeys reads the key usage log back against the keymap.

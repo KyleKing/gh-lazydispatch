@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/runcache"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runcache"
 )
 
 func day(n int) time.Time { return time.Date(2026, 1, n, 0, 0, 0, 0, time.UTC) }

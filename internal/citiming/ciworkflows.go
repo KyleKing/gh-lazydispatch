@@ -4,7 +4,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 // Reasons a commit stays out of the percentiles. A commit whose CI GitHub cut

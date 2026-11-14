@@ -7,7 +7,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 var timelineBase = time.Date(2026, 8, 31, 18, 10, 45, 0, time.UTC)

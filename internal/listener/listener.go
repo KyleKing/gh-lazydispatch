@@ -11,7 +11,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 // Outcome is what a condition found when it settled.

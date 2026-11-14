@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/citiming"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/citiming"
 )
 
 const defaultJobFailureRuns = 100

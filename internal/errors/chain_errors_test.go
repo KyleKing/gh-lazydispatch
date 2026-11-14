@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	chainerr "github.com/kyleking/gh-lazydispatch/internal/errors"
+	chainerr "github.com/kyleking/gh-lazydispatch/v2/internal/errors"
 )
 
 // errMockCause is a placeholder underlying cause used across test fixtures.

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/git"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/git"
 )
 
 // epochsFile lists pipeline changes the git history cannot show, such as a

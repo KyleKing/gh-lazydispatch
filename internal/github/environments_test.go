@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/testutil"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/testutil"
 )
 
 // errRefused stands in for a token that cannot read the environments.

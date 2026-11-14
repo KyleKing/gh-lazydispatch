@@ -10,10 +10,10 @@ import (
 	"github.com/kyleking/aragonite/cache"
 	"github.com/kyleking/aragonite/ghcassette"
 
-	"github.com/kyleking/gh-lazydispatch/internal/testrepo"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/testrepo"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/panes"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 func TestMain(m *testing.M) {

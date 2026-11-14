@@ -21,8 +21,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 // scratchRepoPrefix guards against ever dispatching into a repo that the

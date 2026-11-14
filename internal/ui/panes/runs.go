@@ -10,8 +10,8 @@ import (
 	"github.com/kyleking/aragonite/forge"
 	"github.com/kyleking/aragonite/tui/table"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
 )
 
 // RunsScope names which of GitHub's runs the pane asks for. The branch scope

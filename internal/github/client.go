@@ -14,7 +14,7 @@ import (
 	"github.com/kyleking/aragonite/forge"
 	ghforge "github.com/kyleking/aragonite/forge/github"
 
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/exec"
 )
 
 // ErrInvalidRepositoryFormat indicates a repository string was not in "owner/repo" format.

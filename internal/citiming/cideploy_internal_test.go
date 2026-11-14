@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/runcache"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runcache"
 )
 
 // A deploy is measured from its commit time to its up step, its smoke run is

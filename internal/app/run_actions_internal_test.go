@@ -8,9 +8,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/panes"
 )
 
 func modelOnARun(t *testing.T) Model {

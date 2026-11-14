@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/runcache"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runcache"
 )
 
 // DeployConfig names the workflows of a deploy pipeline, as workflow file names.

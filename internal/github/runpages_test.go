@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/testutil"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/testutil"
 )
 
 func runsPayload(first, count int) string {

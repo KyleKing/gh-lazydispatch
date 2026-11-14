@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 const (

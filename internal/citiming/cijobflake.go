@@ -3,8 +3,8 @@ package citiming
 import (
 	"sort"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/runcache"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runcache"
 )
 
 // rerunAttemptKeys lists the earlier attempts of re-run runs that were not

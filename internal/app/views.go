@@ -9,12 +9,12 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/kyleking/aragonite/tui/table"
 
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
-	"github.com/kyleking/gh-lazydispatch/internal/validation"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/panes"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/validation"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 const (

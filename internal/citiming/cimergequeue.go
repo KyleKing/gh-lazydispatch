@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 // reasonMerged is the removal reason of an entry that merged.

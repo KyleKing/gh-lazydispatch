@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/runcache"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runcache"
 )
 
 // jobRec is one job of a sampled push, kept with its run and push so every

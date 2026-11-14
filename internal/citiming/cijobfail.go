@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/logs"
-	"github.com/kyleking/gh-lazydispatch/internal/runcache"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runcache"
 )
 
 // JobFailureOptions selects the runs whose jobs are counted. Runs is how many of

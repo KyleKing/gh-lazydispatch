@@ -5,7 +5,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/kyleking/aragonite/tui/overlay"
 
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
 )
 
 // Context represents a modal that can be pushed onto the stack.

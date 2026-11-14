@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/listener"
-	"github.com/kyleking/gh-lazydispatch/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/listener"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/logs"
 )
 
 // defaultWatchInterval is how often watch polls a run it has not seen finish.

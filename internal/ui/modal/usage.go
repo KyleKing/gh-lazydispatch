@@ -9,11 +9,11 @@ import (
 	"charm.land/bubbles/v2/key"
 	"github.com/kyleking/aragonite/keyusage"
 
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	"github.com/kyleking/gh-lazydispatch/internal/config"
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/logs"
-	"github.com/kyleking/gh-lazydispatch/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/config"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runner"
 )
 
 // recorder is implemented by modals that read free text or take dynamic keys,

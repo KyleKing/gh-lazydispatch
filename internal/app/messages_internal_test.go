@@ -6,14 +6,14 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/logs"
-	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
-	"github.com/kyleking/gh-lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/panes"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/watcher"
 )
 
 // routedMessages is one instance of every message Update dispatches by type.

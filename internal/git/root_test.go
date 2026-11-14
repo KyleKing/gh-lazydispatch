@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/git"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/git"
 )
 
 // A subdirectory has to resolve to the same root as the checkout itself, which

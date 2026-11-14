@@ -3,7 +3,7 @@ package runcache
 import (
 	"path/filepath"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 // Jobs maps a finished run's ID to its jobs. A finished run's jobs do not

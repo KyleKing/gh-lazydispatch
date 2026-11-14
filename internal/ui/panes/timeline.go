@@ -8,9 +8,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/timeline"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/timeline"
 )
 
 // TimelineModel draws a run's jobs on one time axis, and the steps of a job

@@ -3,9 +3,9 @@ package demo_test
 import (
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/demo"
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/demo"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/logs"
 )
 
 func TestNewMockConfig(t *testing.T) {

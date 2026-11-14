@@ -6,7 +6,7 @@ import (
 
 	"github.com/kyleking/aragonite/cache"
 
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
 )
 
 // LogFetcher defines the interface for fetching logs.

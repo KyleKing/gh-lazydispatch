@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 // PollInterval is the default interval between API polls.

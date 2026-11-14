@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kyleking/gh-lazydispatch/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/logs"
 )
 
 // stepExport is one step's parsed lines. Timestamps and escape sequences are

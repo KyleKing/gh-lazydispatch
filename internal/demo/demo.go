@@ -4,10 +4,10 @@ package demo
 import (
 	"encoding/json"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/testutil"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/testutil"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 const (

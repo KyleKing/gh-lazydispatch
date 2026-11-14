@@ -7,8 +7,8 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/kyleking/gh-lazydispatch/internal/rule"
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/rule"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
 )
 
 // defaultTextInputWidth is the standard character width for single-line text inputs across modals.

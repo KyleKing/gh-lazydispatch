@@ -10,8 +10,8 @@ import (
 	"github.com/kyleking/aragonite/display"
 	"github.com/kyleking/aragonite/tui/table"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
 )
 
 // flakyColumns describes the pass-rate table, one row per workflow.

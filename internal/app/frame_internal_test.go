@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/exp/golden"
 
-	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/panes"
 )
 
 // A frame is a stack of boxes at known coordinates, and every rendering defect

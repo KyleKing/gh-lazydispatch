@@ -6,9 +6,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	"github.com/kyleking/gh-lazydispatch/internal/logs"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/modal"
 )
 
 // Update routed every message to the modal stack whenever a modal was open, so

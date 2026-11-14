@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/kyleking/gh-lazydispatch/internal/rule"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/rule"
 )
 
 // workflowDispatchTrigger is the GitHub Actions trigger name that makes a workflow dispatchable.

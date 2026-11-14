@@ -3,7 +3,7 @@ package chain_test
 import (
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
 )
 
 func TestInterpolate_VarInputs(t *testing.T) {

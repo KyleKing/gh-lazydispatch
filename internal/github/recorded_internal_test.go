@@ -10,8 +10,8 @@ import (
 	"github.com/kyleking/aragonite/cache"
 	"github.com/kyleking/aragonite/ghcassette"
 
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
-	"github.com/kyleking/gh-lazydispatch/internal/testrepo"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/exec"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/testrepo"
 )
 
 // cassetteDir is where the cassettes live, resolved before any test moves the

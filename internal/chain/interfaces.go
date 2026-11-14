@@ -1,8 +1,8 @@
 package chain
 
 import (
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/watcher"
 )
 
 // GitHubClient defines the interface for GitHub API operations needed by the chain executor.

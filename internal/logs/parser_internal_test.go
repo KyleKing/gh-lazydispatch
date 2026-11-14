@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 // The fixture is real `gh run view --log` output. Its lines carry a

@@ -1,8 +1,8 @@
 package testutil
 
 import (
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/watcher"
 )
 
 // MockGitHubClient implements both chain.GitHubClient and watcher.GitHubClient interfaces.

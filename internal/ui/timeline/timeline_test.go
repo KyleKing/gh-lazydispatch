@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/ui/timeline"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/timeline"
 )
 
 var base = time.Date(2026, 8, 31, 18, 10, 45, 0, time.UTC)

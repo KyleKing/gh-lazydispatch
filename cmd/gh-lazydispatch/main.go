@@ -10,13 +10,13 @@ import (
 	"github.com/kyleking/aragonite/keyusage"
 	"github.com/kyleking/aragonite/tui/theme"
 
-	"github.com/kyleking/gh-lazydispatch/internal/app"
-	"github.com/kyleking/gh-lazydispatch/internal/cli"
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/git"
-	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/app"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/cli"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/git"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 var (

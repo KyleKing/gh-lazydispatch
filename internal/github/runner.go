@@ -6,7 +6,7 @@ import (
 
 	ghforge "github.com/kyleking/aragonite/forge/github"
 
-	"github.com/kyleking/gh-lazydispatch/internal/exec"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/exec"
 )
 
 // runnerContext returns a context that routes aragonite's gh calls through this

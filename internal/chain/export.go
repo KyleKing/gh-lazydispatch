@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kyleking/gh-lazydispatch/internal/config"
-	"github.com/kyleking/gh-lazydispatch/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/config"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runner"
 )
 
 // ExportAsBash generates a bash script from a chain definition.

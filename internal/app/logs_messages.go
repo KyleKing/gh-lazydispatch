@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	"github.com/kyleking/gh-lazydispatch/internal/logs"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/logs"
 )
 
 // FetchLogsMsg requests fetching logs for a chain or run. Step names the step

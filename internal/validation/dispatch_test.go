@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/validation"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/validation"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 // A dispatch that GitHub will reject is worth rejecting locally, where the

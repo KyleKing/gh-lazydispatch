@@ -11,7 +11,7 @@ import (
 
 	"github.com/kyleking/aragonite/ghcassette"
 
-	"github.com/kyleking/gh-lazydispatch/internal/testrepo"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/testrepo"
 )
 
 func TestMain(m *testing.M) {

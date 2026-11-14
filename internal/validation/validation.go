@@ -6,8 +6,8 @@ import (
 
 	"github.com/sahilm/fuzzy"
 
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 // Status represents the validation state of a historical input.

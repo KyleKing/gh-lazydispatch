@@ -4,7 +4,7 @@
 
 ### Project Context
 
-- **Module**: `github.com/kyleking/gh-lazydispatch`
+- **Module**: `github.com/kyleking/gh-lazydispatch/v2`
 - **Type**: CLI application (GH CLI extension + standalone)
 - **Description**: Interactive GitHub Actions workflow dispatcher TUI with fuzzy selection, input configuration, and frecency-based history
 

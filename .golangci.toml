@@ -10,14 +10,14 @@ enable = ["gci", "gofmt", "gofumpt", "goimports"]
 sections = [
   "standard",
   "default",
-  "prefix(github.com/kyleking/gh-lazydispatch)",
+  "prefix(github.com/kyleking/gh-lazydispatch/v2)",
 ]
 
 [formatters.settings.gofumpt.extra]
 group-params = true
 
 [formatters.settings.goimports]
-local-prefixes = ["github.com/kyleking/gh-lazydispatch"]
+local-prefixes = ["github.com/kyleking/gh-lazydispatch/v2"]
 
 [linters]
 disable = [

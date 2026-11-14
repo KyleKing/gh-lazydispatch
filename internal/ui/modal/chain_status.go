@@ -8,10 +8,10 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/atotto/clipboard"
 
-	"github.com/kyleking/gh-lazydispatch/internal/browser"
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	chainerr "github.com/kyleking/gh-lazydispatch/internal/errors"
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/browser"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
+	chainerr "github.com/kyleking/gh-lazydispatch/v2/internal/errors"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
 )
 
 // ChainStatusStopMsg is sent when the user requests to stop the chain.

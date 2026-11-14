@@ -31,7 +31,7 @@ Other tools that trigger Actions runs, read their logs, or run them somewhere ot
 # GitHub CLI extension
 gh extension install kyleking/gh-lazydispatch
 # Go
-go install github.com/kyleking/gh-lazydispatch/cmd/gh-lazydispatch@latest
+go install github.com/kyleking/gh-lazydispatch/v2/cmd/gh-lazydispatch@latest
 ```
 
 ## Quick start

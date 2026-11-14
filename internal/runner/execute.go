@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	execpkg "github.com/kyleking/gh-lazydispatch/internal/exec"
+	execpkg "github.com/kyleking/gh-lazydispatch/v2/internal/exec"
 )
 
 const (

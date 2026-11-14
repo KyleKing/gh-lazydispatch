@@ -8,15 +8,15 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	"github.com/kyleking/gh-lazydispatch/internal/config"
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/rule"
-	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/validation"
-	"github.com/kyleking/gh-lazydispatch/internal/watcher"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/config"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/rule"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/validation"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 // contractChain is a chain with a variable of every kind the variable modal

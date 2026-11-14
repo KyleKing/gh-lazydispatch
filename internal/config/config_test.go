@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/config"
 )
 
 func TestLoad_ValidConfig(t *testing.T) {

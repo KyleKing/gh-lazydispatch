@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/panes"
 )
 
 // Each case here stands for a binding that was previously shadowed: digits by

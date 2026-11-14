@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/chain"
-	"github.com/kyleking/gh-lazydispatch/internal/config"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/chain"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/config"
 )
 
 // The preview and the export interpolate the same templates the executor

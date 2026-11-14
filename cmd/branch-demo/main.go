@@ -8,8 +8,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/kyleking/gh-lazydispatch/internal/git"
-	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/git"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui/modal"
 )
 
 // defaultDemoWidth and defaultDemoHeight size the modal before the first WindowSizeMsg arrives.

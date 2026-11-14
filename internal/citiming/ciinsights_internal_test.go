@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 func insightRec(push *ciTiming, name, runner string, start, seconds int, steps ...github.StepTiming) jobRec {

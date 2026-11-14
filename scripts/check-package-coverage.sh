@@ -18,7 +18,7 @@ status=0
 
 while read -r pkg floor; do
     [ -z "$pkg" ] && continue
-    got=$(printf '%s\n' "$output" | awk -v p="github.com/kyleking/gh-lazydispatch/$pkg" '$2 == p {gsub(/%/, "", $5); print $5}')
+    got=$(printf '%s\n' "$output" | awk -v p="github.com/kyleking/gh-lazydispatch/v2/$pkg" '$2 == p {gsub(/%/, "", $5); print $5}')
     if [ -z "$got" ]; then
         echo "no coverage reported for $pkg" >&2
         status=1

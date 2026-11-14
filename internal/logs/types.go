@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 // LogEntry represents a single log line with metadata.

@@ -12,9 +12,9 @@ import (
 
 	agstats "github.com/kyleking/aragonite/stats"
 
-	"github.com/kyleking/gh-lazydispatch/internal/git"
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/runcache"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/git"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runcache"
 )
 
 // Percentiles read off the sorted per-commit durations.

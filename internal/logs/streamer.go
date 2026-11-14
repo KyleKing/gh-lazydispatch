@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
 )
 
 // StreamPollInterval is the interval between log polling for active runs.

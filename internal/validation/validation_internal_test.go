@@ -3,8 +3,8 @@ package validation
 import (
 	"testing"
 
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/workflow"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/workflow"
 )
 
 // validateHistoryConfigCase is a single ValidateHistoryConfig table-test case,

@@ -1,4 +1,4 @@
-module github.com/kyleking/gh-lazydispatch
+module github.com/kyleking/gh-lazydispatch/v2
 
 go 1.26.0
 

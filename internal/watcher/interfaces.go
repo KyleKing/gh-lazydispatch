@@ -1,7 +1,7 @@
 // Package watcher provides workflow run monitoring and status tracking functionality.
 package watcher
 
-import "github.com/kyleking/gh-lazydispatch/internal/github"
+import "github.com/kyleking/gh-lazydispatch/v2/internal/github"
 
 // GitHubClient defines the interface for GitHub API operations needed by the watcher.
 type GitHubClient interface {

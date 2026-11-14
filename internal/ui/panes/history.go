@@ -8,8 +8,8 @@ import (
 	"github.com/kyleking/aragonite/display"
 	"github.com/kyleking/aragonite/tui/table"
 
-	"github.com/kyleking/gh-lazydispatch/internal/frecency"
-	"github.com/kyleking/gh-lazydispatch/internal/ui"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/frecency"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/ui"
 )
 
 // historyGutter is the selection indicator plus the workflow/chain type glyph.

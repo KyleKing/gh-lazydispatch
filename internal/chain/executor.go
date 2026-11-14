@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyleking/gh-lazydispatch/internal/config"
-	chainerr "github.com/kyleking/gh-lazydispatch/internal/errors"
-	"github.com/kyleking/gh-lazydispatch/internal/github"
-	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/watcher"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/config"
+	chainerr "github.com/kyleking/gh-lazydispatch/v2/internal/errors"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/github"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/runner"
+	"github.com/kyleking/gh-lazydispatch/v2/internal/watcher"
 )
 
 // ChainStatus represents the overall status of a chain execution.
