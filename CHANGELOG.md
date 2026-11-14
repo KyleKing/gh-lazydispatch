@@ -1,3 +1,13 @@
+## v2.1.0 (2026-11-14)
+
+### Feat
+
+- record CLI subcommands and flags in key usage
+
+### Fix
+
+- move the module path to /v2 so go install resolves v2 releases
+
 ## v2.0.0 (2026-11-14)
 
 ### Feat
