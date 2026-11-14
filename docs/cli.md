@@ -325,18 +325,13 @@ checks the remaining allowance first and stops with the time it resets rather
 than writing a report from part of the data. Runs and jobs are cached, so a
 rerun after the reset resumes.
 
-## telemetry
+## keys
 
 ```sh
-gh-lazydispatch export telemetry [--format json|md]
+gh-lazydispatch export keys
 ```
 
-The TUI counts which commands (`:runs`), action-menu verbs, dispatches, and chain
-starts you invoke, in `telemetry.json` beside the frecency history under
-`$XDG_CACHE_HOME/lazydispatch`. The file holds event names, counts, and first and
-last use, never arguments, and nothing is sent anywhere. This command reads it
-back, most-used first with the days each feature has sat idle, which answers
-which features are worth keeping.
+The TUI logs each key pressed outside a text field, with the pane or modal it landed in (`workflows`, `runs`, `help`), into `$LAZYDISPATCH_USAGE_DIR` or, when `~/Sync` exists, `~/Sync/.lazydispatch/usage/`. With neither, nothing is recorded. Text typed into the command bar, filters, and input modals never reaches the log. This command reads it back against the keymap and lists the keys never pressed, the ones gone 30 days without a press, keys pressed where nothing is bound, and keys bound to different things in different panes.
 
 ## workflows and chains
 

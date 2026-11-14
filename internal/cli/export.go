@@ -36,8 +36,8 @@ func runExport(args []string, stdout, stderr io.Writer) error {
 		return exportDiagnose(args[1:], stdout, stderr)
 	case "job-failures":
 		return exportJobFailures(args[1:], stdout, stderr)
-	case "telemetry":
-		return exportTelemetry(args[1:], stdout, stderr)
+	case "keys":
+		return exportKeys(args[1:], stdout, stderr)
 	case "ci-report":
 		return exportCIReport(args[1:], stdout, stderr)
 	case "ci-timing":

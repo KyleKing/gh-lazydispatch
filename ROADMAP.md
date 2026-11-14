@@ -335,10 +335,10 @@ The open question is whether chains stay a user-facing concept. Keeping the
 file and the names costs nothing; growing the DSL costs a second scheduler
 maintained against `workflow_run`.
 
-## Phase 12: telemetry, and the second round of aragonite consolidation
+## Phase 12: key usage, and the second round of aragonite consolidation
 
-Phase 7 moved reads to aragonite. This phase moves two more things: feature
-usage, which nothing here tracks yet, and the TUI primitives that this
+Phase 7 moved reads to aragonite. This phase moves two more things: key
+usage, which nothing here tracked yet, and the TUI primitives that this
 repository and [gh-repo-dashboard](https://github.com/KyleKing/gh-repo-dashboard)
 have each built their own copy of. Verified by reading both checkouts rather
 than assumed: `internal/app/command.go`, `commands_registry.go`, and
@@ -347,31 +347,9 @@ behind them, `internal/ui/table.go` and `styles.go` hold `PaneBox` and
 `ScrollWindow` here with no aragonite counterpart, and
 `aragonite/tui/keyhint` already exists and is imported by neither.
 
-### Telemetry (shipped)
+### Key usage (shipped)
 
-`internal/telemetry` and `export telemetry` landed as designed below: three call sites, a local file, no transport, and a read-back command.
-
-The question is which features I stop using, and when, across every TUI I
-run, not just this one. `internal/frecency` is the wrong home: it exists to
-rank *dispatch targets* for the picker, keyed on workflow and inputs, and
-mixing a usage counter into it would make `TopForRepo` answer two questions
-at once. Telemetry gets its own package, `internal/telemetry`, shaped like
-`frecency.Store` on purpose (a JSON file under the same XDG cache directory,
-`Load`/`Save`, an atomic write) so the extraction later is a lift, not a
-redesign:
-
-- `Track(event string)` increments a count and a last-seen timestamp, called
-  from the command bar's dispatch point, the action leader's verb dispatch,
-  and chain/dispatch execution. Three call sites, not one per verb, because
-  the surface to instrument is "what got invoked," not the name of each verb
-- Local-only, one file, no network. There is nothing here to argue about on
-  the security front (no secrets, no upload) because there is no transport
-- Stays in this repository until a second TUI wants it. Point of truth:
-  gh-repo-dashboard adding its own copy of `Track` is the trigger to extract,
-  not a decision made ahead of that need
-- No dashboard or view over it in this phase. The first cut is the write
-  path; a `gh-lazydispatch export telemetry` (or a TUI pane) that reads it
-  back is worth doing once there is more than one week of data to look at
+The TUI logs the keys pressed outside text fields through aragonite's `keyusage` package, per pane or modal, and `gh-lazydispatch export keys` reads the log back against the keymap. It replaced the per-feature counter this phase first shipped.
 
 ### Extraction to aragonite (shipped in aragonite v1.9.0)
 

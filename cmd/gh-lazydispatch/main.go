@@ -7,6 +7,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/keyusage"
 	"github.com/kyleking/aragonite/tui/theme"
 
 	"github.com/kyleking/gh-lazydispatch/internal/app"
@@ -14,7 +15,6 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/frecency"
 	"github.com/kyleking/gh-lazydispatch/internal/git"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/telemetry"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/workflow"
 )
@@ -100,26 +100,21 @@ func main() {
 
 	ui.InitTheme(theme.Detect())
 
-	model := app.New(workflows, history, repo, app.WithRepoRoot(root), app.WithTelemetry(openTelemetry()))
-
-	p := tea.NewProgram(model)
-	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
-		os.Exit(1)
-	}
+	rec := keyusage.Open(app.UsageApp)
+	runTUI(app.New(workflows, history, repo, app.WithRepoRoot(root), app.WithUsage(rec)), rec)
 }
 
-// openTelemetry returns the usage counter, or nil (which counts nothing) when
-// its file cannot be read.
-func openTelemetry() *telemetry.Tracker {
-	tracker, err := telemetry.Open(telemetry.CachePath())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: usage counts are off: %v\n", err)
+func runTUI(model app.Model, rec *keyusage.Recorder) {
+	_, runErr := tea.NewProgram(model).Run()
 
-		return nil
+	if err := rec.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: closing the usage log: %v\n", err)
 	}
 
-	return tracker
+	if runErr != nil {
+		fmt.Fprintf(os.Stderr, "Error running program: %v\n", runErr)
+		os.Exit(1)
+	}
 }
 
 func printHelp() {

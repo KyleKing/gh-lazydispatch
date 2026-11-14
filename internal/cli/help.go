@@ -124,9 +124,6 @@ runs are read too (cached).`
   --ignore-job <a,b>  Job names left out of the path and the flake count. Default: detect gate jobs
   --out <path>        Write to a file instead of stdout`
 
-	flagsTelemetry = `Flags (telemetry):
-  --format json|md    Default json`
-
 	flagsWatch = `Flags (watch):
   --pr <n>            Watch a pull request's checks instead of one run
   --notify-cmd <cmd>  Run cmd with the outcome as its argument, after the terminal bell
@@ -172,9 +169,8 @@ func helpTable() []commandHelp {
 			flags: flagsCiReport,
 		},
 		{
-			name:  "telemetry",
-			lines: []string{"export telemetry [flags]   How often each command, verb, and dispatch was used"},
-			flags: flagsTelemetry,
+			name:  "keys",
+			lines: []string{"export keys                Keys never pressed, gone stale, or unbound"},
 		},
 		{
 			name: cmdWatch,

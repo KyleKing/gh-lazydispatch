@@ -3,6 +3,7 @@ package modal
 import (
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
@@ -26,6 +27,7 @@ type ActionResultMsg struct {
 // the same menu serve every pane. Keys are spelled `[b]` here as they are in
 // the footer, so the same key reads the same in both places.
 type ActionMenuModal struct {
+	keys     actionMenuKeyMap
 	title    string
 	target   string
 	result   ActionResultMsg
@@ -35,9 +37,21 @@ type ActionMenuModal struct {
 	done     bool
 }
 
+type actionMenuKeyMap struct {
+	Close  key.Binding
+	Up     key.Binding
+	Down   key.Binding
+	Choose key.Binding
+}
+
 // NewActionMenuModal builds a menu of items acting on target.
 func NewActionMenuModal(title, target string, items []ActionItem) *ActionMenuModal {
-	return &ActionMenuModal{title: title, target: target, items: items}
+	return &ActionMenuModal{title: title, target: target, items: items, keys: actionMenuKeyMap{
+		Close:  key.NewBinding(key.WithKeys("esc", "q", "a")),
+		Up:     key.NewBinding(key.WithKeys("up", "k")),
+		Down:   key.NewBinding(key.WithKeys("down", "j")),
+		Choose: key.NewBinding(key.WithKeys("enter")),
+	}}
 }
 
 // SetSize records the room the menu has, so a long target line truncates
@@ -55,27 +69,27 @@ func (m *ActionMenuModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 		return m, nil
 	}
 
-	switch keyMsg.String() {
-	case "esc", "q", "a":
+	switch {
+	case key.Matches(keyMsg, m.keys.Close):
 		m.done = true
 
 		return m, func() tea.Msg { return ActionResultMsg{} }
 
-	case "up", "k":
+	case key.Matches(keyMsg, m.keys.Up):
 		if m.selected > 0 {
 			m.selected--
 		}
 
 		return m, nil
 
-	case "down", "j":
+	case key.Matches(keyMsg, m.keys.Down):
 		if m.selected < len(m.items)-1 {
 			m.selected++
 		}
 
 		return m, nil
 
-	case "enter":
+	case key.Matches(keyMsg, m.keys.Choose):
 		if m.selected < len(m.items) {
 			return m.choose(m.items[m.selected].Key)
 		}
@@ -92,9 +106,12 @@ func (m *ActionMenuModal) Update(msg tea.Msg) (Context, tea.Cmd) {
 	return m, nil
 }
 
-func (m *ActionMenuModal) choose(key string) (Context, tea.Cmd) {
+// Records is false for a verb's own key, which the caller logs as the verb.
+func (m *ActionMenuModal) Records(k string) bool { return bound(m.keys, k) }
+
+func (m *ActionMenuModal) choose(verb string) (Context, tea.Cmd) {
 	m.done = true
-	m.result = ActionResultMsg{Key: key}
+	m.result = ActionResultMsg{Key: verb}
 
 	return m, func() tea.Msg { return m.result }
 }

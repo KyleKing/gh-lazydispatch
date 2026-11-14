@@ -8,6 +8,7 @@ import (
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"github.com/kyleking/aragonite/keyusage"
 
 	"github.com/kyleking/gh-lazydispatch/internal/chain"
 	"github.com/kyleking/gh-lazydispatch/internal/config"
@@ -16,7 +17,6 @@ import (
 	"github.com/kyleking/gh-lazydispatch/internal/github"
 	"github.com/kyleking/gh-lazydispatch/internal/logs"
 	"github.com/kyleking/gh-lazydispatch/internal/runner"
-	"github.com/kyleking/gh-lazydispatch/internal/telemetry"
 	"github.com/kyleking/gh-lazydispatch/internal/ui"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/modal"
 	"github.com/kyleking/gh-lazydispatch/internal/ui/panes"
@@ -60,7 +60,7 @@ type Model struct {
 	pendingChainVariables   map[string]string
 	watcher                 *watcher.RunWatcher
 	history                 *frecency.Store
-	telemetry               *telemetry.Tracker
+	usage                   *keyusage.Recorder
 	executingChainVariables map[string]string
 	pendingChain            *config.Chain
 	chainExecutor           *chain.ChainExecutor
@@ -121,19 +121,14 @@ type ChainUpdateMsg struct {
 type Option func(*options)
 
 type options struct {
-	telemetry *telemetry.Tracker
-	repoRoot  string
+	usage    *keyusage.Recorder
+	repoRoot string
 }
 
 // WithRepoRoot reads the chain config from root rather than the working
 // directory, which is what lets the TUI start in a subdirectory.
 func WithRepoRoot(root string) Option {
 	return func(o *options) { o.repoRoot = root }
-}
-
-// WithTelemetry counts the commands, verbs, and dispatches the model runs.
-func WithTelemetry(t *telemetry.Tracker) Option {
-	return func(o *options) { o.telemetry = t }
 }
 
 // New creates a new application model.
@@ -160,7 +155,7 @@ func New(workflows []workflow.File, history *frecency.Store, repo string, opts .
 		rightPanel:       panes.NewTabbedRight(),
 		chains:           panes.NewChainListModel(),
 		registry:         DefaultRegistry(),
-		telemetry:        settings.telemetry,
+		usage:            settings.usage,
 		commandInput:     newCommandInput(),
 	}
 
@@ -236,6 +231,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, nil
+	}
+
+	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+		m.recordKey(keyMsg)
 	}
 
 	if m.modalStack.HasActive() {

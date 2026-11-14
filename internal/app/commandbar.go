@@ -105,7 +105,7 @@ func (m Model) runCommandLine(line string) (tea.Model, tea.Cmd) {
 		return m, statusCmd("no command matches " + commandLeader + fields[0])
 	}
 
-	m.telemetry.Track("command:" + command.Name)
+	m.usage.Event(ctxCommand, "command", command.Name)
 
 	return command.Run(m, fields[1:])
 }
