@@ -15,7 +15,7 @@ import (
 const UsageApp = "lazydispatch"
 
 // StaleAfter is how long a key may go unpressed before `export keys` lists it as neglected.
-const StaleAfter = 30 * 24 * time.Hour
+const StaleAfter = 28 * 24 * time.Hour
 
 const (
 	ctxChains    = "chains"

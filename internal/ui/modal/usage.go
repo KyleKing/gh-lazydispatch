@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 	"unicode"
-	"unsafe"
 
 	"charm.land/bubbles/v2/key"
 	"github.com/kyleking/aragonite/keyusage"
@@ -63,16 +62,41 @@ func Keymap() keyusage.Keymap {
 	return km
 }
 
-// keyTable is the unexported keys field every modal dispatches on.
+// keyed is a modal with a key table it dispatches on.
+type keyed interface {
+	keyTable() any
+}
+
+// keyTable is the keys field c dispatches on.
 func keyTable(c Context) (any, bool) {
-	f := reflect.ValueOf(c).Elem().FieldByName("keys")
-	if !f.IsValid() {
+	k, ok := c.(keyed)
+	if !ok {
 		return nil, false
 	}
 
-	//nolint:gosec // reads a field of a modal this package owns
-	return reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem().Interface(), true
+	return k.keyTable(), true
 }
+
+func (m *ActionMenuModal) keyTable() any      { return m.keys }
+func (m *ChainConfirmModal) keyTable() any    { return m.keys }
+func (m *ChainRerunModal) keyTable() any      { return m.keys }
+func (m *ChainSelectModal) keyTable() any     { return m.keys }
+func (m *ChainStatusModal) keyTable() any     { return m.keys }
+func (m *ChainVariableModal) keyTable() any   { return m.keys }
+func (m *ConfirmModal) keyTable() any         { return m.keys }
+func (m *ErrorModal) keyTable() any           { return m.keys }
+func (m *FilterModal) keyTable() any          { return m.keys }
+func (m *HelpModal) keyTable() any            { return m.keys }
+func (m *InputModal) keyTable() any           { return m.keys }
+func (m *LiveViewModal) keyTable() any        { return m.keys }
+func (m *LogsViewerModal) keyTable() any      { return m.keys }
+func (m *RemapModal) keyTable() any           { return m.keys }
+func (m *ResetModal) keyTable() any           { return m.keys }
+func (m *RunActionModal) keyTable() any       { return m.keys }
+func (m *RunConfirmModal) keyTable() any      { return m.keys }
+func (m *SelectModal) keyTable() any          { return m.keys }
+func (m *SimpleBranchModal) keyTable() any    { return m.keys }
+func (m *ValidationErrorModal) keyTable() any { return m.keys }
 
 // Bindings reads the key.Binding fields of a key table, naming each by its help
 // text, or by its field when it has none.
