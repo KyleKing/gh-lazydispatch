@@ -1,3 +1,17 @@
+## v2.0.0 (2026-11-14)
+
+### Feat
+
+- replace telemetry with per-context key usage and a keys report
+
+### Fix
+
+- **logs**: read a finished job's log while its run is still in progress
+
+### Refactor
+
+- read modal key tables without unsafe and bump aragonite to v1.15.0
+
 ## v1.18.0 (2026-11-05)
 
 ### Feat
